@@ -1,13 +1,29 @@
 # Marvel Champions Digital: Ronin Edition
 
-> Version 0.7.1 — “Ronin”
+> Version 0.8.0 — “Archive”
 
 > **This edition uses Marvel Champions Rules Reference v1.8 as its supported rules model.**
 
 > [!CAUTION]
 > **Please support the physical game.** Buy Marvel Champions and its expansions from Fantasy Flight Games, and support your friendly local game store whenever possible. Ronin Edition is intended as a testing, training, and learning platform—a convenient way to explore heroes, practise decks, and become familiar with the game—not as a replacement for the physical card game.
 
-## New in 0.7.0: Ronin
+## New in 0.8.0: Archive
+
+Finding what you want to play, and knowing what you own.
+
+- **Scenario filtering.** The Quick Game scenario picker gained the same
+  controls as the hero picker: filter to one box, sort by new content,
+  release order or name, and group by box — with boxes listed in the order
+  they came out.
+- **Heroes that share a name are told apart.** Black Panther is both T'Challa
+  and Shuri; Spider-Man is both Peter Parker and Miles Morales. Each pair used
+  to collapse into a single entry.
+- **Collection comparison.** The Deck Viewer shows which cards in a deck come
+  from products you have not marked as owned in Collection & Stats — for
+  moving between the digital and physical games. Hidden until you record a
+  collection; every card stays playable here either way.
+
+## Previously in 0.7.0: Ronin
 
 The first release of this fork, continuing from
 [z00lus/marvel-lcg](https://github.com/z00lus/marvel-lcg) 0.6.1. No rules or
@@ -32,7 +48,7 @@ the board.
   container, so a `docker compose up --build` no longer discards everything
   synced from MarvelCDB.
 
-**0.7.1** fixes The Elephant's Trunk, which could not be used at all, and
+**0.7.1** fixed The Elephant's Trunk, which could not be used at all, and
 reports decks that name cards this build does not implement when they sync
 rather than when you draw them. See the [changelog](CHANGELOG.md) for detail.
 

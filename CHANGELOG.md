@@ -1,6 +1,6 @@
 # Marvel Champions Digital: Ronin Edition Changelog
 
-> Current release version: 0.7.1 — “Ronin”
+> Current release version: 0.8.0 — “Archive”
 
 This document records the user-visible and development changes made in this
 fork after it diverged from the original
@@ -10,6 +10,34 @@ The comparison baseline is upstream commit
 [`a77154a`](https://github.com/irefrixs/marvel-lcg/commit/a77154ab7e2f800a6ae82da6e67efd83dc3c8045)
 (`master`, 2026-07-31). Version 0.6.0 is the first release carrying the
 **Ronin Edition** name and the **Echo** codename.
+
+## Version 0.8.0 — “Archive” (2026-09-06)
+
+Finding what you want to play, and knowing what you own.
+
+### Deck browsing
+
+- The Quick Game scenario picker gained a controls bar to match the hero
+  picker: filter to a single box, sort by new content, release order or name,
+  and group by box. 62 scenarios in one flat list had become hard to search.
+  Boxes are listed and grouped in the order they were released rather than
+  alphabetically. All three settings are remembered.
+- Heroes that share a name are told apart. Black Panther is both T'Challa and
+  Shuri, and Spider-Man is both Peter Parker and Miles Morales; each pair
+  collapsed into one entry in the hero filter and one heading when grouping.
+  They are now keyed on the identity card and shown as, for example,
+  "Black Panther (Shuri)". Both the picker and the Deck Viewer list 68 heroes
+  where they listed 66.
+
+### Collection
+
+- The Deck Viewer compares a deck against the collection recorded in
+  Collection & Stats, summarising how many cards come from products you have
+  not marked as owned and naming those products, with an outline and a
+  NOT OWNED badge on each such card. This is for moving between the digital
+  and physical games; every card remains playable here regardless.
+- Nothing is shown until a collection has been recorded. An empty collection
+  means nobody has filled one in rather than that they own nothing.
 
 ## Version 0.7.1 — “Ronin” (2026-09-06)
 

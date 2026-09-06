@@ -5,12 +5,12 @@ class Build:
     release = True
 
     PRODUCT_NAME = "Marvel Champions Digital: Ronin Edition"
-    RELEASE_CODENAME = "Ronin"
+    RELEASE_CODENAME = "Archive"
 
     # Version
     MAJOR = 0
-    MINOR = 7
-    PATCH = 1
+    MINOR = 8
+    PATCH = 0
     BUILD = 0
 
     RELEASE_VERSION = f"{MAJOR}.{MINOR}.{PATCH}"
