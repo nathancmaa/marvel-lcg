@@ -439,8 +439,12 @@
 }
 
 .card-not-collected {
-    align-self: flex-start;
-    margin-top: 0.25rem;
+    /* The tile is a button with left-aligned text, so the badge needs its own
+       centring; `align-self` did nothing here because the tile is not a flex
+       container. */
+    display: block;
+    width: fit-content;
+    margin: 0.25rem auto 0;
     padding: 0.05rem 0.35rem;
     border-radius: 0.25rem;
     background: rgba(232, 184, 74, 0.16);
