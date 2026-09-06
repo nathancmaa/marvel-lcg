@@ -10,6 +10,8 @@
 export type DeckFilterData = {
     name: string;
     deck_name?: string;
+    /** Identity cards, e.g. `["51001a,51001b"]`. */
+    hero?: string[];
     player_deck?: string[];
     metadata?: Record<string, string>;
 };
@@ -96,8 +98,66 @@ function deckNameOf(choice: DeckFilterChoice): string {
     return choice.data.deck_name ?? choice.data.name;
 }
 
-function heroNameOf(choice: DeckFilterChoice): string {
-    return choice.data.name;
+/**
+ * What identifies a hero for filtering and grouping.
+ *
+ * Not the name: two heroes can share one. Black Panther is both T'Challa
+ * (01040a) and Shuri (51001a), and Spider-Man is both Peter Parker (01001a) and
+ * Miles Morales (27030a), so keying on the name collapsed each pair into a
+ * single entry. The identity card is what actually distinguishes them.
+ */
+export function heroKeyOf(choice: DeckFilterChoice): string {
+    return choice.data.hero?.[0] ?? choice.data.name;
+}
+
+function slugOf(name: string): string {
+    return name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+}
+
+function titleCase(slug: string): string {
+    return slug.split('_').filter(Boolean)
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+}
+
+/**
+ * Display names for each hero identity, disambiguated only where needed.
+ *
+ * A hero sharing its name with another takes a suffix derived from its precon
+ * deck's file name: `black_panther_shuri` beyond `black_panther` gives
+ * "Black Panther (Shuri)", and `spider_man_miles_morales` gives
+ * "Spider-Man (Miles Morales)". Reading it off the file rather than hardcoding
+ * a table means a hero added later is handled without further work. Heroes with
+ * an unambiguous name keep it exactly as it is.
+ */
+export function buildHeroLabels(choices: readonly DeckFilterChoice[]): Map<string, string> {
+    const byKey = new Map<string, {name: string; preconId?: string}>();
+    for (const choice of choices) {
+        const key = heroKeyOf(choice);
+        const entry = byKey.get(key) ?? {name: choice.data.name};
+        if (!choice.isUserDeck && entry.preconId === undefined) {
+            entry.preconId = choice.id;
+        }
+        byKey.set(key, entry);
+    }
+
+    const nameCounts = new Map<string, number>();
+    for (const {name} of byKey.values()) {
+        nameCounts.set(name, (nameCounts.get(name) ?? 0) + 1);
+    }
+
+    const labels = new Map<string, string>();
+    for (const [key, {name, preconId}] of byKey) {
+        let label = name;
+        if ((nameCounts.get(name) ?? 0) > 1 && preconId) {
+            const base = `${slugOf(name)}_`;
+            if (preconId.startsWith(base)) {
+                label = `${name} (${titleCase(preconId.slice(base.length))})`;
+            }
+        }
+        labels.set(key, label);
+    }
+    return labels;
 }
 
 /** Case- and accent-insensitive, with numbers ordered numerically. Exported so
@@ -209,6 +269,7 @@ export function createDeckFilters<T extends DeckFilterChoice>(
     const state = readState();
 
     let source: T[] = [];
+    let heroLabels: Map<string, string> = new Map();
     let aspects: Map<string, string> | null = null;
 
     const bar = document.createElement('div');
@@ -277,6 +338,11 @@ export function createDeckFilters<T extends DeckFilterChoice>(
         writeState(state);
     }
 
+    function heroLabelOf(choice: T): string {
+        const key = heroKeyOf(choice);
+        return heroLabels.get(key) ?? choice.data.name;
+    }
+
     /** Decks the controls apply to. A loaded MarvelCDB deck is pinned by
      *  solo.ts outside this list and must not be filtered away. */
     function browsable(): T[] {
@@ -284,8 +350,10 @@ export function createDeckFilters<T extends DeckFilterChoice>(
     }
 
     function refreshHeroOptions(): void {
-        const heroes = [...new Set(browsable().map(heroNameOf))]
-            .sort((left, right) => compareText(left, right));
+        heroLabels = buildHeroLabels(browsable());
+        const heroes = [...new Set(browsable().map(heroKeyOf))]
+            .map((key) => ({key, label: heroLabels.get(key) ?? key}))
+            .sort((left, right) => compareText(left.label, right.label));
         const previous = state.heroId;
         heroSelect.replaceChildren();
 
@@ -296,14 +364,14 @@ export function createDeckFilters<T extends DeckFilterChoice>(
 
         for (const hero of heroes) {
             const option = document.createElement('option');
-            option.value = hero;
-            option.textContent = hero;
+            option.value = hero.key;
+            option.textContent = hero.label;
             heroSelect.appendChild(option);
         }
 
         // A remembered hero that no longer has decks falls back to "All"
         // rather than leaving the picker mysteriously empty.
-        if (previous && !heroes.includes(previous)) {
+        if (previous && !heroes.some((hero) => hero.key === previous)) {
             state.heroId = '';
             persist();
         }
@@ -315,7 +383,7 @@ export function createDeckFilters<T extends DeckFilterChoice>(
             if (state.hidePrecons && !choice.isUserDeck) {
                 return false;
             }
-            if (state.heroId && heroNameOf(choice) !== state.heroId) {
+            if (state.heroId && heroKeyOf(choice) !== state.heroId) {
                 return false;
             }
             return true;
@@ -325,7 +393,7 @@ export function createDeckFilters<T extends DeckFilterChoice>(
     function sortKey(choice: T): string {
         switch (state.sort) {
             case 'hero':
-                return heroNameOf(choice);
+                return heroLabelOf(choice);
             case 'aspect':
                 return aspects ? aspectOf(choice, aspects) : '';
             case 'updated':
@@ -376,7 +444,7 @@ export function createDeckFilters<T extends DeckFilterChoice>(
 
         const groups = new Map<string, T[]>();
         for (const choice of filtered) {
-            const hero = heroNameOf(choice);
+            const hero = heroLabelOf(choice);
             const bucket = groups.get(hero);
             if (bucket) {
                 bucket.push(choice);

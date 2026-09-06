@@ -1,5 +1,5 @@
 import { withCardImageRevision } from './card_image_url.js';
-import { compareDeckText } from './deck_filters.js';
+import { buildHeroLabels, compareDeckText, heroKeyOf } from './deck_filters.js';
 
 type DeckData = {
     name: string;
@@ -195,9 +195,12 @@ function fillDeckSelect(): void {
     // Grouped by hero, the My decks / Starter decks split stops being the
     // organising idea, so the optgroups become hero names instead.
     const groups = new Map<string, DeckChoice[]>();
+    const heroLabels = buildHeroLabels(visible);
     if (groupByHero) {
         for (const choice of visible) {
-            const hero = choice.data.name;
+            // By identity, not name: two heroes can share one, so grouping on
+            // the name put both Black Panthers under a single heading.
+            const hero = heroLabels.get(heroKeyOf(choice)) ?? choice.data.name;
             const bucket = groups.get(hero);
             if (bucket) {
                 bucket.push(choice);
