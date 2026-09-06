@@ -1,13 +1,35 @@
 # Marvel Champions Digital: Ronin Edition
 
-> Version 0.8.0 — “Archive”
+> Version 0.8.1 — “Archive”
 
 > **This edition uses Marvel Champions Rules Reference v1.8 as its supported rules model.**
 
 > [!CAUTION]
 > **Please support the physical game.** Buy Marvel Champions and its expansions from Fantasy Flight Games, and support your friendly local game store whenever possible. Ronin Edition is intended as a testing, training, and learning platform—a convenient way to explore heroes, practise decks, and become familiar with the game—not as a replacement for the physical card game.
 
-## New in 0.8.0: Archive
+## New in 0.8.1
+
+Building the deck you take in, and choosing how hard the game pushes back.
+
+- **Prebuilt aspect decks.** 25 aspect-and-basic card lists, pairable with any
+  hero. A deck on MarvelCDB is always attached to one hero, so a good aspect
+  list could not be lifted off it and handed to somebody else; these carry the
+  cards alone. Pick a hero and a list from the two dropdowns and the hero keeps
+  its identity, signature cards, obligation and nemesis set. Lists and notes
+  come from a BoardGameGeek geeklist, credited in the picker.
+- **Standard I, II or III.** Every game used to be dealt Standard I. All three
+  sets were already implemented; only the choice was missing. Standard II and
+  III stand in for Standard I rather than stacking on it, Expert still layers
+  on top, and the two scenarios played without a Standard set — Kingpin and
+  The Wrecking Crew — say so instead of being given one.
+- **Deck titles link to MarvelCDB.** The title in the Hero heading is the way
+  back to a deck's own page, for a synced deck picked off a tile as much as
+  one pasted in, and for the chosen aspect deck. Only decks this app fetched
+  are linked: a precon's own metadata link is not a deck page.
+- **"My Decks" instead of "Precon".** That tab lists every synced deck
+  alongside the starters, and had been named after only half of what is in it.
+
+## Previously in 0.8.0: Archive
 
 Finding what you want to play, and knowing what you own.
 

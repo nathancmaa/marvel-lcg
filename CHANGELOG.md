@@ -1,6 +1,6 @@
 # Marvel Champions Digital: Ronin Edition Changelog
 
-> Current release version: 0.8.0 — “Archive”
+> Current release version: 0.8.1 — “Archive”
 
 This document records the user-visible and development changes made in this
 fork after it diverged from the original
@@ -10,6 +10,68 @@ The comparison baseline is upstream commit
 [`a77154a`](https://github.com/irefrixs/marvel-lcg/commit/a77154ab7e2f800a6ae82da6e67efd83dc3c8045)
 (`master`, 2026-07-31). Version 0.6.0 is the first release carrying the
 **Ronin Edition** name and the **Echo** codename.
+
+## Version 0.8.1 — “Archive” (2026-09-06)
+
+Building the deck you take in, and choosing how hard the game pushes back.
+
+### Deck building
+
+- Quick Game gained a third deck source beside My Decks and MarvelCDB deck:
+  25 prebuilt aspect decks, each 30 aspect and basic cards with no hero cards
+  at all, so any hero can carry one. A deck on MarvelCDB is always attached to
+  a hero, which is why a good aspect list could not simply be lifted off one
+  and handed to somebody else.
+- Choosing that source reveals a hero dropdown beside the aspect deck
+  dropdown, and puts the deck tiles away while it is in use. The tiles choose
+  a deck, and an aspect deck replaces the deck, so they were asking a question
+  whose answer was discarded. The hero keeps its identity, signature cards,
+  obligation and nemesis set; only the player deck is replaced.
+- The hero dropdown offers precons only, since a netdeck contributes nothing a
+  precon does not here, and it opens on the precon for whoever was already
+  selected rather than jumping to the top of the alphabet.
+- Several of the lists are trait-locked — X-Men, Web-Warrior, Guardian,
+  Avenger — and some name cards to swap out for a hero that does not fit. None
+  of that is enforced: the deck's own notes say so, shown under the dropdowns,
+  and the choice is the player's. The lists and notes come from a
+  BoardGameGeek geeklist, credited and linked in the picker.
+
+### Difficulty
+
+- The Difficulty section can now be set to Standard I, II or III. Every game
+  was previously dealt Standard I. The sets and their cards were already
+  present and the engine already substituted difficulty sets by family; only
+  the choice was missing.
+- Standard II and III stand in for Standard I rather than stacking on it, and
+  Expert still layers on top of whichever is chosen. The choice is remembered
+  and always named in the section heading, as "Standard III" or
+  "Expert · Standard III".
+- Kingpin and The Wrecking Crew are dealt no Standard set at all. They disable
+  the control and say why, rather than silently acquiring one.
+
+### Deck titles
+
+- The deck title in the Hero heading links to its page on MarvelCDB — for a
+  synced deck picked off a tile as much as for one pasted in, and in aspect
+  mode for the aspect deck. The link follows the endpoint the deck actually
+  came from, so a deck pasted as a bare ID still resolves to the decklist it
+  was fetched from rather than to a guess.
+- Only decks this app fetched from MarvelCDB are linked. Precons carry a
+  metadata url of their own — a Hall of Heroes article, and for one hero a
+  bare image — and four of them point at marvelcdb.com without naming a deck
+  page there.
+- The "Precon" deck source is now called "My Decks", on both Quick Game and
+  Campaign. It lists every synced deck alongside the starters and had been
+  named after only half of what is in it.
+
+### Fixes
+
+- A reload left the deck source radio saying "Aspect deck" or "MarvelCDB deck"
+  with its panel shut. The browser restores the checked radio; the picker
+  assumed Precon regardless and now follows whichever radio came back.
+- The Hero heading named whichever tile was selected even in aspect mode,
+  where that tile's player deck is discarded — the one thing the summary could
+  say that was not true.
 
 ## Version 0.8.0 — “Archive” (2026-09-06)
 
