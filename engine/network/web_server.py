@@ -19,11 +19,16 @@ SOUND_FOLDERS   = ConfigVariables.Folders('sound_folders', ["./assets/sounds/"])
 IMAGE_FOLDERS   = ConfigVariables.Folders('image_folders')
 TEXTURE_FOLDER  = ConfigVariables.Folder('texture_folder')
 CACHE_MAX_AGE   = ConfigVariables.Int('cache_max_age', 31536000)
-# Files served without a version token in the URL cannot be invalidated by
-# changing that URL, so a year-long cache strands a browser on an old build
-# with no way back short of clearing site data. Only the entry module carries a
-# version query; every module it imports arrives unversioned and landed here.
-UNVERSIONED_CACHE_MAX_AGE = ConfigVariables.Int('unversioned_cache_max_age', 300)
+# For responses with no version token in the URL, and so no way to be
+# invalidated by changing that URL. JS and CSS are not among them -- AssetVersion
+# rewrites those to a content-hashed prefix, which is why they can safely keep
+# the year below. The JSON endpoints are: `/get_cards_json` and its neighbours
+# go out through ReadJsonFile at a bare path, so a year-long cache would strand
+# an updated cards.json until the browser's storage was cleared by hand.
+#
+# An hour is short enough that new card data lands on its own and long enough
+# that the card database is not refetched all session.
+UNVERSIONED_CACHE_MAX_AGE = ConfigVariables.Int('unversioned_cache_max_age', 3600)
 """
 one hour:   3600
 one day:    86400
