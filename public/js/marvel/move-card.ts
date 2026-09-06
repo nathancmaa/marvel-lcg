@@ -1,4 +1,5 @@
 import { UI } from "./ui.js";
+import { SCENE_WIDTH_CHANGED } from './scene.js'
 import { ClassName } from './class_name.js'
 import { Cards } from "./cards.js";
 import { Setting } from "./settings.js";
@@ -10,6 +11,10 @@ export class MoveCard {
     static rootStyles = getComputedStyle(document.documentElement);
     static cardWidth = parseFloat(MoveCard.rootStyles.getPropertyValue('--card-width'));
     static cardHeight = parseFloat(MoveCard.rootStyles.getPropertyValue('--card-height'));
+
+    /** Total width, in card widths, kept free at the left and right edges of
+     *  the stage so a compressed row cannot slide under the deck columns. */
+    static EDGE_RESERVE_CARDS = 2.5;
 
     static timer: Record<string, number> = {}
     static updating_area: Set<HTMLElement> = new Set()
@@ -204,7 +209,14 @@ export class MoveCard {
         const normal_y = Number(parentStyles.getPropertyValue('--y'));
         const scheme_upgrade_y = normal_y - (MoveCard.cardHeight - MoveCard.cardWidth) * 0.5;
 
-        let sceneWidth2 = sceneWidth - MoveCard.cardWidth * 1.5;
+        // Reserve room at both edges for the deck columns. The player deck and
+        // discard pile sit at stage x=20, so they occupy up to one card width
+        // past that -- and the hero row shares their vertical band. Reserving
+        // 1.5 card widths left the row starting at x=95 against a deck edge of
+        // 147, so a hero with enough upgrades to compress ran underneath it.
+        // 2.5 keeps the row clear at every --card-width the themes define, and
+        // matches what --center-area-width already reserves in CSS.
+        let sceneWidth2 = sceneWidth - MoveCard.cardWidth * MoveCard.EDGE_RESERVE_CARDS;
         if (parent.id === 'area-villain') {
             sceneWidth2 *= 0.6;
         }
@@ -460,3 +472,17 @@ export class MoveCard {
         });
     }
 }
+
+// Every row is positioned relative to the stage width, so a stage that grew or
+// shrank leaves every card where it used to belong. Dragging a window edge
+// fires this continuously, so the relayout is coalesced into one frame.
+let relayoutHandle = 0;
+window.addEventListener(SCENE_WIDTH_CHANGED, () => {
+    if (relayoutHandle) {
+        cancelAnimationFrame(relayoutHandle);
+    }
+    relayoutHandle = requestAnimationFrame(() => {
+        relayoutHandle = 0;
+        MoveCard.doMoveFirstTime();
+    });
+});
