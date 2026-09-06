@@ -73,6 +73,7 @@ import {
     createDeckSourceController,
 } from './marvelcdb_deck.js';
 import { withCardImageRevision } from './card_image_url.js';
+import { DeckFilters, createDeckFilters } from './deck_filters.js';
 
 const scenarioStorageKey = 'marvel_lcg_solo_scenario';
 const heroStorageKey = 'marvel_lcg_solo_hero';
@@ -103,6 +104,23 @@ let underlingChoices: UnderlingChoice[] = [];
 let isStarting = false;
 let heroChoices: HeroChoice[] = [];
 let heroBeforeMarvelCdb: HeroChoice | null = null;
+
+const deckFilters: DeckFilters<HeroChoice> = createDeckFilters<HeroChoice>({
+    listHost: heroList,
+    createButton: (choice) => {
+        const button = createChoiceButton(
+            choice.id,
+            choice.name,
+            choice.imageId,
+            () => selectHero(choice),
+            !choice.isUserDeck && newHeroIds.has(choice.id),
+        );
+        button.classList.toggle('user-deck', choice.isUserDeck);
+        return button;
+    },
+    // Re-drawing the list discards the selected styling, so put it back.
+    onRendered: () => markSelected(heroList, selectedHero?.id ?? ''),
+});
 
 // The precon is the deck that ships with the hero; a MarvelCDB deck replaces
 // only the player deck, so the hero choice stays the source of truth for the
@@ -475,19 +493,7 @@ function renderScenarios(choices: ScenarioChoice[]): void {
 function renderHeroes(choices: HeroChoice[]): void {
     const savedId = localStorage.getItem(heroStorageKey);
     heroChoices = choices;
-    heroList.replaceChildren();
-
-    for (const choice of choices) {
-        const button = createChoiceButton(
-            choice.id,
-            choice.name,
-            choice.imageId,
-            () => selectHero(choice),
-            !choice.isUserDeck && newHeroIds.has(choice.id),
-        );
-        button.classList.toggle('user-deck', choice.isUserDeck);
-        heroList.appendChild(button);
-    }
+    deckFilters.render(choices);
 
     const savedChoice = choices.find((choice) => choice.id === savedId);
     if (savedChoice) {

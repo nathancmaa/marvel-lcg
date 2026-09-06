@@ -181,6 +181,86 @@ input {
     gap: 0.75rem;
 }
 
+.deck-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    margin: 0 0 0.75rem;
+}
+
+.deck-filter-field {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: #cfdae4;
+    font-size: 0.9rem;
+}
+
+.deck-filter-label {
+    color: #aebbc6;
+}
+
+.deck-filter-select {
+    padding: 0.3rem 0.5rem;
+    border: 1px solid rgba(120, 210, 255, 0.35);
+    border-radius: 0.4rem;
+    background: rgba(16, 28, 40, 0.9);
+    color: #e6eef6;
+    font: inherit;
+    font-size: 0.9rem;
+    max-width: 14rem;
+}
+
+.deck-filter-toggle {
+    padding: 0.3rem 0.75rem;
+    border: 1px solid rgba(120, 210, 255, 0.35);
+    border-radius: 0.4rem;
+    background: rgba(16, 28, 40, 0.9);
+    color: #cfdae4;
+    font: inherit;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.deck-filter-toggle:hover {
+    border-color: rgba(120, 210, 255, 0.7);
+}
+
+.deck-filter-toggle.active {
+    border-color: #78d2ff;
+    background: rgba(120, 210, 255, 0.18);
+    color: #d8f1ff;
+}
+
+.deck-filter-count {
+    margin-left: auto;
+    color: #aebbc6;
+    font-size: 0.85rem;
+}
+
+/* The grid is a wrapping flex row, so a full-basis heading forces a line
+   break and spans the row without needing a separate container per group. */
+.deck-group-heading {
+    flex: 0 0 100%;
+    margin: 0.35rem 0 0;
+    padding-bottom: 0.3rem;
+    border-bottom: 1px solid rgba(232, 184, 74, 0.28);
+    color: #e8b84a;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.deck-group-heading:first-child {
+    margin-top: 0;
+}
+
+.deck-filter-empty {
+    flex: 0 0 100%;
+    margin: 0.25rem 0;
+    color: #aebbc6;
+}
+
 .scenario-product-label {
     min-height: 2.2em;
     display: grid;
