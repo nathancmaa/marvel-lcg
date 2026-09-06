@@ -142,6 +142,35 @@ export function createDeckSourceController(options: {
         status.classList.remove('error');
     }
 
+    /**
+     * Show a notice with the deck's name turned into a link to MarvelCDB.
+     *
+     * Both pages word the notice around the deck's own name, so the name is
+     * located in the finished text rather than passed alongside it. A notice
+     * that omits the name, or a deck that came back without a url, simply
+     * stays plain text.
+     */
+    function showResolved(notice: string, resolved: MarvelCdbDeckData): void {
+        const url = resolved.metadata?.url ?? '';
+        const name = resolved.deck_name ?? resolved.name;
+        const at = url && name ? notice.indexOf(name) : -1;
+        if (at < 0) {
+            status.textContent = notice;
+            return;
+        }
+        const link = document.createElement('a');
+        link.className = 'deck-link';
+        link.href = url;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.textContent = name;
+        status.replaceChildren(
+            notice.slice(0, at),
+            link,
+            notice.slice(at + name.length),
+        );
+    }
+
     function setSource(next: DeckSource): void {
         source = next;
         panel.hidden = next !== 'marvelcdb';
@@ -190,8 +219,10 @@ export function createDeckSourceController(options: {
         try {
             const resolved = await resolveMarvelCdbDeck(reference);
             deck = resolved;
-            status.textContent = options.onResolved(resolved)
-                ?? (resolved.deck_name ?? resolved.name);
+            showResolved(
+                options.onResolved(resolved) ?? (resolved.deck_name ?? resolved.name),
+                resolved,
+            );
             rememberRecentDeck({
                 reference,
                 name: resolved.deck_name ?? resolved.name,
@@ -239,7 +270,7 @@ export function createDeckSourceController(options: {
         setDeck(next: MarvelCdbDeckData, notice: string) {
             deck = next;
             status.classList.remove('error');
-            status.textContent = notice;
+            showResolved(notice, next);
         },
     };
 }

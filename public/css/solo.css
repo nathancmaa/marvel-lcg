@@ -823,3 +823,68 @@ input {
 .aspect-credit a {
     color: #9fdcff;
 }
+
+.standard-set-option {
+    width: min(36rem, 100%);
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 0.35rem 0.9rem;
+    margin-bottom: 0.85rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid rgba(132, 159, 180, 0.55);
+    border-radius: 0.65rem;
+    background: linear-gradient(135deg, rgba(33, 48, 62, 0.94), rgba(17, 28, 39, 0.94));
+}
+
+.standard-set-option:has(select:disabled) {
+    filter: grayscale(0.7);
+    opacity: 0.62;
+}
+
+.standard-set-option label {
+    color: #f4f7f9;
+    font-weight: 700;
+}
+
+.standard-set-option select {
+    min-height: 2.4rem;
+    justify-self: start;
+    padding: 0.4rem 0.7rem;
+    border: 1px solid rgba(120, 210, 255, 0.4);
+    border-radius: 0.45rem;
+    background: #111d28;
+    color: #e6eef6;
+    font: inherit;
+}
+
+.standard-set-option select:disabled {
+    cursor: not-allowed;
+}
+
+.standard-set-option small {
+    grid-column: 1 / -1;
+    color: #aebbc6;
+    font-size: 0.8rem;
+    line-height: 1.35;
+}
+
+/* The way through to a deck's own page on MarvelCDB, wherever its name is
+   shown: the loaded-deck notice, and the chosen aspect deck. */
+.deck-link {
+    color: #9fdcff;
+    text-decoration-color: rgba(159, 220, 255, 0.5);
+    text-underline-offset: 0.15em;
+}
+
+.deck-link:hover,
+.deck-link:focus-visible {
+    color: #c9ecff;
+    text-decoration-color: currentColor;
+}
+
+#aspect-deck-link {
+    display: inline-block;
+    margin-top: 0.6rem;
+    font-weight: 700;
+}

@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 import unittest
 
@@ -99,6 +100,39 @@ class TestScenarioEncounterSets(unittest.TestCase):
                 "shield",
             ],
         )
+
+    def test_quick_game_offers_only_standard_sets_that_exist(self):
+        """The picker names its Standard sets in markup, not from the data.
+
+        Nothing else ties the three options in solo.html to the files they
+        stand for, so an option naming a set that was never shipped would
+        reach the engine and fail there instead of here.
+        """
+        markup = (self.project_root / "public" / "solo.html").read_text(
+            encoding="utf-8"
+        )
+        select = re.search(
+            r'<select id="standard-set">(.*?)</select>', markup, re.DOTALL
+        )
+        self.assertIsNotNone(select, "solo.html has no #standard-set picker")
+        offered = re.findall(r'value="([^"]+)"', select.group(1))
+
+        self.assertEqual(offered, ["standard", "standard_ii", "standard_iii"])
+        for encounter_set in offered:
+            with self.subTest(encounter_set=encounter_set):
+                self.assertEqual(
+                    SceneLoader.GetEncounterSetFamily(encounter_set), "standard"
+                )
+                path = (
+                    self.project_root
+                    / "data"
+                    / "encounter_sets"
+                    / f"{encounter_set}.json"
+                )
+                self.assertTrue(path.is_file())
+                self.assertTrue(
+                    json.loads(path.read_text(encoding="utf-8")).get("encounters")
+                )
 
     def test_all_scenarios_reference_existing_required_encounter_sets(self):
         sets_info = json.loads(

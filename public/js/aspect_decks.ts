@@ -38,6 +38,7 @@ export function createAspectDeckPicker(options: {
     const select = document.querySelector<HTMLSelectElement>('#aspect-deck');
     const description = document.querySelector<HTMLElement>('#aspect-description');
     const sourceLink = document.querySelector<HTMLAnchorElement>('#aspect-source-link');
+    const deckLink = document.querySelector<HTMLAnchorElement>('#aspect-deck-link');
 
     let decks: AspectDeck[] = [];
     let chosen: AspectDeck | null = null;
@@ -46,6 +47,13 @@ export function createAspectDeckPicker(options: {
         chosen = deck;
         if (description) {
             description.textContent = deck ? deck.description : '';
+        }
+        // The name is in an <option>, which cannot hold a link, so the title
+        // repeats here as the way through to the deck's own MarvelCDB page.
+        if (deckLink) {
+            deckLink.hidden = !deck?.url;
+            deckLink.textContent = deck ? deck.name : '';
+            deckLink.href = deck?.url ?? '';
         }
         options.onChange();
     }

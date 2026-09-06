@@ -83,6 +83,7 @@ import { ScenarioFilters, createScenarioFilters } from './scenario_filters.js';
 const scenarioStorageKey = 'marvel_lcg_solo_scenario';
 const heroStorageKey = 'marvel_lcg_solo_hero';
 const underlingStorageKey = 'marvel_lcg_solo_underling';
+const standardSetStorageKey = 'marvel_lcg_solo_standard_set';
 const newScenarioIds = new Set(['kingpin', 'protection_racket', 'the_raft_breakout', 'art_museum_heist', 'the_getaway', 'stop_the_presses']);
 const newUnderlingIds = new Set(['bullseye', 'electro', 'hammerhead', 'purple_man', 'typhoid_mary']);
 const newHeroIds = new Set(['echo', 'daredevil', 'jessica_jones']);
@@ -99,6 +100,8 @@ const expertMode = document.querySelector<HTMLInputElement>('#expert-mode')!;
 const expertModeDescription = document.querySelector<HTMLElement>('#expert-mode-description')!;
 const difficultySelection = document.querySelector<HTMLElement>('#difficulty-selection')!;
 const difficultyStepNumber = document.querySelector<HTMLElement>('#difficulty-step-number')!;
+const standardSet = document.querySelector<HTMLSelectElement>('#standard-set')!;
+const standardSetDescription = document.querySelector<HTMLElement>('#standard-set-description')!;
 const underlingSection = document.querySelector<HTMLElement>('#underling-section')!;
 const underlingList = document.querySelector<HTMLElement>('#underling-list')!;
 const underlingSelection = document.querySelector<HTMLElement>('#underling-selection')!;
@@ -268,6 +271,39 @@ async function loadUnderlings(ids: string[]): Promise<void> {
     updatePlayButton();
 }
 
+/**
+ * Whether an encounter set is one of the Standard difficulty sets.
+ *
+ * Matches the engine's own family rule, which is what lets a chosen set stand
+ * in for the one a scenario names: see SceneLoader.GetEncounterSetFamily.
+ */
+function isStandardSet(name: string): boolean {
+    return name === 'standard' || name.startsWith('standard_');
+}
+
+/**
+ * Restate the difficulty from the two controls that make it up.
+ *
+ * Outside Expert mode the Standard set is the whole of the difficulty, so it
+ * is named on its own rather than as "Standard · Standard II".
+ */
+function updateDifficulty(): void {
+    const dealt = selectedScenario
+        ? (selectedScenario.data.encounter_sets ?? []).some(isStandardSet)
+        : true;
+    standardSet.disabled = !dealt;
+    standardSetDescription.textContent = dealt
+        ? 'Standard II and III stand in for Standard I rather than stacking on it.'
+        : 'This scenario is played without a Standard encounter set.';
+
+    const setName = dealt
+        ? standardSet.selectedOptions[0]?.text ?? 'Standard'
+        : 'Standard';
+    difficultySelection.textContent = expertMode.checked
+        ? (dealt ? `Expert · ${setName}` : 'Expert')
+        : setName;
+}
+
 function selectScenario(choice: ScenarioChoice): void {
     selectedScenario = choice;
     localStorage.setItem(scenarioStorageKey, choice.id);
@@ -280,10 +316,10 @@ function selectScenario(choice: ScenarioChoice): void {
     if (!hasExpertMode) {
         expertMode.checked = false;
     }
-    difficultySelection.textContent = expertMode.checked ? 'Expert' : 'Standard';
     expertModeDescription.textContent = hasExpertMode
         ? 'Villain stages II–III with the Expert encounter set.'
         : 'Expert setup is not available for this scenario.';
+    updateDifficulty();
     void loadUnderlings(choice.data.underling_sets ?? []);
     updatePlayButton();
 }
@@ -518,6 +554,15 @@ function renderHeroes(choices: HeroChoice[]): void {
 }
 
 async function initialize(): Promise<void> {
+    // Restored before the scenarios land, so the first selectScenario already
+    // reports the remembered set rather than flicking from Standard I to it.
+    const savedStandardSet = localStorage.getItem(standardSetStorageKey);
+    if (savedStandardSet
+        && [...standardSet.options].some((option) => option.value === savedStandardSet)) {
+        standardSet.value = savedStandardSet;
+    }
+    updateDifficulty();
+
     aspectDeckPicker = createAspectDeckPicker({onChange: updatePlayButton});
     void aspectDeckPicker.load();
 
@@ -614,8 +659,14 @@ async function startGame(): Promise<void> {
                 ...(selectedUnderling.data.encounters ?? []),
             ];
         }
+        // Standard II and III replace Standard I. Substituting inside the
+        // scenario's own list rather than appending is what keeps a scenario
+        // dealt no Standard set at all -- Kingpin, the Wrecking Crew -- from
+        // acquiring one: there is nothing there to substitute for.
+        scenario.encounter_sets = (scenario.encounter_sets ?? []).map(
+            (name) => (isStandardSet(name) ? standardSet.value : name));
         const encounterSetNames = Array.from(new Set([
-            ...(scenario.encounter_sets ?? []),
+            ...scenario.encounter_sets,
             ...(scenario.modular_sets ?? []),
         ]));
 
@@ -646,7 +697,9 @@ async function startGame(): Promise<void> {
 }
 
 playButton.addEventListener('click', startGame);
-expertMode.addEventListener('change', () => {
-    difficultySelection.textContent = expertMode.checked ? 'Expert' : 'Standard';
+expertMode.addEventListener('change', updateDifficulty);
+standardSet.addEventListener('change', () => {
+    localStorage.setItem(standardSetStorageKey, standardSet.value);
+    updateDifficulty();
 });
 void initialize();
