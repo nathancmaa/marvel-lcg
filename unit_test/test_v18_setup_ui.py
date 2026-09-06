@@ -11,17 +11,51 @@ ROOT = Path(__file__).resolve().parents[1]
 class V18SetupUiTests(unittest.TestCase):
 
     def test_ronin_edition_release_identity_is_consistent(self):
+        """The strings the UI shows agree with the numbers they come from.
+
+        Written against the literal 0.6.1 it was cut at, this went stale the
+        moment 0.7.0 landed and stayed red through four releases, asserting a
+        version nothing had shipped for weeks. Deriving the expectations means
+        it checks that the pieces agree rather than that they have not moved,
+        so it survives a bump and still catches a half-done one.
+        """
         Ver.Initialize()
 
         self.assertEqual(
             Build.PRODUCT_NAME,
             'Marvel Champions Digital: Ronin Edition',
         )
-        self.assertEqual(Build.RELEASE_VERSION, '0.6.1')
-        self.assertEqual(Build.RELEASE_CODENAME, 'Echo')
-        self.assertEqual(str(Ver.version), '0.6.1.0')
-        self.assertEqual(Ver.ui_version_str, '0.6.1.0r')
-        self.assertEqual(Ver.release_label, 'Version 0.6.1 — “Echo”')
+        self.assertEqual(
+            Build.RELEASE_VERSION,
+            f'{Build.MAJOR}.{Build.MINOR}.{Build.PATCH}',
+        )
+        self.assertEqual(
+            str(Ver.version),
+            f'{Build.RELEASE_VERSION}.{Build.BUILD}',
+        )
+        self.assertEqual(
+            Ver.ui_version_str,
+            f"{Ver.version}{'r' if Build.release else 'd'}",
+        )
+        self.assertEqual(
+            Ver.release_label,
+            f'Version {Build.RELEASE_VERSION} — “{Build.RELEASE_CODENAME}”',
+        )
+
+    def test_the_changelog_names_the_version_being_built(self):
+        """A version bump that misses the docs is the failure worth catching.
+
+        The number lives in build.py and is repeated by hand in the changelog
+        banner, so the two can drift silently -- and did, briefly, while these
+        releases were renumbered.
+        """
+        changelog = (ROOT / 'CHANGELOG.md').read_text(encoding='utf-8')
+
+        self.assertIn(
+            f'> Current release version: {Build.RELEASE_VERSION} '
+            f'— “{Build.RELEASE_CODENAME}”',
+            changelog,
+        )
 
     def test_start_page_displays_ronin_edition_and_echo_release(self):
         source = (ROOT / 'public/main.html').read_text(encoding='utf-8')
