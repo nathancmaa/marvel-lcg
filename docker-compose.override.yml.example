@@ -1,14 +1,34 @@
-# Copy to `docker-compose.override.yml` and edit the paths for your host.
-# Compose merges it on top of docker-compose.yml automatically; the real
-# override file is git-ignored so your paths stay out of version control.
+# Copy to `docker-compose.override.yml` and edit for your host. Compose merges
+# it on top of docker-compose.yml automatically; the real override file is
+# git-ignored so your paths stay out of version control.
 #
-# This example matches a Synology NAS layout with host networking and the
-# user deck folder kept on a mounted volume so decks survive image rebuilds.
+# Everything here is optional. It is worth setting when you run more than one
+# checkout of the game on a single host -- the stock `container_name` is global
+# to the Docker daemon, and under `network_mode: host` every instance binds the
+# same port, so a second version collides with the first on both counts. See
+# `.env.example` for the matching Compose project name.
+#
+# Merge behaviour: `volumes` entries are matched by their container path, so
+# these replace the relative bind mounts in docker-compose.yml rather than
+# adding to them. `container_name` and `command` replace the base outright.
 services:
   marvel-lcg:
+    container_name: marvel-lcg-ronin
     network_mode: host
     volumes:
       - /volume1/docker/marvel-lcg/assets:/app/assets
       - /volume1/docker/marvel-lcg/replays:/app/replays
       - /volume1/docker/marvel-lcg/runtime:/app/runtime
       - /volume1/docker/marvel-lcg/deck/user-decks:/app/deck/user-decks
+    # The base command plus an explicit listen address. Any config key can be
+    # overridden on the command line (see engine/config.py); `server_addresses`
+    # defaults to 0.0.0.0:2345 in launch.json.
+    command: [
+      "python", "-u", "main.py",
+      "-server_addresses", "0.0.0.0:2347",
+      "-game_statistics_file", "./runtime/statistics.json",
+      "-game_history_file", "./runtime/statistics.sqlite3",
+      "-campaign_progress_file", "./runtime/save_campaign_progress.json",
+      "-active_session_file", "./runtime/save_active_session.json",
+      "-quick_save_folder", "./runtime"
+    ]

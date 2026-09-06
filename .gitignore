@@ -1,6 +1,7 @@
 /.vscode/**
 /.venv/
 /docker-compose.override.yml
+/.env
 **/*.pyc
 /public/js/**/*.js
 /public/js/**/*.js.map
