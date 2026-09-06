@@ -46,6 +46,9 @@ type ScenarioChoice = {
     data: ScenarioData;
     expertId: string | null;
     productLabel: string;
+    // Position of the box in the release sequence, from the numeric prefix on
+    // its sets_info key. Lets the picker order boxes as they came out.
+    productOrder: number;
 };
 
 type HeroChoice = {
@@ -74,6 +77,7 @@ import {
 } from './marvelcdb_deck.js';
 import { withCardImageRevision } from './card_image_url.js';
 import { DeckFilters, createDeckFilters } from './deck_filters.js';
+import { ScenarioFilters, createScenarioFilters } from './scenario_filters.js';
 
 const scenarioStorageKey = 'marvel_lcg_solo_scenario';
 const heroStorageKey = 'marvel_lcg_solo_hero';
@@ -121,6 +125,27 @@ const deckFilters: DeckFilters<HeroChoice> = createDeckFilters<HeroChoice>({
     // Re-drawing the list discards the selected styling, so put it back.
     onRendered: () => markSelected(heroList, selectedHero?.id ?? ''),
 });
+
+const scenarioFilters: ScenarioFilters<ScenarioChoice> =
+    createScenarioFilters<ScenarioChoice>({
+        listHost: scenarioList,
+        createButton: (choice) => {
+            const button = createChoiceButton(
+                choice.id,
+                choice.name,
+                choice.imageId,
+                () => selectScenario(choice),
+                newScenarioIds.has(choice.id),
+            );
+            const product = document.createElement('span');
+            product.className = 'scenario-product-label';
+            product.textContent = choice.productLabel;
+            button.appendChild(product);
+            return button;
+        },
+        isNew: (choice) => newScenarioIds.has(choice.id),
+        onRendered: () => markSelected(scenarioList, selectedScenario?.id ?? ''),
+    });
 
 // The precon is the deck that ships with the hero; a MarvelCDB deck replaces
 // only the player deck, so the hero choice stays the source of truth for the
@@ -370,14 +395,18 @@ async function loadScenarioChoices(): Promise<ScenarioChoice[]> {
         fetchJson<string[]>('/list_scenarios?'),
     ]);
     const availableIds = new Set(availablePaths.map(getFileName));
-    const scenarioCatalog = new Map<string, string>();
+    const scenarioCatalog = new Map<string, {label: string; order: number}>();
     for (const [setName, set] of Object.entries(sets)) {
-        if (!/^\d+\./.test(setName)) {
+        const order = setName.match(/^(\d+)\./);
+        if (!order) {
             continue;
         }
         for (const id of set.scenarios ?? []) {
             if (availableIds.has(id) && !scenarioCatalog.has(id)) {
-                scenarioCatalog.set(id, getProductLabel(setName, set));
+                scenarioCatalog.set(id, {
+                    label: getProductLabel(setName, set),
+                    order: Number(order[1]),
+                });
             }
         }
     }
@@ -403,7 +432,8 @@ async function loadScenarioChoices(): Promise<ScenarioChoice[]> {
                 imageId,
                 data,
                 expertId: availableIds.has(expertId) ? expertId : null,
-                productLabel: scenarioCatalog.get(id)!,
+                productLabel: scenarioCatalog.get(id)!.label,
+                productOrder: scenarioCatalog.get(id)!.order,
             };
         } catch (error) {
             console.warn(`Failed to load scenario ${id}`, error);
@@ -463,25 +493,7 @@ async function loadHeroChoices(): Promise<HeroChoice[]> {
 
 function renderScenarios(choices: ScenarioChoice[]): void {
     const savedId = localStorage.getItem(scenarioStorageKey);
-    scenarioList.replaceChildren();
-    const orderedChoices = [...choices].sort((left, right) =>
-        Number(newScenarioIds.has(right.id)) - Number(newScenarioIds.has(left.id)),
-    );
-
-    for (const choice of orderedChoices) {
-        const button = createChoiceButton(
-            choice.id,
-            choice.name,
-            choice.imageId,
-            () => selectScenario(choice),
-            newScenarioIds.has(choice.id),
-        );
-        const product = document.createElement('span');
-        product.className = 'scenario-product-label';
-        product.textContent = choice.productLabel;
-        button.appendChild(product);
-        scenarioList.appendChild(button);
-    }
+    scenarioFilters.render(choices);
 
     const savedChoice = choices.find((choice) => choice.id === savedId);
     if (savedChoice) {
