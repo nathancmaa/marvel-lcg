@@ -251,8 +251,14 @@ export function aspectsOf(profile: CardProfile): string[] {
 export function isSubstitutable(profile: CardProfile): boolean {
     const classes = aspectsOf(profile);
     // `Hero` marks a hero's own signature cards, which belong to that hero and
-    // can never stand in for anything.
+    // can never stand in for anything. No class at all means the card is not a
+    // player card -- an identity, or an encounter card.
     if (classes.includes('Hero') || classes.length === 0) {
+        return false;
+    }
+    // `Campaign` cards are dealt by a campaign rather than built into a deck.
+    // Several are `Campaign;Basic`, so the Basic half must not smuggle them in.
+    if (classes.includes('Campaign')) {
         return false;
     }
     return classes.some((name) => ASPECTS.has(name) || name === 'Basic');

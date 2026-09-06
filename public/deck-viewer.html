@@ -114,6 +114,13 @@
             <span id="preview-meta"></span>
         </div>
         <button id="preview-flip" class="preview-flip" type="button" hidden>Flip card</button>
+        <div id="substitute-panel" class="substitute-panel" hidden>
+            <button id="substitute-find" class="substitute-find" type="button">
+                Suggest cards I own instead
+            </button>
+            <p id="substitute-status" class="substitute-status" aria-live="polite"></p>
+            <ul id="substitute-list" class="substitute-list"></ul>
+        </div>
     </dialog>
 
     <script type="module" src="/public/js/deck_viewer.js"></script>

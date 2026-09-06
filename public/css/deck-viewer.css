@@ -449,3 +449,75 @@
     font-weight: 700;
     letter-spacing: 0.04em;
 }
+
+/* --- Substitution suggestions ---------------------------------------------
+   Shown inside the card preview, and only for a card you do not own. */
+
+.substitute-panel {
+    margin-top: 0.9rem;
+    padding-top: 0.8rem;
+    border-top: 1px solid rgba(232, 184, 74, 0.28);
+}
+
+.substitute-panel[hidden] {
+    display: none;
+}
+
+.substitute-find {
+    width: 100%;
+    min-height: 2.5rem;
+    padding: 0.5rem 1rem;
+    border: 1px solid rgba(232, 184, 74, 0.6);
+    border-radius: 0.4rem;
+    background: rgba(43, 24, 51, 0.75);
+    color: #ffe7a3;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 700;
+}
+
+.substitute-find:hover:not(:disabled) {
+    background: rgba(73, 47, 86, 0.9);
+}
+
+.substitute-find:disabled {
+    cursor: wait;
+    opacity: 0.7;
+}
+
+.substitute-status {
+    margin: 0.6rem 0 0;
+    color: #aebbc6;
+    font-size: 0.8rem;
+    line-height: 1.35;
+}
+
+.substitute-list {
+    margin: 0.6rem 0 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 0.5rem;
+    max-height: 16rem;
+    overflow-y: auto;
+}
+
+.substitute-list li {
+    padding: 0.45rem 0.6rem;
+    border: 1px solid rgba(143, 190, 224, 0.28);
+    border-radius: 0.45rem;
+    background: rgba(16, 28, 40, 0.75);
+}
+
+.substitute-list strong {
+    display: block;
+    color: #eef3f7;
+}
+
+.substitute-reason {
+    display: block;
+    margin-top: 0.15rem;
+    color: #9fb0bd;
+    font-size: 0.76rem;
+    line-height: 1.3;
+}

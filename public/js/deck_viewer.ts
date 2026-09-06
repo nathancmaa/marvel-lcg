@@ -1,5 +1,7 @@
 import { withCardImageRevision } from './card_image_url.js';
 import { buildHeroLabels, compareDeckText, heroKeyOf } from './deck_filters.js';
+import { CardPaperLike, describeProfile, isSubstitutable, profileCard } from './card_profile.js';
+import { deckAspectsOf, suggestSubstitutes } from './card_substitution.js';
 
 type DeckData = {
     name: string;
@@ -85,6 +87,10 @@ const previewName = document.querySelector<HTMLElement>('#preview-name')!;
 const previewMeta = document.querySelector<HTMLElement>('#preview-meta')!;
 const previewClose = document.querySelector<HTMLButtonElement>('#preview-close')!;
 const previewFlip = document.querySelector<HTMLButtonElement>('#preview-flip')!;
+const substitutePanel = document.querySelector<HTMLElement>('#substitute-panel')!;
+const substituteFind = document.querySelector<HTMLButtonElement>('#substitute-find')!;
+const substituteStatus = document.querySelector<HTMLElement>('#substitute-status')!;
+const substituteList = document.querySelector<HTMLElement>('#substitute-list')!;
 
 const paperCache = new Map<string, Promise<CardPaper>>();
 const productsByPack = new Map<string, ProductInfo>();
@@ -100,6 +106,10 @@ let isCreatingShareImage = false;
 // means no collection has been recorded, and every part of this feature
 // stays hidden rather than claiming they own nothing.
 let ownedProducts = new Set<string>();
+// The whole card pool, needed only to suggest substitutes. It is ~2.4 MB, so
+// it is fetched the first time someone asks and kept for the page's life.
+let cardPoolPromise: Promise<CardPaperLike[]> | null = null;
+let previewEntry: CardEntry | null = null;
 
 function getFileName(path: string): string {
     return path.replace(/^.*[\\/]/, '').replace(/\.[^/.]+$/, '');
@@ -491,7 +501,80 @@ async function createShareImage(): Promise<void> {
     }
 }
 
+/** The whole card pool, fetched once and only when substitutes are asked for. */
+function loadCardPool(): Promise<CardPaperLike[]> {
+    if (!cardPoolPromise) {
+        cardPoolPromise = fetchJson<Record<string, unknown>>('/get_cards_json?')
+            .then((packs) => {
+                const pool: CardPaperLike[] = [];
+                for (const [pack, cards] of Object.entries(packs)) {
+                    if (!Array.isArray(cards)) {
+                        continue;
+                    }
+                    for (const card of cards as CardPaperLike[]) {
+                        if (card && typeof card === 'object') {
+                            pool.push({...card, pack});
+                        }
+                    }
+                }
+                return pool;
+            })
+            .catch((error) => {
+                // Allow a later attempt rather than caching the failure.
+                cardPoolPromise = null;
+                throw error;
+            });
+    }
+    return cardPoolPromise;
+}
+
+async function showSubstitutes(entry: CardEntry): Promise<void> {
+    if (!currentDeck) {
+        return;
+    }
+    substituteFind.disabled = true;
+    substituteStatus.textContent = 'Looking through your collection…';
+    substituteList.replaceChildren();
+    try {
+        const pool = await loadCardPool();
+        const deckPapers = currentShareEntries.map((item) => item.paper as CardPaperLike);
+        const suggestions = suggestSubstitutes({
+            target: entry.paper as CardPaperLike,
+            pool,
+            ownedPacks: ownedProducts,
+            deckAspects: deckAspectsOf(deckPapers),
+            deckCardIds: new Set(currentShareEntries.map((item) => item.cardId)),
+            limit: 6,
+        });
+
+        if (suggestions.length === 0) {
+            substituteStatus.textContent =
+                'Nothing in the products you own does a similar job.';
+            return;
+        }
+        substituteStatus.textContent =
+            'Ranked by what the card does. A starting point, not a verdict — '
+            + 'only you know what this slot was for.';
+        for (const suggestion of suggestions) {
+            const item = document.createElement('li');
+            const name = document.createElement('strong');
+            name.textContent = String(suggestion.paper.name ?? '').replace(/^\*\s*/, '');
+            const why = document.createElement('span');
+            why.className = 'substitute-reason';
+            why.textContent = `${describeProfile(suggestion.profile)} · ${suggestion.reasons.join(', ')}`;
+            item.append(name, why);
+            substituteList.appendChild(item);
+        }
+    } catch (error) {
+        console.warn('Could not suggest substitutes', error);
+        substituteStatus.textContent = 'Could not read the card data.';
+    } finally {
+        substituteFind.disabled = false;
+    }
+}
+
 function openPreview(entry: CardEntry): void {
+    previewEntry = entry;
     previewFaces = entry.cardIds;
     previewFaceIndex = 0;
     previewImage.src = withCardImageRevision(`/${previewFaces[0]}`);
@@ -499,8 +582,24 @@ function openPreview(entry: CardEntry): void {
     previewName.textContent = entry.paper.name;
     previewMeta.textContent = `${cardMeta(entry.paper)} · ${cardProduct(entry.paper)}`;
     previewFlip.hidden = previewFaces.length < 2;
+
+    // Offered only for a card you do not own, once a collection exists to
+    // compare against, and only where a substitution is a coherent idea at
+    // all: an identity or a signature card cannot be swapped for anything.
+    substitutePanel.hidden = !isMissingFromCollection(entry.paper)
+        || !isSubstitutable(profileCard(entry.paper as CardPaperLike));
+    substituteStatus.textContent = '';
+    substituteList.replaceChildren();
+    substituteFind.disabled = false;
+
     preview.showModal();
 }
+
+substituteFind.addEventListener('click', () => {
+    if (previewEntry) {
+        void showSubstitutes(previewEntry);
+    }
+});
 
 function createCardTile(entry: CardEntry): HTMLButtonElement {
     const tile = document.createElement('button');
