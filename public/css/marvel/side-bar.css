@@ -17,9 +17,17 @@
 }
 #right-side-bar {
     --width: calc(4 * var(--font-size-out));
-    right: calc(-1 * var(--width) + 4px);
+    /* How much of the bar stays on screen while parked, and so how big a
+       target there is to open it with. Applied as a transform rather than a
+       negative `right`, because that offset was computed from --width while
+       the bar is really sized by its widest button: the two disagreed, and the
+       4px strip the rule intended was actually 18px. A transform is relative
+       to the rendered width, so the strip is exactly this wide either way. */
+    --peek: calc(2.5 * var(--font-size-out));
+    right: 0;
     bottom: 0;
-    transition: .15s linear right;
+    transform: translateX(calc(100% - var(--peek)));
+    transition: .15s linear transform;
 }
 
 .side-bar > * {
@@ -39,16 +47,18 @@
 #left-side-bar:has(.lock.clicked) {
     left: 0;
 }
-#right-side-bar:has(.lock.clicked) {
-    right: 0;
-}
-
 #left-side-bar:hover {
     left: 0;
     transition: none;
 }
-#right-side-bar:hover {
-    right: 0;
+
+/* `.clicked` on the bar itself is what SwipeDetector sets when you swipe left
+   on a touch screen. Only the `.lock.clicked` descendant was matched before,
+   so that gesture moved nothing. */
+#right-side-bar:hover,
+#right-side-bar.clicked,
+#right-side-bar:has(.lock.clicked) {
+    transform: translateX(0);
     transition: none;
 }
 
