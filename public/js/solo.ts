@@ -77,6 +77,7 @@ import {
 } from './marvelcdb_deck.js';
 import { withCardImageRevision } from './card_image_url.js';
 import { DeckFilters, createDeckFilters } from './deck_filters.js';
+import { AspectDeckPicker, createAspectDeckPicker } from './aspect_decks.js';
 import { ScenarioFilters, createScenarioFilters } from './scenario_filters.js';
 
 const scenarioStorageKey = 'marvel_lcg_solo_scenario';
@@ -151,6 +152,7 @@ const scenarioFilters: ScenarioFilters<ScenarioChoice> =
 // only the player deck, so the hero choice stays the source of truth for the
 // signature cards, obligations and nemesis set.
 let deckSourceController: DeckSourceController | null = null;
+let aspectDeckPicker: AspectDeckPicker | null = null;
 
 function getFileName(path: string): string {
     return path.replace(/^.*[\\/]/, '').replace(/\.[^/.]+$/, '');
@@ -188,8 +190,9 @@ async function fetchJson<T>(url: string): Promise<T> {
 }
 
 function updatePlayButton(): void {
-    const awaitingDeck = deckSourceController?.getSource() === 'marvelcdb'
-        && !deckSourceController.getDeck();
+    const source = deckSourceController?.getSource();
+    const awaitingDeck = (source === 'marvelcdb' && !deckSourceController?.getDeck())
+        || (source === 'aspect' && !aspectDeckPicker?.getDeck());
     playButton.disabled = isStarting
         || deckSourceController?.isBusy() === true
         || !selectedScenario
@@ -515,11 +518,17 @@ function renderHeroes(choices: HeroChoice[]): void {
 }
 
 async function initialize(): Promise<void> {
+    aspectDeckPicker = createAspectDeckPicker({onChange: updatePlayButton});
+    void aspectDeckPicker.load();
+
     deckSourceController = createDeckSourceController({
         onChange: updatePlayButton,
         onResolved: selectResolvedMarvelCdbDeck,
         onSourceChanged: (source) => {
-            if (source === 'precon') {
+            // Leaving MarvelCDB mode drops the loaded deck and its pinned card,
+            // whether the player went back to a precon or across to an aspect
+            // deck; both keep the hero they picked from the grid.
+            if (source !== 'marvelcdb') {
                 leaveMarvelCdbMode();
             }
         },
@@ -551,10 +560,15 @@ async function startGame(): Promise<void> {
     if (isStarting || !selectedScenario || !selectedHero) {
         return;
     }
-    const resolvedDeck = deckSourceController?.getSource() === 'marvelcdb'
-        ? deckSourceController.getDeck()
+    const deckSource = deckSourceController?.getSource();
+    const resolvedDeck = deckSource === 'marvelcdb'
+        ? deckSourceController?.getDeck() ?? null
         : null;
-    if (deckSourceController?.getSource() === 'marvelcdb' && !resolvedDeck) {
+    if (deckSource === 'marvelcdb' && !resolvedDeck) {
+        return;
+    }
+    const aspectDeck = deckSource === 'aspect' ? aspectDeckPicker?.getDeck() ?? null : null;
+    if (deckSource === 'aspect' && !aspectDeck) {
         return;
     }
 
@@ -563,7 +577,13 @@ async function startGame(): Promise<void> {
     // A resolved MarvelCDB deck is a complete hero deck -- the conversion keeps
     // the hero, signature cards, obligations and nemesis set from the precon and
     // replaces only the player deck.
-    const heroDeck = resolvedDeck ?? heroChoice.data;
+    // An aspect deck is only the aspect and basic cards, so the hero keeps its
+    // own identity, signature cards, obligations and nemesis set and only the
+    // player deck is replaced -- the same shape a resolved MarvelCDB deck has.
+    const heroDeck = resolvedDeck
+        ?? (aspectDeck
+            ? {...heroChoice.data, player_deck: [...aspectDeck.player_deck]}
+            : heroChoice.data);
 
     isStarting = true;
     errorMessage.textContent = '';

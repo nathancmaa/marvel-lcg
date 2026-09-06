@@ -133,6 +133,11 @@ class GameServerGet(GameServerBase):
         file = FileManager.FindJsonPath("SetInfo", "sets_info.json")
         return self.ReadJsonFile(file)
 
+    async def get_aspect_decks_json(self, request: web.Request) -> web.Response:
+        """Prebuilt aspect/basic card lists that suit any hero."""
+        file = FileManager.FindJsonPath("AspectDecks", "aspect_decks.json")
+        return self.ReadJsonFile(file)
+
     async def get_sets_custom_scenario(self, request: web.Request) -> web.Response:
         files = FileManager.ListFiles(CUSTOM_SCENARIOS_FOLDER.value, ".json")
         return web.json_response(files)
@@ -278,6 +283,7 @@ class GameServerGet(GameServerBase):
         self.AddAwaitGetSecurity('/get_scenario_json', self.get_scenario_json)
         self.AddAwaitGetSecurity('/get_hero_json', self.get_hero_json)
         self.AddAwaitGetSecurity('/get_sets_json', self.get_sets_json)
+        self.AddAwaitGetSecurity('/get_aspect_decks_json', self.get_aspect_decks_json)
         self.AddAwaitGetSecurity('/get_sets_custom_scenario', self.get_sets_custom_scenario)
         self.AddAwaitGetSecurity('/get_cards_json', self.get_cards_json)
         self.AddAwaitGetSecurity('/get_translate_json', self.get_translate_json)

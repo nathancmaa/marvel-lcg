@@ -765,3 +765,61 @@ input {
         flex-basis: 100%;
     }
 }
+
+/* --- Prebuilt aspect decks -------------------------------------------------
+   Aspect and basic cards only, paired with whichever hero is chosen below. */
+
+.aspect-panel {
+    margin: 0.75rem 0 0;
+    padding: 0.85rem;
+    border: 1px solid rgba(120, 210, 255, 0.3);
+    border-radius: 0.6rem;
+    background: rgba(16, 28, 40, 0.6);
+}
+
+.aspect-panel[hidden] {
+    display: none;
+}
+
+.aspect-select-label {
+    display: block;
+    margin-bottom: 0.4rem;
+    color: #aebbc6;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+#aspect-deck {
+    width: min(34rem, 100%);
+    min-height: 2.6rem;
+    padding: 0.5rem 0.7rem;
+    border: 1px solid rgba(120, 210, 255, 0.4);
+    border-radius: 0.45rem;
+    background: #111d28;
+    color: #e6eef6;
+    font: inherit;
+}
+
+.aspect-description {
+    margin: 0.6rem 0 0;
+    color: #cfdae4;
+    font-size: 0.9rem;
+    line-height: 1.45;
+}
+
+.aspect-description:empty {
+    display: none;
+}
+
+.aspect-credit {
+    margin: 0.6rem 0 0;
+    color: #8fa0ad;
+    font-size: 0.78rem;
+    line-height: 1.4;
+}
+
+.aspect-credit a {
+    color: #9fdcff;
+}

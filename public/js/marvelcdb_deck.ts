@@ -101,8 +101,11 @@ export function getDeckHeroCode(deck: {hero?: string[]}): string {
     return (first ?? '').split(',')[0]?.trim().toLowerCase() ?? '';
 }
 
+/** Campaign only offers the first two; Quick Game adds the third. */
+export type DeckSource = 'precon' | 'marvelcdb' | 'aspect';
+
 export type DeckSourceController = {
-    getSource(): 'precon' | 'marvelcdb';
+    getSource(): DeckSource;
     getDeck(): MarvelCdbDeckData | null;
     isBusy(): boolean;
     clear(): void;
@@ -119,7 +122,7 @@ export type DeckSourceController = {
 export function createDeckSourceController(options: {
     onChange: () => void;
     onResolved: (deck: MarvelCdbDeckData) => string | null;
-    onSourceChanged?: (source: 'precon' | 'marvelcdb') => void;
+    onSourceChanged?: (source: DeckSource) => void;
 }): DeckSourceController {
     const sourceInputs = document.querySelectorAll<HTMLInputElement>('input[name="deck-source"]');
     const panel = document.querySelector<HTMLElement>('#marvelcdb-panel')!;
@@ -127,8 +130,9 @@ export function createDeckSourceController(options: {
     const loadButton = document.querySelector<HTMLButtonElement>('#marvelcdb-load')!;
     const status = document.querySelector<HTMLElement>('#marvelcdb-deck-status')!;
     const recentList = document.querySelector<HTMLElement>('#marvelcdb-recent')!;
+    const aspectPanel = document.querySelector<HTMLElement>('#aspect-panel');
 
-    let source: 'precon' | 'marvelcdb' = 'precon';
+    let source: DeckSource = 'precon';
     let deck: MarvelCdbDeckData | null = null;
     let busy = false;
 
@@ -138,10 +142,14 @@ export function createDeckSourceController(options: {
         status.classList.remove('error');
     }
 
-    function setSource(next: 'precon' | 'marvelcdb'): void {
+    function setSource(next: DeckSource): void {
         source = next;
         panel.hidden = next !== 'marvelcdb';
-        if (next === 'precon') {
+        // Campaign has no aspect-deck option, so this panel is absent there.
+        if (aspectPanel) {
+            aspectPanel.hidden = next !== 'aspect';
+        }
+        if (next !== 'marvelcdb') {
             clear();
         }
         options.onSourceChanged?.(next);
@@ -206,7 +214,9 @@ export function createDeckSourceController(options: {
     sourceInputs.forEach((element) => {
         element.addEventListener('change', () => {
             if (element.checked) {
-                setSource(element.value === 'marvelcdb' ? 'marvelcdb' : 'precon');
+                const value = element.value;
+                setSource(
+                    value === 'marvelcdb' || value === 'aspect' ? value : 'precon');
             }
         });
     });

@@ -178,7 +178,7 @@ class FileManager:
             normalized_path = './' + normalized_path
         return normalized_path
 
-    JsonType = Literal['Config','Hero','EncounterSet','Replay','Campaign', 'SetInfo', 'Puzzle']
+    JsonType = Literal['Config','Hero','EncounterSet','Replay','Campaign', 'SetInfo', 'AspectDecks', 'Puzzle']
 
     @staticmethod
     def FindJsonPath(load_type: 'JsonType', *file_names: str, nullable: bool=False) -> str|None:
@@ -196,6 +196,8 @@ class FileManager:
             if load_type == 'Campaign':
                 return SCENARIOS_FOLDERS.value + [CUSTOM_SCENARIOS_FOLDER.value]
             if load_type == 'SetInfo':
+                return ["./", DATA_FOLDER.value]
+            if load_type == 'AspectDecks':
                 return ["./", DATA_FOLDER.value]
             if load_type == 'Puzzle':
                 return ["./", PUZZLE_FOLDER.value]

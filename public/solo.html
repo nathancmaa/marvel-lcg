@@ -39,6 +39,24 @@
                     <input type="radio" name="deck-source" value="marvelcdb">
                     <span>MarvelCDB deck</span>
                 </label>
+                <label class="deck-source-option">
+                    <input type="radio" name="deck-source" value="aspect">
+                    <span>Aspect deck</span>
+                </label>
+            </div>
+
+            <div id="aspect-panel" class="aspect-panel" hidden>
+                <label class="aspect-select-label" for="aspect-deck">Aspect deck</label>
+                <select id="aspect-deck">
+                    <option value="">Loading aspect decks…</option>
+                </select>
+                <p id="aspect-description" class="aspect-description" aria-live="polite"></p>
+                <p class="aspect-credit">
+                    Card lists and notes from
+                    <a id="aspect-source-link" href="#" target="_blank" rel="noopener noreferrer">
+                        Universal Prebuilt Decks on BoardGameGeek</a>.
+                    Pick any hero below; these decks contain no hero cards.
+                </p>
             </div>
 
             <div id="marvelcdb-panel" class="marvelcdb-panel" hidden>
