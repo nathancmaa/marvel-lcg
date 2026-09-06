@@ -415,3 +415,37 @@
         width: 7rem;
     }
 }
+
+/* --- Collection comparison -------------------------------------------------
+   Informational only: it says nothing about whether a deck can be played here,
+   just what you would be missing at a physical table. Hidden entirely until a
+   collection has been recorded in Collection & Stats. */
+
+.collection-gap {
+    margin: 0.6rem 0 0;
+    color: #aebbc6;
+    font-size: 0.9rem;
+}
+
+.collection-gap.has-gap {
+    color: #e8b84a;
+}
+
+.card-tile.not-collected {
+    /* Outlined rather than dimmed: the card is perfectly playable here, so it
+       should not read as unavailable. */
+    outline: 1px solid rgba(232, 184, 74, 0.75);
+    outline-offset: 2px;
+}
+
+.card-not-collected {
+    align-self: flex-start;
+    margin-top: 0.25rem;
+    padding: 0.05rem 0.35rem;
+    border-radius: 0.25rem;
+    background: rgba(232, 184, 74, 0.16);
+    color: #e8b84a;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}

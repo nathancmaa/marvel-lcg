@@ -68,6 +68,7 @@ const deckHero = document.querySelector<HTMLElement>('#deck-hero')!;
 const deckName = document.querySelector<HTMLElement>('#deck-name')!;
 const deckCount = document.querySelector<HTMLElement>('#deck-count')!;
 const deckAspects = document.querySelector<HTMLElement>('#deck-aspects')!;
+const collectionGap = document.querySelector<HTMLElement>('#collection-gap')!;
 const shareDeckButton = document.querySelector<HTMLButtonElement>('#share-deck')!;
 const shareStatus = document.querySelector<HTMLElement>('#share-status')!;
 const identityCards = document.querySelector<HTMLElement>('#identity-cards')!;
@@ -95,6 +96,10 @@ let previewFaceIndex = 0;
 let currentDeck: DeckChoice | null = null;
 let currentShareEntries: CardEntry[] = [];
 let isCreatingShareImage = false;
+// Product keys the player has marked as owned in Collection & Stats. Empty
+// means no collection has been recorded, and every part of this feature
+// stays hidden rather than claiming they own nothing.
+let ownedProducts = new Set<string>();
 
 function getFileName(path: string): string {
     return path.replace(/^.*[\\/]/, '').replace(/\.[^/.]+$/, '');
@@ -280,6 +285,84 @@ function cardMeta(paper: CardPaper): string {
     return parts.join(' · ');
 }
 
+/**
+ * Which products the player owns, from Collection & Stats.
+ *
+ * Never throws: this is an informational overlay on a page whose real job is
+ * showing a deck, so a history database that is disabled, unavailable, or
+ * simply empty just means the comparison is not offered.
+ */
+async function loadOwnedProducts(): Promise<Set<string>> {
+    try {
+        const dashboard = await fetchJson<{
+            available?: boolean;
+            owned_products?: string[];
+        }>('/get_game_history');
+        if (dashboard.available === false || !Array.isArray(dashboard.owned_products)) {
+            return new Set();
+        }
+        return new Set(dashboard.owned_products);
+    } catch (error) {
+        console.warn('Could not read the collection', error);
+        return new Set();
+    }
+}
+
+/**
+ * Whether this card comes from a product the player has not marked as owned.
+ *
+ * Only cards belonging to a real, collectable product can count. cards.json
+ * also carries `challenges`, `endless`, `status` and unpacked entries, none of
+ * which are things anyone buys, and flagging those as missing would be noise.
+ */
+function isMissingFromCollection(paper: CardPaper): boolean {
+    if (ownedProducts.size === 0) {
+        return false;
+    }
+    const pack = paper.pack;
+    if (!pack || !productsByPack.has(pack)) {
+        return false;
+    }
+    return !ownedProducts.has(pack);
+}
+
+/** Summarise the deck against the collection, or hide the panel entirely. */
+function renderCollectionGap(entries: CardEntry[]): void {
+    if (ownedProducts.size === 0) {
+        collectionGap.hidden = true;
+        collectionGap.textContent = '';
+        return;
+    }
+
+    const missingByProduct = new Map<string, number>();
+    let missingCards = 0;
+    for (const entry of entries) {
+        if (!isMissingFromCollection(entry.paper)) {
+            continue;
+        }
+        missingCards += entry.quantity;
+        const product = productsByPack.get(entry.paper.pack!)!;
+        missingByProduct.set(
+            product.name, (missingByProduct.get(product.name) ?? 0) + entry.quantity);
+    }
+
+    collectionGap.hidden = false;
+    if (missingCards === 0) {
+        collectionGap.classList.remove('has-gap');
+        collectionGap.textContent = 'You own every product this deck needs.';
+        return;
+    }
+
+    const products = [...missingByProduct.entries()]
+        .sort((left, right) => right[1] - left[1] || compareDeckText(left[0], right[0]))
+        .map(([name, count]) => `${name} (${count})`);
+    collectionGap.classList.add('has-gap');
+    collectionGap.textContent =
+        `${missingCards} card${missingCards === 1 ? '' : 's'} from `
+        + `${missingByProduct.size} product${missingByProduct.size === 1 ? '' : 's'} `
+        + `you have not marked as owned: ${products.join(', ')}.`;
+}
+
 function cardProduct(paper: CardPaper): string {
     const product = paper.pack ? productsByPack.get(paper.pack) : undefined;
     if (product) {
@@ -450,6 +533,13 @@ function createCardTile(entry: CardEntry): HTMLButtonElement {
     product.textContent = cardProduct(entry.paper);
 
     tile.append(image, name, meta, product);
+    if (isMissingFromCollection(entry.paper)) {
+        tile.classList.add('not-collected');
+        const badge = document.createElement('span');
+        badge.className = 'card-not-collected';
+        badge.textContent = 'NOT OWNED';
+        tile.appendChild(badge);
+    }
     tile.addEventListener('click', () => openPreview(entry));
     return tile;
 }
@@ -481,6 +571,10 @@ async function showDeck(choice: DeckChoice): Promise<void> {
         ]);
         currentDeck = choice;
         currentShareEntries = [...identities, ...signatures, ...playerDeck];
+        // Compared against the constructed deck only. The reference section is
+        // the hero's own encounter cards, which come in the same box as the
+        // identity and so add nothing to what you would need to buy.
+        renderCollectionGap(currentShareEntries);
 
         renderEntries(identityCards, identities);
         renderEntries(signatureCards, signatures);
@@ -602,11 +696,13 @@ previewFlip.addEventListener('click', () => {
 
 async function initialize(): Promise<void> {
     try {
-        const [loadedChoices, sets] = await Promise.all([
+        const [loadedChoices, sets, owned] = await Promise.all([
             loadChoices(),
             fetchJson<Record<string, SetInfo>>('/get_sets_json?'),
+            loadOwnedProducts(),
         ]);
         choices = loadedChoices;
+        ownedProducts = owned;
         loadProductCatalog(sets);
         setToggle(groupHeroesToggle, groupByHero);
         setToggle(hidePreconsToggle, hidePrecons);
