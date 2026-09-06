@@ -35,8 +35,8 @@ export type SubstitutionRequest = {
     pool: readonly CardPaperLike[];
     /** Product keys the player owns. */
     ownedPacks: ReadonlySet<string>;
-    /** Deckbuilding classes this deck may contain, e.g. {"Justice"}. */
-    deckAspects: ReadonlySet<string>;
+    /** How many cards of each aspect the deck holds, e.g. {Justice: 15}. */
+    deckAspectCounts: ReadonlyMap<string, number>;
     /** Card ids already in the deck, so a suggestion is not one you have. */
     deckCardIds: ReadonlySet<string>;
     limit?: number;
@@ -105,15 +105,77 @@ function traitScore(target: CardProfile, candidate: CardProfile): number {
     return shared / target.traits.length;
 }
 
-/** Whether this deck could legally contain the card at all. */
-function isLegalInDeck(
-    profile: CardProfile,
-    deckAspects: ReadonlySet<string>,
+const ASPECT_NAMES: ReadonlySet<string> = new Set([
+    'Aggression', 'Justice', 'Leadership', 'Protection',
+]);
+
+/** An aspect present in such small numbers that it is a deliberate include. */
+const SPLASH_LIMIT = 3;
+
+function aspectsOnly(profile: CardProfile): string[] {
+    return aspectsOf(profile).filter((name) => ASPECT_NAMES.has(name));
+}
+
+/**
+ * The classes a replacement for this card may belong to.
+ *
+ * Like for like, or Basic. Swapping a card for one of its own aspect leaves
+ * the deck's aspect counts exactly as they were, so the result stays legal
+ * whatever the hero's deckbuilding rule is -- which matters because several
+ * heroes have their own. Cable, Maria Hill and Gamora can each carry a few
+ * off-aspect cards, Spider-Woman gets two full aspects, Adam Warlock a slice
+ * of all four; taking the union of everything in the deck would have offered
+ * any Aggression card as a replacement for a Leadership one in a Cable deck,
+ * where the single off-aspect slot is already spent.
+ *
+ * A Basic card is the one case with no aspect to preserve, so it may be
+ * replaced by Basic or by the deck's main aspect, which is always allowed.
+ */
+function legalAspectsFor(
+    target: CardProfile,
+    deckAspectCounts: ReadonlyMap<string, number>,
+): Set<string> {
+    const own = aspectsOnly(target);
+    if (own.length > 0) {
+        return new Set([...own, 'Basic']);
+    }
+    let primary = '';
+    let best = 0;
+    for (const [aspect, count] of deckAspectCounts) {
+        if (count > best) {
+            primary = aspect;
+            best = count;
+        }
+    }
+    return new Set(primary ? ['Basic', primary] : ['Basic']);
+}
+
+function isLegalInDeck(profile: CardProfile, allowed: ReadonlySet<string>): boolean {
+    return aspectsOf(profile).some((name) => allowed.has(name));
+}
+
+/**
+ * Whether the card being replaced is an off-aspect include.
+ *
+ * Those are chosen for a specific reason rather than as filler, so a
+ * like-for-like suggestion is far less likely to be what you want. Detected
+ * from the deck rather than from a list of heroes, so it holds for any hero.
+ */
+export function isSplashInclude(
+    target: CardPaperLike,
+    deckAspectCounts: ReadonlyMap<string, number>,
 ): boolean {
-    const classes = aspectsOf(profile);
-    // Basic cards go in any deck; anything else has to be an aspect the deck
-    // is already built around.
-    return classes.some((name) => name === 'Basic' || deckAspects.has(name));
+    const own = aspectsOnly(profileCard(target));
+    if (own.length === 0) {
+        return false;
+    }
+    const total = [...deckAspectCounts.values()].reduce((sum, n) => sum + n, 0);
+    return own.every((aspect) => {
+        const count = deckAspectCounts.get(aspect) ?? 0;
+        // Small in absolute terms and a minority of the deck: one or two
+        // Aggression cards among fifteen Leadership ones.
+        return count <= SPLASH_LIMIT && count * 4 < total;
+    });
 }
 
 const FUNCTION_WORDS: Record<CardFunction, string> = {
@@ -170,9 +232,10 @@ function explain(target: CardProfile, candidate: CardProfile): string[] {
 }
 
 export function suggestSubstitutes(request: SubstitutionRequest): SubstitutionCandidate[] {
-    const {target, pool, ownedPacks, deckAspects, deckCardIds} = request;
+    const {target, pool, ownedPacks, deckAspectCounts, deckCardIds} = request;
     const limit = request.limit ?? 6;
     const targetProfile = profileCard(target);
+    const allowedAspects = legalAspectsFor(targetProfile, deckAspectCounts);
 
     const scored: SubstitutionCandidate[] = [];
     for (const paper of pool) {
@@ -187,7 +250,7 @@ export function suggestSubstitutes(request: SubstitutionRequest): SubstitutionCa
             continue;
         }
         const profile = profileCard(paper);
-        if (!isSubstitutable(profile) || !isLegalInDeck(profile, deckAspects)) {
+        if (!isSubstitutable(profile) || !isLegalInDeck(profile, allowedAspects)) {
             continue;
         }
 
@@ -225,17 +288,17 @@ export function suggestSubstitutes(request: SubstitutionRequest): SubstitutionCa
     return unique;
 }
 
-/** The deckbuilding classes a deck is built around, from the cards in it. */
-export function deckAspectsOf(papers: readonly CardPaperLike[]): Set<string> {
+/** How many cards of each aspect a deck holds, from the cards in it. */
+export function deckAspectCountsOf(
+    papers: readonly CardPaperLike[],
+): Map<string, number> {
     const counts = new Map<string, number>();
     for (const paper of papers) {
-        for (const name of aspectsOf(profileCard(paper))) {
-            if (name !== 'Basic' && name !== 'Hero') {
-                counts.set(name, (counts.get(name) ?? 0) + 1);
-            }
+        for (const name of aspectsOnly(profileCard(paper))) {
+            counts.set(name, (counts.get(name) ?? 0) + 1);
         }
     }
-    return new Set(counts.keys());
+    return counts;
 }
 
 export {describeProfile};

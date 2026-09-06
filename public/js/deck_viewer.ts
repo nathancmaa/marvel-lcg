@@ -1,7 +1,7 @@
 import { withCardImageRevision } from './card_image_url.js';
 import { buildHeroLabels, compareDeckText, heroKeyOf } from './deck_filters.js';
 import { CardPaperLike, describeProfile, isSubstitutable, profileCard } from './card_profile.js';
-import { deckAspectsOf, suggestSubstitutes } from './card_substitution.js';
+import { deckAspectCountsOf, isSplashInclude, suggestSubstitutes } from './card_substitution.js';
 
 type DeckData = {
     name: string;
@@ -538,23 +538,31 @@ async function showSubstitutes(entry: CardEntry): Promise<void> {
     try {
         const pool = await loadCardPool();
         const deckPapers = currentShareEntries.map((item) => item.paper as CardPaperLike);
+        const deckAspectCounts = deckAspectCountsOf(deckPapers);
         const suggestions = suggestSubstitutes({
             target: entry.paper as CardPaperLike,
             pool,
             ownedPacks: ownedProducts,
-            deckAspects: deckAspectsOf(deckPapers),
+            deckAspectCounts,
             deckCardIds: new Set(currentShareEntries.map((item) => item.cardId)),
             limit: 6,
         });
+        const splash = isSplashInclude(entry.paper as CardPaperLike, deckAspectCounts);
 
         if (suggestions.length === 0) {
             substituteStatus.textContent =
                 'Nothing in the products you own does a similar job.';
             return;
         }
-        substituteStatus.textContent =
-            'Ranked by what the card does. A starting point, not a verdict — '
-            + 'only you know what this slot was for.';
+        substituteStatus.textContent = splash
+            // An off-aspect card is in the deck for a particular reason rather
+            // than as filler, so a like-for-like match is much less likely to
+            // be the card you actually wanted.
+            ? 'This is one of only a few cards of its aspect in the deck, so it '
+                + 'was probably included for something specific. Treat these as '
+                + 'weaker suggestions than usual.'
+            : 'Ranked by what the card does. A starting point, not a verdict — '
+                + 'only you know what this slot was for.';
         for (const suggestion of suggestions) {
             const item = document.createElement('li');
             const name = document.createElement('strong');
