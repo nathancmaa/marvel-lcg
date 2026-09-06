@@ -1,13 +1,38 @@
 # Marvel Champions Digital: Ronin Edition
 
-> Version 0.6.1 — “Echo”
+> Version 0.7.0 — “Ronin”
 
 > **This edition uses Marvel Champions Rules Reference v1.8 as its supported rules model.**
 
 > [!CAUTION]
 > **Please support the physical game.** Buy Marvel Champions and its expansions from Fantasy Flight Games, and support your friendly local game store whenever possible. Ronin Edition is intended as a testing, training, and learning platform—a convenient way to explore heroes, practise decks, and become familiar with the game—not as a replacement for the physical card game.
 
-## New in 0.6.1: Fear No Evil
+## New in 0.7.0: Ronin
+
+The first release of this fork, continuing from
+[z00lus/marvel-lcg](https://github.com/z00lus/marvel-lcg) 0.6.1. No rules or
+card behaviour changed; this release is about finding your decks and seeing
+the board.
+
+- **Deck browsing.** Filter the Quick Game hero picker to one hero, sort by
+  deck name, hero, aspect, or most recently updated, group by hero, and hide
+  precon decks. The Deck Viewer gets the same grouping and precon toggles, and
+  links each synced deck back to its MarvelCDB page.
+- **Correct MarvelCDB syncing.** A bare deck number now resolves to a
+  published decklist rather than a personally shared deck. The two are
+  separate records that share their numbering, so a number copied off the site
+  could previously sync something else entirely.
+- **A board that fits the screen.** Displays wider than 16:9 are no longer
+  letterboxed — a 3440x1440 screen gains roughly five card widths per row —
+  and rows no longer slide underneath the deck columns as upgrades pile up.
+- **Prompts that stay out of the way.** The target-selection prompt moves off
+  the cards it is asking you to choose between, and the right-hand button bar
+  keeps a strip on screen you can actually hit.
+- **Decks that survive a rebuild.** User decks are stored outside the
+  container, so a `docker compose up --build` no longer discards everything
+  synced from MarvelCDB.
+
+## Previously in 0.6.1: Fear No Evil
 
 The complete solo Quick Game scenario line from **Fear No Evil** is now
 available: five interchangeable-underling scenarios plus the fixed Kingpin

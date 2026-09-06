@@ -1,6 +1,6 @@
 # Marvel Champions Digital: Ronin Edition Changelog
 
-> Current release version: 0.6.1 — “Echo”
+> Current release version: 0.7.0 — “Ronin”
 
 This document records the user-visible and development changes made in this
 fork after it diverged from the original
@@ -10,6 +10,74 @@ The comparison baseline is upstream commit
 [`a77154a`](https://github.com/irefrixs/marvel-lcg/commit/a77154ab7e2f800a6ae82da6e67efd83dc3c8045)
 (`master`, 2026-07-31). Version 0.6.0 is the first release carrying the
 **Ronin Edition** name and the **Echo** codename.
+
+## Version 0.7.0 — “Ronin” (2026-09-06)
+
+First release of this fork, which continues from
+[z00lus/marvel-lcg](https://github.com/z00lus/marvel-lcg) 0.6.1. It keeps that
+edition's solo-first focus and adds two goals of its own: interface and
+accessibility work, and getting finished games out to external trackers.
+
+No rules or card behaviour changed in this release.
+
+### Deck browsing
+
+- The Quick Game hero picker gained a controls bar: filter to a single hero,
+  sort by deck name, hero, aspect, or most recently updated, and toggles for
+  grouping by hero and hiding precon decks. A synced collection reaches a few
+  hundred decks, and one flat alphabetical list stopped being usable well
+  before that. All four settings are remembered between sessions.
+- Aspect is worked out from the cards a deck actually contains, since decks do
+  not record it. Deadpool's own card class counts as an aspect for this
+  purpose, so his decks are grouped as themselves instead of appearing to have
+  none. The card database this needs is only fetched the first time aspect
+  sorting is used.
+- The Deck Viewer gained matching toggles: grouping replaces the My decks /
+  Starter decks split with one group per hero, and precons can be hidden.
+- The Deck Viewer now links a deck back to its MarvelCDB page, next to Share
+  Deck. Starter and hand-built decks have no source to link to and show
+  nothing.
+
+### MarvelCDB syncing
+
+- A bare deck number now resolves to a **published decklist** first rather than
+  a personally shared deck. The two are separate MarvelCDB records that share
+  their numbering, so a number copied while browsing the site — which is
+  almost always a decklist — could quietly sync an unrelated deck instead.
+- Synced decks are named after the endpoint they actually came from, so a
+  `deck` and a `decklist` sharing a number can coexist. An older bare-numbered
+  file for the same deck is removed once its replacement is safely written, and
+  only when it is recognisably a synced file, so a hand-built deck that happens
+  to share the name is left alone.
+
+### Interface
+
+- The board now widens to fill displays wider than 16:9 instead of being
+  letterboxed with the extra width unused. On a 3440x1440 screen that is about
+  five more card widths of room in each row.
+- Rows no longer compress far enough to slide underneath the deck and discard
+  columns, which a hero carrying enough upgrades could previously do.
+- The prompt asking you to choose a target no longer covers the cards it is
+  asking about. It moves the shortest distance that clears every highlighted
+  card, stays put when there is no conflict, and is left alone entirely if you
+  have dragged it somewhere yourself.
+- The right-hand button bar keeps a usable strip on screen instead of a few
+  pixels, so Log, Undo, Redo and QSave can be reached without hunting for the
+  edge of the screen. Swiping left to open it on a touch screen now works; the
+  gesture had been wired up but never moved anything.
+
+### Server and deployment
+
+- User decks are stored outside the container, so decks synced from MarvelCDB
+  survive `docker compose up --build`. They previously lived in the image and
+  were lost on every rebuild.
+- Compose files use the `.yaml` extension, and a `docker-compose.override.yaml`
+  is read for host-specific paths and settings while staying out of version
+  control. Several installations can run on one host by setting a project name
+  and container name; examples for both are included.
+- JSON endpoints are cached for an hour rather than a year, so updated card
+  data is picked up without clearing browser storage. Versioned assets are
+  unaffected and keep their long-lived cache.
 
 ## Version 0.6.1 — “Echo” (2026-08-28)
 
