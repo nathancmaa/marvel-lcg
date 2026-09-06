@@ -195,6 +195,11 @@ export class Effect {
                 Cards.render.printDeckWhenHighlightTarget(new_added_highlight_target)
             }
         }
+
+        // The set of targets just changed, so a prompt parked clear of the old
+        // ones may now be sitting on a new one. Cancelling reaches here without
+        // re-rendering the prompt, so this cannot be left to setTempPromptText.
+        UI.prompt.dodgeAwayFromTargets()
     }
 
     static onCancel() {

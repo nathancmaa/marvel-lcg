@@ -8,6 +8,7 @@ import { BtnOk } from './btn_ok.js'
 import { Cards } from './cards.js'
 import { Message } from './message.js'
 import { centerDraggableDiv } from './draggable.js'
+import { dodgeHighlightedTargets } from './prompt_dodge.js'
 import { UserSettings } from '../user_settings.js'
 
 class ConnectionManager {
@@ -217,6 +218,8 @@ class PromptBox {
             if( PromptBox.prompt_box_lock.classList.contains('locked') ) {
                 centerDraggableDiv(PromptBox.prompt_box_div)
             }
+            // After the text is in place, so the box has its final height.
+            PromptBox.dodgeAwayFromTargets()
         } else {
             PromptBox.resetPromptText(true)
         }
@@ -228,6 +231,12 @@ class PromptBox {
         } else {
             PromptBox.setTempPromptText(PromptBox.prompt_text, false)
         }
+    }
+
+    /** Nudge the prompt off any card the current effect can target. */
+    static dodgeAwayFromTargets() {
+        dodgeHighlightedTargets(
+            PromptBox.prompt_box_div, PromptBox.prompt_box_lock)
     }
 }
 
