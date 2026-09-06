@@ -95,6 +95,21 @@ export function rememberRecentDeck(entry: RecentDeck): RecentDeck[] {
     return updated;
 }
 
+/**
+ * The MarvelCDB page for a deck, or '' when it did not come from there.
+ *
+ * Keyed on marvelcdb_id rather than on the url, because a precon carries a
+ * metadata url of its own -- a Hall of Heroes article, and for one hero a
+ * bare image -- and four precons point at marvelcdb.com without naming a
+ * deck page there. Only a deck this app actually fetched has the id.
+ */
+export function marvelCdbDeckUrl(
+    deck: {metadata?: Record<string, string>} | null | undefined,
+): string {
+    const metadata = deck?.metadata;
+    return metadata?.marvelcdb_id ? metadata.url ?? '' : '';
+}
+
 /** The card id a deck's hero is identified by, e.g. "60001a". */
 export function getDeckHeroCode(deck: {hero?: string[]}): string {
     const [first] = deck.hero ?? [];
@@ -151,7 +166,7 @@ export function createDeckSourceController(options: {
      * stays plain text.
      */
     function showResolved(notice: string, resolved: MarvelCdbDeckData): void {
-        const url = resolved.metadata?.url ?? '';
+        const url = marvelCdbDeckUrl(resolved);
         const name = resolved.deck_name ?? resolved.name;
         const at = url && name ? notice.indexOf(name) : -1;
         if (at < 0) {

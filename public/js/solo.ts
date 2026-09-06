@@ -74,6 +74,7 @@ type SoloGamePayload = {
 import {
     DeckSourceController,
     createDeckSourceController,
+    marvelCdbDeckUrl,
 } from './marvelcdb_deck.js';
 import { withCardImageRevision } from './card_image_url.js';
 import { DeckFilters, buildHeroLabels, createDeckFilters, heroKeyOf } from './deck_filters.js';
@@ -327,12 +328,30 @@ function selectScenario(choice: ScenarioChoice): void {
     updatePlayButton();
 }
 
+/** Write the summary, making the deck's name a link when it has a page. */
+function renderHeroSelection(prefix: string, name: string, href: string): void {
+    if (!href) {
+        heroSelection.textContent = prefix + name;
+        return;
+    }
+    const link = document.createElement('a');
+    link.className = 'deck-link';
+    link.href = href;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.textContent = name;
+    heroSelection.replaceChildren(prefix, link);
+}
+
 /**
  * Name the deck that is actually going to be played.
  *
  * In aspect mode the tile is not the deck: its player deck is discarded and
  * the aspect list used instead, so naming the tile was the one thing this
  * summary could say that was not true.
+ *
+ * Every deck that came from MarvelCDB records where -- a synced deck as much
+ * as one just pasted in -- so the title is the way back to its page.
  */
 function updateHeroSelection(): void {
     const hero = selectedHero;
@@ -341,12 +360,16 @@ function updateHeroSelection(): void {
         return;
     }
     if (deckSourceController?.getSource() !== 'aspect') {
-        heroSelection.textContent = hero.name;
+        renderHeroSelection('', hero.name, marvelCdbDeckUrl(hero.data));
         return;
     }
     const label = aspectHero.selectedOptions[0]?.text ?? hero.name;
     const deck = aspectDeckPicker?.getDeck();
-    heroSelection.textContent = deck ? `${label} · ${deck.name}` : label;
+    if (!deck) {
+        renderHeroSelection('', label, '');
+        return;
+    }
+    renderHeroSelection(`${label} · `, deck.name, deck.url);
 }
 
 /** The precon deck belonging to whichever hero a choice represents. */
@@ -630,7 +653,7 @@ function renderHeroes(choices: HeroChoice[]): void {
     if (deckSourceController?.getSource() === 'aspect') {
         applyAspectHero();
     }
-    heroStatus.textContent = choices.length ? '' : 'No starter decks are available.';
+    heroStatus.textContent = choices.length ? '' : 'No decks are available.';
 }
 
 async function initialize(): Promise<void> {
@@ -694,7 +717,7 @@ async function initialize(): Promise<void> {
         renderHeroes(heroResult.value);
     } else {
         console.error(heroResult.reason);
-        heroStatus.textContent = 'Could not load starter decks.';
+        heroStatus.textContent = 'Could not load decks.';
     }
 
     updatePlayButton();

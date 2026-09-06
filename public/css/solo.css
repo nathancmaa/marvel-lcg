@@ -903,6 +903,20 @@ input {
     font-weight: 700;
 }
 
+/* In the section heading the summary already carries the accent colour, so
+   the link is marked by its underline rather than by changing colour again. */
+.current-selection .deck-link {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: rgba(120, 210, 255, 0.55);
+}
+
+.current-selection .deck-link:hover,
+.current-selection .deck-link:focus-visible {
+    color: #c9ecff;
+    text-decoration-color: currentColor;
+}
+
 /* In aspect mode the tiles pick a deck that is about to be replaced, so they
    step aside for the panel's hero dropdown. */
 #hero-section.hero-decks-hidden .deck-filters,

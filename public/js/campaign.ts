@@ -470,7 +470,7 @@ function renderHeroes(choices: HeroChoice[]): void {
     if (savedHero) {
         selectHero(savedHero);
     }
-    heroStatus.textContent = choices.length ? '' : 'No starter decks are available.';
+    heroStatus.textContent = choices.length ? '' : 'No decks are available.';
 }
 
 async function renderSavedCampaign(saved: SavedCampaign | null): Promise<void> {
@@ -558,7 +558,7 @@ async function initialize(): Promise<void> {
         renderHeroes(heroResult.value);
     } else {
         console.error(heroResult.reason);
-        heroStatus.textContent = 'Could not load starter decks.';
+        heroStatus.textContent = 'Could not load decks.';
     }
 
     try {
