@@ -19,6 +19,11 @@ SOUND_FOLDERS   = ConfigVariables.Folders('sound_folders', ["./assets/sounds/"])
 IMAGE_FOLDERS   = ConfigVariables.Folders('image_folders')
 TEXTURE_FOLDER  = ConfigVariables.Folder('texture_folder')
 CACHE_MAX_AGE   = ConfigVariables.Int('cache_max_age', 31536000)
+# Files served without a version token in the URL cannot be invalidated by
+# changing that URL, so a year-long cache strands a browser on an old build
+# with no way back short of clearing site data. Only the entry module carries a
+# version query; every module it imports arrives unversioned and landed here.
+UNVERSIONED_CACHE_MAX_AGE = ConfigVariables.Int('unversioned_cache_max_age', 300)
 """
 one hour:   3600
 one day:    86400
@@ -158,7 +163,9 @@ class WebServer:
         else:
             self.hash_password = None
 
-        WebServer.HeaderCache = {'Cache-Control': f'public, max-age={CACHE_MAX_AGE.value}'}
+        WebServer.HeaderCache = {
+            'Cache-Control': f'public, max-age={UNVERSIONED_CACHE_MAX_AGE.value}'
+        }
         # A versioned URL names one exact build of one file, so it can be
         # cached without revalidation. `immutable` tells the browser to skip the
         # conditional request it would otherwise make on a forced reload.

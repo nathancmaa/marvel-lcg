@@ -11,7 +11,10 @@ import { HoverCard } from './hover.js';
 // before. The cap stops an extreme aspect ratio from stranding the decks
 // against far edges with an ocean of felt in between.
 const BASE_SCENE_WIDTH = 1920;
-const MAX_SCENE_WIDTH = 2560;
+// Note this is a ceiling, not the width a wide display gets: the stage is sized
+// from the window's aspect, so 3440x1440 works out to 1080 * (3440/1440) =
+// 2580. The cap only bites past roughly 3.2:1, which is 32:9 territory.
+const MAX_SCENE_WIDTH = 3440;
 
 // Decks and scheme rows pinned to the right-hand edge. Their stylesheet --x is
 // an absolute stage coordinate that assumes the design width, so the distance
