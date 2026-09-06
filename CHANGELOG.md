@@ -1,6 +1,6 @@
 # Marvel Champions Digital: Ronin Edition Changelog
 
-> Current release version: 0.8.1 — “Archive”
+> Current release version: 0.7.3 — “Archive”
 
 This document records the user-visible and development changes made in this
 fork after it diverged from the original
@@ -11,7 +11,12 @@ The comparison baseline is upstream commit
 (`master`, 2026-07-31). Version 0.6.0 is the first release carrying the
 **Ronin Edition** name and the **Echo** codename.
 
-## Version 0.8.1 — “Archive” (2026-09-06)
+Versions 0.7.2 and 0.7.3 were briefly published as 0.8.0 and 0.8.1 and were
+renumbered onto the 0.7 line. Their tags and releases carry the new numbers
+and point at the same commits; the commits that cut them still name the old
+ones.
+
+## Version 0.7.3 — “Archive” (2026-09-06)
 
 Building the deck you take in, and choosing how hard the game pushes back.
 
@@ -73,7 +78,7 @@ Building the deck you take in, and choosing how hard the game pushes back.
   where that tile's player deck is discarded — the one thing the summary could
   say that was not true.
 
-## Version 0.8.0 — “Archive” (2026-09-06)
+## Version 0.7.2 — “Archive” (2026-09-06)
 
 Finding what you want to play, and knowing what you own.
 

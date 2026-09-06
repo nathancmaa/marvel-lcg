@@ -1,13 +1,13 @@
 # Marvel Champions Digital: Ronin Edition
 
-> Version 0.8.1 — “Archive”
+> Version 0.7.3 — “Archive”
 
 > **This edition uses Marvel Champions Rules Reference v1.8 as its supported rules model.**
 
 > [!CAUTION]
 > **Please support the physical game.** Buy Marvel Champions and its expansions from Fantasy Flight Games, and support your friendly local game store whenever possible. Ronin Edition is intended as a testing, training, and learning platform—a convenient way to explore heroes, practise decks, and become familiar with the game—not as a replacement for the physical card game.
 
-## New in 0.8.1
+## New in 0.7.3
 
 Building the deck you take in, and choosing how hard the game pushes back.
 
@@ -29,7 +29,7 @@ Building the deck you take in, and choosing how hard the game pushes back.
 - **"My Decks" instead of "Precon".** That tab lists every synced deck
   alongside the starters, and had been named after only half of what is in it.
 
-## Previously in 0.8.0: Archive
+## Previously in 0.7.2: Archive
 
 Finding what you want to play, and knowing what you own.
 
