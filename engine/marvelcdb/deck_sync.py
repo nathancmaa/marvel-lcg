@@ -7,7 +7,7 @@ import json
 import os
 import re
 import threading
-from typing import Any, Callable, Dict, List, Tuple
+from typing import Any, Callable, Dict, List, Sequence, Tuple
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -425,6 +425,30 @@ class MarvelCdbDeckSync:
             )
         return template
 
+    @staticmethod
+    def UnimplementedCards(card_ids: Sequence[str]) -> List[str]:
+        """Which of these cards this installation has no data for.
+
+        A published decklist can use a pack that is implemented on MarvelCDB
+        but not here -- the Jessica Jones aspect cards, say -- and such a deck
+        syncs and plays until the missing card is reached. Naming them at sync
+        time is the difference between finding out now and finding out mid-game.
+
+        Returns nothing while the card database is empty: that means it has not
+        loaded yet, and reporting every card as missing would be worse than
+        saying nothing.
+        """
+        from cards.database import CardsDB
+
+        if not CardsDB.papers:
+            return []
+
+        unknown: List[str] = []
+        for card_id in dict.fromkeys(card_ids):
+            if CardsDB.TryFindCardPaper(card_id) is None:
+                unknown.append(card_id)
+        return unknown
+
     @classmethod
     def _deck_hero_code(cls, deck: Dict[str, Any]) -> str:
         for hero in deck.get('hero', []):
@@ -556,6 +580,7 @@ class MarvelCdbDeckSync:
             templates = self._load_templates()
             synced: List[Dict[str, str]] = []
             errors: List[Dict[str, str]] = []
+            warnings: List[Dict[str, Any]] = []
 
             for deck_ref in deck_refs:
                 kind, deck_id = self.ParseDeckRef(deck_ref)
@@ -585,6 +610,14 @@ class MarvelCdbDeckSync:
                         f'{resolved_kind}-{deck_id}.json',
                     )
                     self._save_json(converted, output_path)
+                    unknown_cards = self.UnimplementedCards(
+                        converted.get('player_deck', []))
+                    if unknown_cards:
+                        warnings.append({
+                            'id': deck_id,
+                            'name': converted['deck_name'],
+                            'cards': unknown_cards,
+                        })
                     # Older syncs wrote a bare `123.json`. Drop it only after
                     # the replacement is safely on disk, so an interrupted
                     # sync can never leave the deck missing entirely.
@@ -602,6 +635,8 @@ class MarvelCdbDeckSync:
                 'ok': not errors,
                 'synced': synced,
                 'errors': errors,
+                # A deck that synced but cannot be played through to the end.
+                'warnings': warnings,
                 'synced_at': datetime.now(timezone.utc).isoformat(),
             }
             with self._condition:
@@ -621,6 +656,14 @@ class MarvelCdbDeckSync:
             Log.Warn(
                 CATEGORY_NAME,
                 f'MarvelCDB deck {error["id"]}: {error["error"]}',
+            )
+        for warning in warnings:
+            cards = ', '.join(warning['cards'])
+            Log.Warn(
+                CATEGORY_NAME,
+                f'MarvelCDB deck {warning["id"]} ({warning["name"]}) uses '
+                f'{len(warning["cards"])} card(s) this installation does not '
+                f'implement: {cards}',
             )
         return result
 

@@ -14,6 +14,9 @@ type MarvelCdbSyncResult = {
     ok: boolean;
     synced: Array<{id: string; name: string; hero: string}>;
     errors: Array<{id: string; error: string}>;
+    // Decks that synced but name cards this installation cannot play.
+    // Older sync state predates this field.
+    warnings?: Array<{id: string; name: string; cards: string[]}>;
     synced_at: string;
 };
 
@@ -74,6 +77,13 @@ function formatSyncResult(result: MarvelCdbSyncResult): string {
     }
     if( result.errors.length ) {
         parts.push(result.errors.map(error => `${error.id}: ${error.error}`).join(' '))
+    }
+    for( const warning of result.warnings ?? [] ) {
+        const cards = warning.cards.join(', ')
+        parts.push(
+            `${warning.name}: ${warning.cards.length} card(s) are not `
+            + `implemented here and will be missing in play (${cards}).`,
+        )
     }
     return parts.join(' ') || 'No decks were synchronized.'
 }

@@ -2,6 +2,8 @@ from datetime import datetime, timedelta, timezone
 import os
 import tempfile
 import unittest
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from engine.lib import Json
 from engine.marvelcdb.deck_sync import MarvelCdbDeckSync
@@ -218,6 +220,97 @@ class TestMarvelCdbDeckSync(unittest.TestCase):
 
             self.assertIsNotNone(service._thread)
             self.assertFalse(service._thread.is_alive())
+
+
+class TestUnimplementedCardWarning(unittest.TestCase):
+    """A synced deck can name cards this build has no data for.
+
+    They sync and play until the missing card comes up, so the sync says so
+    rather than leaving it to be discovered mid-game.
+    """
+
+    @staticmethod
+    def _fake_db(known):
+        return SimpleNamespace(
+            papers={card_id: object() for card_id in known},
+            TryFindCardPaper=lambda card_id: (
+                object() if card_id in known else None),
+        )
+
+    def test_cards_missing_from_this_build_are_reported_once_each(self):
+        import cards.database
+        with patch.object(cards.database, 'CardsDB', self._fake_db({'01001', '01002'})):
+            unknown = MarvelCdbDeckSync.UnimplementedCards(
+                ['01001', '61015', '01002', '61015', '61017'])
+        self.assertEqual(unknown, ['61015', '61017'])
+
+    def test_nothing_is_reported_when_every_card_is_known(self):
+        import cards.database
+        with patch.object(cards.database, 'CardsDB', self._fake_db({'01001', '01002'})):
+            self.assertEqual(
+                MarvelCdbDeckSync.UnimplementedCards(['01001', '01002']), [])
+
+    def test_an_unloaded_card_database_reports_nothing(self):
+        """Otherwise the first sync after a restart flags every card in every
+        deck, which is worse than staying quiet."""
+        import cards.database
+        with patch.object(cards.database, 'CardsDB', self._fake_db(set())):
+            self.assertEqual(
+                MarvelCdbDeckSync.UnimplementedCards(['01001', '61015']), [])
+
+    def test_the_warning_reaches_the_sync_result(self):
+        with tempfile.TemporaryDirectory() as temp_folder:
+            starter_folder = os.path.join(temp_folder, 'starter')
+            user_folder = os.path.join(temp_folder, 'user-decks')
+            os.makedirs(starter_folder)
+            Json.Save(
+                SPIDER_MAN_TEMPLATE,
+                os.path.join(starter_folder, 'spider_man.json'),
+            )
+            service = MarvelCdbDeckSync(
+                user_deck_folder=user_folder,
+                state_file=os.path.join(user_folder, '.sync-state.json'),
+                starter_deck_folder=starter_folder,
+                fetch_deck=lambda deck_id: create_remote_deck(deck_id),
+            )
+
+            with patch.object(
+                MarvelCdbDeckSync, 'UnimplementedCards',
+                staticmethod(lambda card_ids: ['61015']),
+            ):
+                result = service.SyncDecks('1130039')
+
+            self.assertTrue(result['ok'], result['errors'])
+            self.assertEqual(len(result['warnings']), 1)
+            warning = result['warnings'][0]
+            self.assertEqual(warning['id'], '1130039')
+            self.assertEqual(warning['cards'], ['61015'])
+            # A deck with missing cards still syncs; it is playable up to a point.
+            self.assertEqual(len(result['synced']), 1)
+
+    def test_a_clean_sync_carries_an_empty_warning_list(self):
+        with tempfile.TemporaryDirectory() as temp_folder:
+            starter_folder = os.path.join(temp_folder, 'starter')
+            user_folder = os.path.join(temp_folder, 'user-decks')
+            os.makedirs(starter_folder)
+            Json.Save(
+                SPIDER_MAN_TEMPLATE,
+                os.path.join(starter_folder, 'spider_man.json'),
+            )
+            service = MarvelCdbDeckSync(
+                user_deck_folder=user_folder,
+                state_file=os.path.join(user_folder, '.sync-state.json'),
+                starter_deck_folder=starter_folder,
+                fetch_deck=lambda deck_id: create_remote_deck(deck_id),
+            )
+
+            with patch.object(
+                MarvelCdbDeckSync, 'UnimplementedCards',
+                staticmethod(lambda card_ids: []),
+            ):
+                result = service.SyncDecks('1130039')
+
+            self.assertEqual(result['warnings'], [])
 
 
 if __name__ == '__main__':
