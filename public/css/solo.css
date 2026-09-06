@@ -791,8 +791,22 @@ input {
     text-transform: uppercase;
 }
 
+.aspect-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.9rem;
+}
+
+/* Two equal columns while there is room for them, stacked once there is not.
+   16rem is roughly the longest hero label, so neither name gets clipped. */
+.aspect-field {
+    flex: 1 1 16rem;
+    min-width: 0;
+}
+
+#aspect-hero,
 #aspect-deck {
-    width: min(34rem, 100%);
+    width: 100%;
     min-height: 2.6rem;
     padding: 0.5rem 0.7rem;
     border: 1px solid rgba(120, 210, 255, 0.4);
@@ -887,4 +901,12 @@ input {
     display: inline-block;
     margin-top: 0.6rem;
     font-weight: 700;
+}
+
+/* In aspect mode the tiles pick a deck that is about to be replaced, so they
+   step aside for the panel's hero dropdown. */
+#hero-section.hero-decks-hidden .deck-filters,
+#hero-section.hero-decks-hidden #hero-list,
+#hero-section.hero-decks-hidden #hero-status {
+    display: none;
 }

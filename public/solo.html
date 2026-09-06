@@ -22,7 +22,7 @@
             <a class="mode-link" href="/campaign">Campaign</a>
         </nav>
 
-        <section class="selection-section" aria-labelledby="hero-heading">
+        <section id="hero-section" class="selection-section" aria-labelledby="hero-heading">
             <div class="section-heading">
                 <div>
                     <span class="step-number">1</span>
@@ -46,17 +46,27 @@
             </div>
 
             <div id="aspect-panel" class="aspect-panel" hidden>
-                <label class="aspect-select-label" for="aspect-deck">Aspect deck</label>
-                <select id="aspect-deck">
-                    <option value="">Loading aspect decks…</option>
-                </select>
+                <div class="aspect-row">
+                    <div class="aspect-field">
+                        <label class="aspect-select-label" for="aspect-hero">Hero</label>
+                        <select id="aspect-hero">
+                            <option value="">Loading heroes…</option>
+                        </select>
+                    </div>
+                    <div class="aspect-field">
+                        <label class="aspect-select-label" for="aspect-deck">Aspect deck</label>
+                        <select id="aspect-deck">
+                            <option value="">Loading aspect decks…</option>
+                        </select>
+                    </div>
+                </div>
                 <a id="aspect-deck-link" class="deck-link" target="_blank" rel="noopener noreferrer" hidden></a>
                 <p id="aspect-description" class="aspect-description" aria-live="polite"></p>
                 <p class="aspect-credit">
                     Card lists and notes from
                     <a id="aspect-source-link" href="#" target="_blank" rel="noopener noreferrer">
                         Universal Prebuilt Decks on BoardGameGeek</a>.
-                    Pick any hero below; these decks contain no hero cards.
+                    These decks hold no hero cards, so any hero can carry one.
                 </p>
             </div>
 

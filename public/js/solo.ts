@@ -76,7 +76,7 @@ import {
     createDeckSourceController,
 } from './marvelcdb_deck.js';
 import { withCardImageRevision } from './card_image_url.js';
-import { DeckFilters, createDeckFilters } from './deck_filters.js';
+import { DeckFilters, buildHeroLabels, createDeckFilters, heroKeyOf } from './deck_filters.js';
 import { AspectDeckPicker, createAspectDeckPicker } from './aspect_decks.js';
 import { ScenarioFilters, createScenarioFilters } from './scenario_filters.js';
 
@@ -84,6 +84,7 @@ const scenarioStorageKey = 'marvel_lcg_solo_scenario';
 const heroStorageKey = 'marvel_lcg_solo_hero';
 const underlingStorageKey = 'marvel_lcg_solo_underling';
 const standardSetStorageKey = 'marvel_lcg_solo_standard_set';
+const aspectHeroStorageKey = 'marvel_lcg_solo_aspect_hero';
 const newScenarioIds = new Set(['kingpin', 'protection_racket', 'the_raft_breakout', 'art_museum_heist', 'the_getaway', 'stop_the_presses']);
 const newUnderlingIds = new Set(['bullseye', 'electro', 'hammerhead', 'purple_man', 'typhoid_mary']);
 const newHeroIds = new Set(['echo', 'daredevil', 'jessica_jones']);
@@ -102,6 +103,8 @@ const difficultySelection = document.querySelector<HTMLElement>('#difficulty-sel
 const difficultyStepNumber = document.querySelector<HTMLElement>('#difficulty-step-number')!;
 const standardSet = document.querySelector<HTMLSelectElement>('#standard-set')!;
 const standardSetDescription = document.querySelector<HTMLElement>('#standard-set-description')!;
+const heroSection = document.querySelector<HTMLElement>('#hero-section')!;
+const aspectHero = document.querySelector<HTMLSelectElement>('#aspect-hero')!;
 const underlingSection = document.querySelector<HTMLElement>('#underling-section')!;
 const underlingList = document.querySelector<HTMLElement>('#underling-list')!;
 const underlingSelection = document.querySelector<HTMLElement>('#underling-selection')!;
@@ -324,6 +327,77 @@ function selectScenario(choice: ScenarioChoice): void {
     updatePlayButton();
 }
 
+/**
+ * Name the deck that is actually going to be played.
+ *
+ * In aspect mode the tile is not the deck: its player deck is discarded and
+ * the aspect list used instead, so naming the tile was the one thing this
+ * summary could say that was not true.
+ */
+function updateHeroSelection(): void {
+    const hero = selectedHero;
+    if (!hero) {
+        heroSelection.textContent = 'Not selected';
+        return;
+    }
+    if (deckSourceController?.getSource() !== 'aspect') {
+        heroSelection.textContent = hero.name;
+        return;
+    }
+    const label = aspectHero.selectedOptions[0]?.text ?? hero.name;
+    const deck = aspectDeckPicker?.getDeck();
+    heroSelection.textContent = deck ? `${label} · ${deck.name}` : label;
+}
+
+/** The precon deck belonging to whichever hero a choice represents. */
+function preconFor(choice: HeroChoice | null): string {
+    if (!choice) {
+        return '';
+    }
+    const key = heroKeyOf(choice);
+    return heroChoices.find(
+        (other) => !other.isUserDeck && heroKeyOf(other) === key)?.id ?? '';
+}
+
+/**
+ * Fill the aspect panel's hero dropdown.
+ *
+ * Precons only. An aspect deck replaces the player deck outright, so all that
+ * is taken from the hero is its identity, signature cards, obligation and
+ * nemesis set -- which every precon carries and a netdeck only repeats, so
+ * offering both would be two spellings of one choice.
+ */
+function populateAspectHeroes(): void {
+    const precons = heroChoices.filter((choice) => !choice.isUserDeck);
+    const labels = buildHeroLabels(precons);
+    const options = precons
+        .map((choice) => ({
+            id: choice.id,
+            label: labels.get(heroKeyOf(choice)) ?? choice.name,
+        }))
+        .sort((left, right) => left.label.localeCompare(
+            right.label, undefined, {sensitivity: 'base'}));
+
+    aspectHero.replaceChildren(
+        ...options.map((option) => new Option(option.label, option.id)));
+    aspectHero.disabled = options.length === 0;
+
+    const saved = localStorage.getItem(aspectHeroStorageKey) ?? '';
+    aspectHero.value = options.some((option) => option.id === saved)
+        ? saved
+        // Falling back to the hero already picked from the grid keeps the
+        // switch into aspect mode from silently changing who is playing.
+        : (preconFor(selectedHero) || options[0]?.id) ?? '';
+}
+
+/** Make the aspect panel's dropdown the selected hero. */
+function applyAspectHero(): void {
+    const choice = heroChoices.find((item) => item.id === aspectHero.value);
+    if (choice) {
+        selectHero(choice);
+    }
+}
+
 function selectHero(choice: HeroChoice, keepMarvelCdbDeck = false): void {
     if (!keepMarvelCdbDeck) {
         removeResolvedMarvelCdbChoice();
@@ -333,7 +407,7 @@ function selectHero(choice: HeroChoice, keepMarvelCdbDeck = false): void {
     if (!choice.isResolvedMarvelCdb) {
         localStorage.setItem(heroStorageKey, choice.id);
     }
-    heroSelection.textContent = choice.name;
+    updateHeroSelection();
     markSelected(heroList, choice.id);
     errorMessage.textContent = '';
     // Picking a different hero by hand abandons a loaded deck; a deck that
@@ -550,6 +624,12 @@ function renderHeroes(choices: HeroChoice[]): void {
     if (savedChoice) {
         selectHero(savedChoice);
     }
+    // The decks arrive after the picker is wired, so a page that came back in
+    // aspect mode gets its dropdown filled and applied here rather than never.
+    populateAspectHeroes();
+    if (deckSourceController?.getSource() === 'aspect') {
+        applyAspectHero();
+    }
     heroStatus.textContent = choices.length ? '' : 'No starter decks are available.';
 }
 
@@ -563,7 +643,12 @@ async function initialize(): Promise<void> {
     }
     updateDifficulty();
 
-    aspectDeckPicker = createAspectDeckPicker({onChange: updatePlayButton});
+    aspectDeckPicker = createAspectDeckPicker({
+        onChange: () => {
+            updateHeroSelection();
+            updatePlayButton();
+        },
+    });
     void aspectDeckPicker.load();
 
     deckSourceController = createDeckSourceController({
@@ -576,7 +661,21 @@ async function initialize(): Promise<void> {
             if (source !== 'marvelcdb') {
                 leaveMarvelCdbMode();
             }
+            // The tiles choose a deck, and an aspect deck replaces the deck, so
+            // in aspect mode they are put away and the panel's dropdown is the
+            // hero instead. Leaving them on screen was what made it unclear
+            // which of the two the game would actually be played with.
+            heroSection.classList.toggle('hero-decks-hidden', source === 'aspect');
+            if (source === 'aspect') {
+                applyAspectHero();
+            }
+            updateHeroSelection();
         },
+    });
+
+    aspectHero.addEventListener('change', () => {
+        localStorage.setItem(aspectHeroStorageKey, aspectHero.value);
+        applyAspectHero();
     });
 
     const [scenarioResult, heroResult] = await Promise.allSettled([

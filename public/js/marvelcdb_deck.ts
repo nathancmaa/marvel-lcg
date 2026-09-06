@@ -260,7 +260,11 @@ export function createDeckSourceController(options: {
     });
 
     renderRecent();
-    setSource('precon');
+    // A reload restores the radio the browser remembers, so the panels have to
+    // follow whichever one is actually checked. Assuming precon here left the
+    // radio saying "Aspect deck" with its panel shut.
+    const restored = [...sourceInputs].find((input) => input.checked)?.value;
+    setSource(restored === 'marvelcdb' || restored === 'aspect' ? restored : 'precon');
 
     return {
         getSource: () => source,
