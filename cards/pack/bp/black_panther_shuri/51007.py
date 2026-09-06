@@ -18,11 +18,18 @@ def GetAbilities() -> Sequence['Ability']:
             AbilityType.AlterEgoAction,
             the_elephants_trunk
         ).SetCostFunc(CostFunc.Exhaust("This"))
+        # "up to 2 OTHER Wakanda allies and/or supports": the card is itself a
+        # WAKANDA support, so without `another` it offers itself here as well as
+        # in the mandatory cost above. Choosing it -- and it was listed first --
+        # exhausted it twice, which fails the whole cost and made the action
+        # unusable.
         .SetCostFunc(CostFunc.Exhaust(
-            card_type=Support|Ally,
-            trait="WAKANDA",
-            from_where=["YouControlCards"],
-            range=(0, 2)
+            Select.From(
+                finder=CardFinder(card_type=Support|Ally, trait="WAKANDA"),
+                another=True,
+                from_where=["YouControlCards"],
+                range=(0, 2),
+            )
         )),
     ]
 

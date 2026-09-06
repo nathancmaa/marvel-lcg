@@ -812,6 +812,86 @@ class RealCardActivationRegressionTests(unittest.TestCase):
             set(resource_faces),
         )
 
+    def MakeShuriBoard(self, extra_card_id=None):
+        """Shuri in alter-ego form, with a deck to draw from."""
+        world, player, identity = self.MakeWorld(
+            hero_name="Black Panther",
+            identity_card_id="51001a,51001b",
+        )
+        # DrawUp eliminates a player with an empty deck, which has nothing to
+        # do with what these tests are checking.
+        for _ in range(10):
+            CardFactory.GenerateCard(
+                "01045", player.player_deck, world, ui_render=False)
+        alter_ego = identity.GetAlterEgoFace()
+        self.assertTrue(identity.ChangeToFace(alter_ego, GameRule(identity)))
+        trunk = CardFactory.GenerateCard(
+            "51007", player.supports, world, ui_render=False).face
+        if extra_card_id:
+            CardFactory.GenerateCard(
+                extra_card_id, player.supports, world, ui_render=False)
+        return world, player, trunk
+
+    def ActivateTrunk(self, world, player, trunk, take_everything_offered):
+        """Use The Elephant's Trunk, returning (resolved, cards drawn, prompts)."""
+        effect = next(
+            candidate for candidate in trunk.effect.global_effects
+            if candidate.ability.flags.is_action
+        )
+        message = Message.WhenPlayerInTurn(player, 1)
+        prompts = []
+
+        def ask(targets, num_range, for_effect, prompt=""):
+            names = [face.name for face in targets]
+            prompts.append(names)
+            chosen = list(targets)
+            index = num_range[1] if take_everything_offered else num_range[0]
+            return chosen[:index]
+
+        before = player.hand_cards.GetSize()
+        controller_manager = SimpleNamespace(
+            console=SimpleNamespace(TryBreak=lambda check_world: None),
+        )
+        with patch.object(player, "AskChooseFaces", side_effect=ask), patch.object(
+            Engine,
+            "game",
+            SimpleNamespace(controller_manager=controller_manager),
+            create=True,
+        ):
+            available = EventManager.FilterAvailableEffects(
+                message, [effect], player, world, None)
+            self.assertEqual(available, [effect])
+            self.assertTrue(effect.checker.CheckBeforeActive(player))
+            resolved = effect.ResolveSelf(message, effect)
+        return resolved, player.hand_cards.GetSize() - before, prompts
+
+    def test_elephants_trunk_does_not_offer_itself_as_an_other_wakanda_card(self):
+        """It reads "up to 2 OTHER Wakanda allies and/or supports you control".
+
+        The Trunk is itself a WAKANDA support, so it was listed among its own
+        optional targets -- first, at that. Choosing it exhausted the same card
+        twice, the cost could not be paid, and the action failed outright.
+        """
+        world, player, trunk = self.MakeShuriBoard(extra_card_id="51008")
+        resolved, drawn, prompts = self.ActivateTrunk(
+            world, player, trunk, take_everything_offered=True)
+
+        self.assertEqual(prompts[0], ["The Elephant's Trunk"])
+        self.assertNotIn("The Elephant's Trunk", prompts[1])
+        self.assertEqual(prompts[1], ["Queen Ramonda"])
+        # Exhausting both draws one card for each.
+        self.assertTrue(resolved)
+        self.assertEqual(drawn, 2)
+
+    def test_elephants_trunk_alone_still_draws_one(self):
+        world, player, trunk = self.MakeShuriBoard()
+        resolved, drawn, prompts = self.ActivateTrunk(
+            world, player, trunk, take_everything_offered=True)
+
+        self.assertEqual(prompts[1], [])
+        self.assertTrue(resolved)
+        self.assertEqual(drawn, 1)
+
 
 if __name__ == "__main__":
     unittest.main()
