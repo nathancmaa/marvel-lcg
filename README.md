@@ -68,10 +68,14 @@ Development should prioritize rules correctness, reliable saves and replays, and
 Install Git, Python 3.10 or newer, and Node.js, then run:
 
 ```bash
-git clone https://github.com/z00lus/marvel-lcg.git
-cd marvel-lcg
+INSTALL_DIR=marvel-lcg   # any folder name you like
+git clone https://github.com/nathancmaa/marvel-lcg.git "$INSTALL_DIR"
+cd "$INSTALL_DIR"
 ./run.sh
 ```
+
+Git names the folder after the repository when no destination is given, so
+set `INSTALL_DIR` if you would rather keep several versions side by side.
 
 `run.sh` creates the virtual environment, installs Python dependencies, compiles the frontend when necessary, and starts the server. Open `http://127.0.0.1:2345/` locally or `http://SERVER_IP:2345/` from another device on the same trusted network.
 
