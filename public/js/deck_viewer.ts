@@ -558,7 +558,22 @@ async function showSubstitutes(entry: CardEntry): Promise<void> {
         for (const suggestion of suggestions) {
             const item = document.createElement('li');
             const name = document.createElement('strong');
-            name.textContent = String(suggestion.paper.name ?? '').replace(/^\*\s*/, '');
+            const label = String(suggestion.paper.name ?? '').replace(/^\*\s*/, '');
+            const cardId = String(suggestion.paper.card_id ?? '');
+            // MarvelCDB addresses cards by their printed code. Guarded on the
+            // shape so an id this build carries but MarvelCDB would not
+            // recognise becomes plain text rather than a link to nowhere.
+            if (/^\d{5}[a-z]?$/.test(cardId)) {
+                const link = document.createElement('a');
+                link.className = 'substitute-link';
+                link.href = `https://marvelcdb.com/card/${cardId}`;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                link.textContent = label;
+                name.appendChild(link);
+            } else {
+                name.textContent = label;
+            }
             const why = document.createElement('span');
             why.className = 'substitute-reason';
             why.textContent = `${describeProfile(suggestion.profile)} · ${suggestion.reasons.join(', ')}`;
