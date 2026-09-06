@@ -93,7 +93,14 @@ class CardsDB:
 
 
     @staticmethod
-    def FindCardPaper(name_or_id: str) -> 'Paper':
+    def TryFindCardPaper(name_or_id: str) -> 'Paper|None':
+        """Look up a card, returning None when this build does not have it.
+
+        A deck synced from MarvelCDB can name cards from a pack that is not
+        implemented here, and the id then reaches us straight from a browser
+        request. That is a missing card, not a broken caller, so it needs an
+        answer rather than an assertion.
+        """
         if name_or_id in CardsDB.papers:
             return CardsDB.papers[name_or_id]
 
@@ -101,6 +108,14 @@ class CardsDB:
             card_paper = CardsDB.papers[card_id]
             if card_paper.card_id == name_or_id or card_paper.name == name_or_id:
                 return card_paper
+
+        return None
+
+    @staticmethod
+    def FindCardPaper(name_or_id: str) -> 'Paper':
+        found = CardsDB.TryFindCardPaper(name_or_id)
+        if found is not None:
+            return found
 
         # for pack_name in CardsDB.card_datas:
         #     for card_paper in CardsDB.card_datas[pack_name]:

@@ -159,6 +159,13 @@ class WebServer:
     HandleAsyncType: TypeAlias = Callable[["web.Request"], Awaitable["web.StreamResponse"]]
     HandleNonAsyncType: TypeAlias = Callable[["web.Request"], "web.StreamResponse"]
 
+    # Declared here as well as assigned in __init__ so a handler can be called
+    # without a constructed server -- which is how the route tests exercise
+    # them. __init__ replaces these with the configured lifetimes.
+    HeaderCache: Dict[str, str] = {'Cache-Control': 'no-store'}
+    HeaderCacheImmutable: Dict[str, str] = {'Cache-Control': 'no-store'}
+    HeaderNoStore: Dict[str, str] = {'Cache-Control': 'no-store'}
+
     def __init__(self) -> None:
         self.web_app = web.Application()
         self.runner = web.AppRunner(self.web_app)

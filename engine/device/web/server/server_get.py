@@ -147,7 +147,13 @@ class GameServerGet(GameServerBase):
     async def get_card_json(self, request: web.Request) -> web.Response:
         from cards.database import CardsDB
         name = request.rel_url.query_string
-        paper = CardsDB.FindCardPaper(name)
+        paper = CardsDB.TryFindCardPaper(name)
+        if paper is None:
+            # The id comes from a deck, and a deck synced from MarvelCDB can
+            # name cards from a pack this build does not implement. Answering
+            # 404 lets the client fall back to a placeholder; asserting turned
+            # every such card into a 500 and a traceback in the log.
+            return web.Response(status=404, headers=self.HeaderNoStore)
         return web.Response(
             text=Json.Dumps(paper),
             content_type='application/json',

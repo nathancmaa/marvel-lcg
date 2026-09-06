@@ -27,7 +27,7 @@ class TestDeckViewerCardMetadata(unittest.IsolatedAsyncioTestCase):
             rel_url=SimpleNamespace(query_string='16012'),
         )
 
-        with patch.object(CardsDB, 'FindCardPaper', return_value=paper):
+        with patch.object(CardsDB, 'TryFindCardPaper', return_value=paper):
             response = await GameServerGet.get_card_json(
                 object.__new__(GameServerGet),
                 request,
@@ -39,6 +39,26 @@ class TestDeckViewerCardMetadata(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(payload['name'], 'Starhawk')
         self.assertEqual(payload['pack'], 'gmw')
         self.assertEqual(payload['desc']['Class'], 'Protection')
+
+    async def test_a_card_this_build_lacks_is_a_404_not_a_crash(self) -> None:
+        """A synced deck can name cards from a pack that is not implemented.
+
+        The lookup used to assert, so every such card became a 500 and a
+        traceback in the server log while the viewer was simply listing a deck.
+        The client already substitutes a placeholder on a failed fetch.
+        """
+        request = SimpleNamespace(
+            rel_url=SimpleNamespace(query_string='61015'),
+        )
+
+        with patch.object(CardsDB, 'TryFindCardPaper', return_value=None):
+            response = await GameServerGet.get_card_json(
+                object.__new__(GameServerGet),
+                request,
+            )
+
+        self.assertEqual(response.status, 404)
+        self.assertEqual(response.headers['Cache-Control'], 'no-store')
 
 
 if __name__ == '__main__':
