@@ -18,6 +18,7 @@
 /runtime/
 /deck/*.json
 /deck/user-decks/
+/deck/user-decks.backup-*/
 /deck/campaign-decks/
 /deckbuilding/
 /replays/

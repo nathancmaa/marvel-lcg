@@ -147,9 +147,13 @@ class TestMarvelCdbDeckSync(unittest.TestCase):
 
             self.assertTrue(result['ok'])
             self.assertEqual(result['synced'][0]['name'], 'Spider-Man unti Ultron')
+            # Decks are named by the kind that was fetched; a bare ID resolves
+            # to a decklist, so the bare `1130039.json` name is not written.
             output = MarvelCdbDeckSync._read_json(
-                os.path.join(user_folder, '1130039.json'),
+                os.path.join(user_folder, 'decklist-1130039.json'),
             )
+            self.assertFalse(
+                os.path.exists(os.path.join(user_folder, '1130039.json')))
             self.assertEqual(output['deck_name'], 'Spider-Man unti Ultron')
             self.assertEqual(output['name'], 'Spider-Man')
             state = service.GetStatus()

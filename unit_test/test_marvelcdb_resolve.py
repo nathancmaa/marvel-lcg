@@ -86,11 +86,12 @@ class TestFetchFallback(unittest.TestCase):
     def test_html_body_is_a_miss_not_a_crash(self):
         # MarvelCDB answers a miss with HTTP 200 and an HTML page. Treating that
         # as a hard error is what made a mistyped ID surface as JSONDecodeError.
+        # `decklist` is probed first, so miss it to exercise the fall-through.
         requested = []
 
         def fake_urlopen(request, timeout=None):
             requested.append(request.full_url)
-            if 'api/public/deck/' in request.full_url:
+            if 'api/public/decklist/' in request.full_url:
                 return FakeResponse('<!DOCTYPE html><html>Deckbuilder</html>')
             return FakeResponse(json.dumps(create_remote_deck('63988')))
 
@@ -98,8 +99,25 @@ class TestFetchFallback(unittest.TestCase):
             deck = MarvelCdbDeckSync.FetchDeckRef(None, '63988')
 
         self.assertEqual(deck['id'], 63988)
+        self.assertEqual(deck['marvelcdb_kind'], 'deck')
+        self.assertEqual(len(requested), 2, 'should fall through to the deck endpoint')
+
+    def test_bare_id_prefers_the_published_decklist(self):
+        # A number copied off MarvelCDB almost always names a published
+        # decklist. When both endpoints hold that number the decklist wins,
+        # and the `deck` endpoint is never even asked.
+        requested = []
+
+        def fake_urlopen(request, timeout=None):
+            requested.append(request.full_url)
+            return FakeResponse(json.dumps(create_remote_deck('63988')))
+
+        with patch('engine.marvelcdb.deck_sync.urlopen', fake_urlopen):
+            deck = MarvelCdbDeckSync.FetchDeckRef(None, '63988')
+
         self.assertEqual(deck['marvelcdb_kind'], 'decklist')
-        self.assertEqual(len(requested), 2, 'should fall through to the decklist endpoint')
+        self.assertEqual(len(requested), 1)
+        self.assertIn('api/public/decklist/63988', requested[0])
 
     def test_known_kind_does_not_probe_the_other_endpoint(self):
         requested = []
@@ -464,6 +482,84 @@ class TestSyncPreservesDeckKind(unittest.TestCase):
                 os.path.join(user, 'decklist-123.json'))
             self.assertEqual(deck['deck_name'], 'deck 123')
             self.assertEqual(decklist['deck_name'], 'decklist 123')
+
+    def _service(self, folder: str, fetch_ref) -> MarvelCdbDeckSync:
+        starter = os.path.join(folder, 'starter')
+        user = os.path.join(folder, 'user')
+        os.makedirs(starter, exist_ok=True)
+        os.makedirs(user, exist_ok=True)
+        write_starter_template(starter)
+        return MarvelCdbDeckSync(
+            user_deck_folder=user,
+            campaign_deck_folder=os.path.join(folder, 'campaign'),
+            state_file=os.path.join(folder, '.state.json'),
+            starter_deck_folder=starter,
+            fetch_deck_ref=fetch_ref,
+        )
+
+    def test_bare_id_replaces_the_legacy_file_name(self):
+        """Older syncs wrote `123.json`; that file must not survive as a twin.
+
+        `list_user_deck` lists every `.json` without deduping by ID, so a
+        leftover bare-ID file would show the same deck twice in the picker.
+        """
+        with tempfile.TemporaryDirectory() as folder:
+            service = self._service(
+                folder, lambda kind, deck_id: self._remote('decklist', 'Fresh'))
+            user = os.path.join(folder, 'user')
+            legacy = os.path.join(user, '123.json')
+            with open(legacy, 'w', encoding='utf-8') as file:
+                json.dump(
+                    {'deck_name': 'Stale', 'metadata': {'marvelcdb_id': '123'}},
+                    file,
+                )
+
+            result = service.SyncDecks('123')
+
+            self.assertEqual(result['errors'], [])
+            self.assertFalse(os.path.exists(legacy), 'legacy twin should be gone')
+            fresh = MarvelCdbDeckSync._read_json(
+                os.path.join(user, 'decklist-123.json'))
+            self.assertEqual(fresh['deck_name'], 'Fresh')
+
+    def test_a_hand_made_deck_sharing_the_id_name_survives(self):
+        """Only files this sync wrote are pruned.
+
+        A player's own `123.json` carries no `marvelcdb_id`, so deleting it
+        would destroy hand-built work that merely collided on the name.
+        """
+        with tempfile.TemporaryDirectory() as folder:
+            service = self._service(
+                folder, lambda kind, deck_id: self._remote('decklist', 'Fresh'))
+            user = os.path.join(folder, 'user')
+            handmade = os.path.join(user, '123.json')
+            with open(handmade, 'w', encoding='utf-8') as file:
+                json.dump({'deck_name': 'My own brew'}, file)
+
+            result = service.SyncDecks('123')
+
+            self.assertEqual(result['errors'], [])
+            self.assertTrue(os.path.exists(handmade), 'hand-made deck was deleted')
+            self.assertEqual(
+                MarvelCdbDeckSync._read_json(handmade)['deck_name'], 'My own brew')
+            self.assertTrue(
+                os.path.exists(os.path.join(user, 'decklist-123.json')))
+
+    def test_a_legacy_file_for_a_different_id_is_untouched(self):
+        with tempfile.TemporaryDirectory() as folder:
+            service = self._service(
+                folder, lambda kind, deck_id: self._remote('decklist', 'Fresh'))
+            user = os.path.join(folder, 'user')
+            other = os.path.join(user, '999.json')
+            with open(other, 'w', encoding='utf-8') as file:
+                json.dump(
+                    {'deck_name': 'Other', 'metadata': {'marvelcdb_id': '999'}},
+                    file,
+                )
+
+            service.SyncDecks('123')
+
+            self.assertTrue(os.path.exists(other))
 
     def test_a_bare_id_still_probes_both_endpoints(self):
         """Existing sync state holds bare IDs and must keep working."""

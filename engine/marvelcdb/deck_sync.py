@@ -58,7 +58,14 @@ class MarvelCdbDeckSync:
     # tells us which; a bare ID does not, so we try both.
     DECK_KIND = 'deck'
     DECKLIST_KIND = 'decklist'
-    DECK_KINDS = (DECK_KIND, DECKLIST_KIND)
+    # Probe order for a bare ID. `decklist` comes first because published
+    # decklists are what you find when browsing MarvelCDB, so a number copied
+    # out of the site is far more likely to name one; a personally shared
+    # `deck` that happens to share the number would otherwise win the race.
+    DECK_KINDS = (DECKLIST_KIND, DECK_KIND)
+    # What to assume when a payload arrives with no kind marker at all. Same
+    # reasoning as the probe order -- keep the two in step.
+    DEFAULT_KIND = DECK_KINDS[0]
 
     WEB_URL = 'https://marvelcdb.com/{kind}/view/{deck_id}'
 
@@ -310,7 +317,7 @@ class MarvelCdbDeckSync:
         # happens to share the ID.
         kind = str(remote_deck.get('marvelcdb_kind', '')).lower()
         if kind not in cls.DECK_KINDS:
-            kind = cls.DECK_KIND
+            kind = cls.DEFAULT_KIND
         metadata.update({
             'marvelcdb_id': deck_id,
             'marvelcdb_kind': kind,
@@ -362,6 +369,37 @@ class MarvelCdbDeckSync:
 
     def _save_state(self, state: Dict[str, Any]) -> None:
         self._save_json(state, self.state_file)
+
+    def _prune_legacy_deck_file(self, deck_id: str, keep_path: str) -> None:
+        """Remove a superseded bare-ID `<deck_id>.json` left by an older sync.
+
+        Decks are now named by their resolved kind, so the historical file
+        would otherwise linger and show the deck a second time in the picker
+        (`list_user_deck` lists every `.json` and does not dedupe by ID).
+
+        Only a file this sync clearly wrote is removed: it has to parse and
+        claim the same `marvelcdb_id`. A hand-made deck that merely happens to
+        be called `123.json` carries no such metadata and is left alone.
+        """
+        legacy_path = FileManager.JoinPath(self.user_deck_folder, f'{deck_id}.json')
+        if legacy_path == keep_path or not FileManager.Exists(legacy_path):
+            return
+
+        try:
+            legacy = self._read_json(legacy_path)
+        except Exception:
+            return
+
+        metadata = legacy.get('metadata')
+        if not isinstance(metadata, dict):
+            return
+        if str(metadata.get('marvelcdb_id', '')) != str(deck_id):
+            return
+
+        try:
+            FileManager.Delete(legacy_path)
+        except Exception as exc:
+            Log.Warn(CATEGORY_NAME, f'Could not remove {legacy_path}: {exc}')
 
     def _load_templates(self) -> Dict[str, Dict[str, Any]]:
         templates: Dict[str, Dict[str, Any]] = {}
@@ -533,15 +571,24 @@ class MarvelCdbDeckSync:
                     template = self._select_template(templates, remote_deck)
                     converted = self.ConvertDeck(remote_deck, template)
                     # `deck/123` and `decklist/123` are independent MarvelCDB
-                    # records. Keep the historical `123.json` name for bare
-                    # IDs, but include the explicit kind when the player pasted
-                    # a URL so two records with the same number can coexist.
-                    file_id = f'{kind}-{deck_id}' if kind in self.DECK_KINDS else deck_id
+                    # records, so the file name carries the kind that was
+                    # actually fetched -- not the one the reference named,
+                    # which is absent for a bare ID. Naming by the resolved
+                    # kind lets the two coexist however they were requested.
+                    resolved_kind = str(
+                        converted.get('metadata', {}).get('marvelcdb_kind', '')
+                    ).lower()
+                    if resolved_kind not in self.DECK_KINDS:
+                        resolved_kind = self.DEFAULT_KIND
                     output_path = FileManager.JoinPath(
                         self.user_deck_folder,
-                        f'{file_id}.json',
+                        f'{resolved_kind}-{deck_id}.json',
                     )
                     self._save_json(converted, output_path)
+                    # Older syncs wrote a bare `123.json`. Drop it only after
+                    # the replacement is safely on disk, so an interrupted
+                    # sync can never leave the deck missing entirely.
+                    self._prune_legacy_deck_file(deck_id, output_path)
                     synced.append({
                         'id': deck_id,
                         'name': converted['deck_name'],
