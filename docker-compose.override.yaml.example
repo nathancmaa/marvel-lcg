@@ -4,31 +4,34 @@
 #
 # Everything here is optional. It is worth setting when you run more than one
 # checkout of the game on a single host -- the stock `container_name` is global
-# to the Docker daemon, and under `network_mode: host` every instance binds the
-# same port, so a second version collides with the first on both counts. See
+# to the Docker daemon, so a second version collides with the first. See
 # `.env.example` for the matching Compose project name.
 #
 # Merge behaviour: `volumes` entries are matched by their container path, so
 # these replace the relative bind mounts in docker-compose.yaml rather than
-# adding to them. `container_name` and `command` replace the base outright.
+# adding to them. `container_name` replaces the base outright.
 services:
   marvel-lcg:
-    container_name: marvel-lcg-ronin
+    container_name: marvelchampions
     network_mode: host
     volumes:
       - /volume1/docker/marvel-lcg/assets:/app/assets
       - /volume1/docker/marvel-lcg/replays:/app/replays
       - /volume1/docker/marvel-lcg/runtime:/app/runtime
       - /volume1/docker/marvel-lcg/deck/user-decks:/app/deck/user-decks
-    # The base command plus an explicit listen address. Any config key can be
-    # overridden on the command line (see engine/config.py); `server_addresses`
-    # defaults to 0.0.0.0:2345 in launch.json.
-    command: [
-      "python", "-u", "main.py",
-      "-server_addresses", "0.0.0.0:2347",
-      "-game_statistics_file", "./runtime/statistics.json",
-      "-game_history_file", "./runtime/statistics.sqlite3",
-      "-campaign_progress_file", "./runtime/save_campaign_progress.json",
-      "-active_session_file", "./runtime/save_active_session.json",
-      "-quick_save_folder", "./runtime"
-    ]
+
+    # The app binds 0.0.0.0:2345 by default (`server_addresses` in launch.json).
+    # Under `network_mode: host` that is a host-wide port, so a second instance
+    # needs its own. Uncomment and edit to move this one -- but note that
+    # `command` REPLACES the base command rather than extending it, so keep the
+    # rest of the flags in sync with docker-compose.yaml if it ever changes.
+    #
+    # command: [
+    #   "python", "-u", "main.py",
+    #   "-server_addresses", "0.0.0.0:2346",
+    #   "-game_statistics_file", "./runtime/statistics.json",
+    #   "-game_history_file", "./runtime/statistics.sqlite3",
+    #   "-campaign_progress_file", "./runtime/save_campaign_progress.json",
+    #   "-active_session_file", "./runtime/save_active_session.json",
+    #   "-quick_save_folder", "./runtime"
+    # ]
