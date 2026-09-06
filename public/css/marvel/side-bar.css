@@ -17,17 +17,36 @@
 }
 #right-side-bar {
     --width: calc(4 * var(--font-size-out));
-    /* How much of the bar stays on screen while parked, and so how big a
-       target there is to open it with. Applied as a transform rather than a
-       negative `right`, because that offset was computed from --width while
-       the bar is really sized by its widest button: the two disagreed, and the
-       4px strip the rule intended was actually 18px. A transform is relative
-       to the rendered width, so the strip is exactly this wide either way. */
-    --peek: calc(2.5 * var(--font-size-out));
+    /* How far in from the edge the bar can be reached, and so how big a target
+       there is to open it with. It is the reach that is this wide, not the bar:
+       parking part of the bar on screen instead left the buttons permanently
+       half visible, which is what this replaces.
+
+       Parked with a transform rather than a negative `right`, because that
+       offset was computed from --width while the bar is really sized by its
+       widest button. The two disagreed, so a rule asking for 4px got 18. */
+    --reach: calc(3 * var(--font-size-out));
     right: 0;
     bottom: 0;
-    transform: translateX(calc(100% - var(--peek)));
+    transform: translateX(100%);
     transition: .15s linear transform;
+}
+
+/* The target that opens the bar: invisible, against the screen edge while the
+   bar is parked just beyond it. Hovering a pseudo-element hovers its element,
+   so this needs no rule of its own to open anything.
+
+   Only as tall as the bar, so the pointer events it takes are the ones the
+   half-shown buttons were taking anyway. It travels with the bar, which leaves
+   it inboard of the buttons once they are out -- room to spare on the way to
+   them rather than a seam that closes the bar again. */
+#right-side-bar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 100%;
+    width: var(--reach);
 }
 
 .side-bar > * {
