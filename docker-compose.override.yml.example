@@ -1,0 +1,14 @@
+# Copy to `docker-compose.override.yml` and edit the paths for your host.
+# Compose merges it on top of docker-compose.yml automatically; the real
+# override file is git-ignored so your paths stay out of version control.
+#
+# This example matches a Synology NAS layout with host networking and the
+# user deck folder kept on a mounted volume so decks survive image rebuilds.
+services:
+  marvel-lcg:
+    network_mode: host
+    volumes:
+      - /volume1/docker/marvel-lcg/assets:/app/assets
+      - /volume1/docker/marvel-lcg/replays:/app/replays
+      - /volume1/docker/marvel-lcg/runtime:/app/runtime
+      - /volume1/docker/marvel-lcg/deck/user-decks:/app/deck/user-decks
