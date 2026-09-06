@@ -132,6 +132,25 @@
     margin-top: 1rem;
 }
 
+/* Secondary to Share Deck: outlined rather than filled, so the primary
+   action still reads first. */
+.marvelcdb-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.7rem;
+    padding: 0.65rem 1.15rem;
+    border: 1px solid rgba(120, 210, 255, 0.5);
+    border-radius: 0.4rem;
+    color: #9fdcff;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.marvelcdb-link:hover {
+    border-color: #78d2ff;
+    background: rgba(120, 210, 255, 0.14);
+}
+
 .share-deck-button {
     min-height: 2.7rem;
     padding: 0.65rem 1.15rem;

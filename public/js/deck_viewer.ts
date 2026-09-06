@@ -1,4 +1,5 @@
 import { withCardImageRevision } from './card_image_url.js';
+import { compareDeckText } from './deck_filters.js';
 
 type DeckData = {
     name: string;
@@ -9,6 +10,8 @@ type DeckData = {
     set_aside?: string[];
     obligations?: string[];
     nemesis_set?: string[];
+    // Written by the MarvelCDB sync; absent on starter decks.
+    metadata?: Record<string, string>;
 };
 
 type CardPaper = {
@@ -49,8 +52,13 @@ type CardEntry = {
 
 const selectedDeckStorageKey = 'marvel_lcg_deck_viewer_deck';
 const quickGameDeckStorageKey = 'marvel_lcg_solo_hero';
+const groupHeroesStorageKey = 'marvel_lcg_deck_viewer_group_heroes';
+const hidePreconsStorageKey = 'marvel_lcg_deck_viewer_hide_precons';
 
 const deckSelect = document.querySelector<HTMLSelectElement>('#deck-select')!;
+const groupHeroesToggle = document.querySelector<HTMLButtonElement>('#viewer-group-heroes')!;
+const hidePreconsToggle = document.querySelector<HTMLButtonElement>('#viewer-hide-precons')!;
+const marvelCdbLink = document.querySelector<HTMLAnchorElement>('#marvelcdb-link')!;
 const deckStatus = document.querySelector<HTMLElement>('#deck-status')!;
 const deckSourceBadge = document.querySelector<HTMLElement>('#deck-source-badge')!;
 const deckSummary = document.querySelector<HTMLElement>('#deck-summary')!;
@@ -80,6 +88,8 @@ const previewFlip = document.querySelector<HTMLButtonElement>('#preview-flip')!;
 const paperCache = new Map<string, Promise<CardPaper>>();
 const productsByPack = new Map<string, ProductInfo>();
 let choices: DeckChoice[] = [];
+let groupByHero = localStorage.getItem(groupHeroesStorageKey) === '1';
+let hidePrecons = localStorage.getItem(hidePreconsStorageKey) === '1';
 let previewFaces: string[] = [];
 let previewFaceIndex = 0;
 let currentDeck: DeckChoice | null = null;
@@ -169,31 +179,64 @@ function loadProductCatalog(sets: Record<string, SetInfo>): void {
     }
 }
 
+function deckLabel(choice: DeckChoice): string {
+    return choice.data.deck_name ?? choice.data.name;
+}
+
+/** The decks the current toggles allow, in display order. */
+function visibleChoices(): DeckChoice[] {
+    return choices.filter(choice => !hidePrecons || choice.isUserDeck);
+}
+
 function fillDeckSelect(): void {
     deckSelect.replaceChildren();
-    const groups: Array<{label: string; userDecks: boolean}> = [
-        {label: 'My decks', userDecks: true},
-        {label: 'Starter decks', userDecks: false},
-    ];
-    for (const groupInfo of groups) {
-        const groupChoices = choices
-            .filter(choice => choice.isUserDeck === groupInfo.userDecks)
-            .sort((left, right) => (left.data.deck_name ?? left.data.name)
-                .localeCompare(right.data.deck_name ?? right.data.name));
-        if (!groupChoices.length) {
-            continue;
+    const visible = visibleChoices();
+
+    // Grouped by hero, the My decks / Starter decks split stops being the
+    // organising idea, so the optgroups become hero names instead.
+    const groups = new Map<string, DeckChoice[]>();
+    if (groupByHero) {
+        for (const choice of visible) {
+            const hero = choice.data.name;
+            const bucket = groups.get(hero);
+            if (bucket) {
+                bucket.push(choice);
+            } else {
+                groups.set(hero, [choice]);
+            }
         }
+    } else {
+        for (const info of [
+            {label: 'My decks', userDecks: true},
+            {label: 'Starter decks', userDecks: false},
+        ]) {
+            const bucket = visible.filter(choice => choice.isUserDeck === info.userDecks);
+            if (bucket.length) {
+                groups.set(info.label, bucket);
+            }
+        }
+    }
+
+    // Hero groups are alphabetical; My decks / Starter decks keep their order.
+    const labels = groupByHero
+        ? [...groups.keys()].sort(compareDeckText)
+        : [...groups.keys()];
+
+    for (const label of labels) {
         const group = document.createElement('optgroup');
-        group.label = groupInfo.label;
-        for (const choice of groupChoices) {
+        group.label = label;
+        const bucket = groups.get(label)!
+            .slice()
+            .sort((left, right) => compareDeckText(deckLabel(left), deckLabel(right)));
+        for (const choice of bucket) {
             const option = document.createElement('option');
             option.value = choice.id;
-            option.textContent = choice.data.deck_name ?? choice.data.name;
+            option.textContent = deckLabel(choice);
             group.appendChild(option);
         }
         deckSelect.appendChild(group);
     }
-    deckSelect.disabled = choices.length === 0;
+    deckSelect.disabled = visible.length === 0;
 }
 
 async function buildEntries(cardValues: string[]): Promise<CardEntry[]> {
@@ -464,6 +507,18 @@ async function showDeck(choice: DeckChoice): Promise<void> {
             return badge;
         }));
 
+        // Only decks synced from MarvelCDB carry a source URL; starter decks
+        // and hand-made ones have nowhere to link to.
+        const marvelCdbUrl = choice.data.metadata?.url;
+        const isMarvelCdbUrl = typeof marvelCdbUrl === 'string'
+            && /^https:\/\/marvelcdb\.com\//i.test(marvelCdbUrl);
+        marvelCdbLink.hidden = !isMarvelCdbUrl;
+        if (isMarvelCdbUrl) {
+            marvelCdbLink.href = marvelCdbUrl;
+        } else {
+            marvelCdbLink.removeAttribute('href');
+        }
+
         deckSourceBadge.hidden = false;
         deckSourceBadge.textContent = choice.isUserDeck ? 'MY DECK' : 'STARTER DECK';
         deckSourceBadge.classList.toggle('starter', !choice.isUserDeck);
@@ -489,6 +544,44 @@ deckSelect.addEventListener('change', () => {
     }
 });
 
+function setToggle(button: HTMLButtonElement, pressed: boolean): void {
+    button.setAttribute('aria-pressed', String(pressed));
+    button.classList.toggle('active', pressed);
+}
+
+/** Redraw the list, keeping the open deck on screen where the toggles allow. */
+function refreshDeckList(): void {
+    fillDeckSelect();
+    const visible = visibleChoices();
+    if (!visible.length) {
+        deckStatus.textContent = 'No decks match these options.';
+        return;
+    }
+    deckStatus.textContent = '';
+    if (currentDeck && visible.some(choice => choice.id === currentDeck!.id)) {
+        deckSelect.value = currentDeck.id;
+        return;
+    }
+    // Hiding precons while viewing one would otherwise leave the page showing
+    // a deck that is no longer in the list, so move to the first that is.
+    deckSelect.value = visible[0].id;
+    void showDeck(visible[0]);
+}
+
+groupHeroesToggle.addEventListener('click', () => {
+    groupByHero = !groupByHero;
+    setToggle(groupHeroesToggle, groupByHero);
+    localStorage.setItem(groupHeroesStorageKey, groupByHero ? '1' : '0');
+    refreshDeckList();
+});
+
+hidePreconsToggle.addEventListener('click', () => {
+    hidePrecons = !hidePrecons;
+    setToggle(hidePreconsToggle, hidePrecons);
+    localStorage.setItem(hidePreconsStorageKey, hidePrecons ? '1' : '0');
+    refreshDeckList();
+});
+
 shareDeckButton.addEventListener('click', () => {
     void createShareImage();
 });
@@ -512,6 +605,8 @@ async function initialize(): Promise<void> {
         ]);
         choices = loadedChoices;
         loadProductCatalog(sets);
+        setToggle(groupHeroesToggle, groupByHero);
+        setToggle(hidePreconsToggle, hidePrecons);
         fillDeckSelect();
         if (!choices.length) {
             deckStatus.textContent = 'No local decks are available.';
@@ -520,10 +615,14 @@ async function initialize(): Promise<void> {
         const requestedId = new URLSearchParams(window.location.search).get('deck');
         const savedId = localStorage.getItem(selectedDeckStorageKey);
         const quickGameDeckId = localStorage.getItem(quickGameDeckStorageKey);
+        // A deck named in the URL wins even when the toggles would hide it;
+        // anything else falls back to what is actually listed.
+        const visible = visibleChoices();
         const selected = choices.find(choice => choice.id === requestedId)
-            ?? choices.find(choice => choice.id === savedId)
-            ?? choices.find(choice => choice.id === quickGameDeckId)
-            ?? choices.find(choice => choice.isUserDeck)
+            ?? visible.find(choice => choice.id === savedId)
+            ?? visible.find(choice => choice.id === quickGameDeckId)
+            ?? visible.find(choice => choice.isUserDeck)
+            ?? visible[0]
             ?? choices[0];
         deckSelect.value = selected.id;
         await showDeck(selected);

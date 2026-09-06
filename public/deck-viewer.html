@@ -31,6 +31,12 @@
             <select id="deck-select" disabled>
                 <option>Loading decks…</option>
             </select>
+            <div class="deck-filters" role="group" aria-label="Deck list options">
+                <button id="viewer-group-heroes" class="deck-filter-toggle" type="button"
+                        aria-pressed="false">Group by hero</button>
+                <button id="viewer-hide-precons" class="deck-filter-toggle" type="button"
+                        aria-pressed="false">Hide precons</button>
+            </div>
             <p id="deck-status" class="load-status" aria-live="polite"></p>
         </section>
 
@@ -45,6 +51,8 @@
                     <button id="share-deck" class="share-deck-button" type="button">
                         Share Deck
                     </button>
+                    <a id="marvelcdb-link" class="marvelcdb-link" href="#"
+                       target="_blank" rel="noopener noreferrer" hidden>View on MarvelCDB ↗</a>
                     <span id="share-status" class="share-status" aria-live="polite"></span>
                 </div>
             </div>

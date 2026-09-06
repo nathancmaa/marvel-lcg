@@ -100,9 +100,13 @@ function heroNameOf(choice: DeckFilterChoice): string {
     return choice.data.name;
 }
 
-function compareText(left: string, right: string): number {
+/** Case- and accent-insensitive, with numbers ordered numerically. Exported so
+ *  the deck viewer orders its list the same way this picker does. */
+export function compareDeckText(left: string, right: string): number {
     return left.localeCompare(right, undefined, {sensitivity: 'base', numeric: true});
 }
+
+const compareText = compareDeckText;
 
 /** Last-updated timestamp for MarvelCDB decks; '' for everything else. */
 function updatedAtOf(choice: DeckFilterChoice): string {
