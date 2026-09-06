@@ -1,5 +1,5 @@
-# Copy to `docker-compose.override.yml` and edit for your host. Compose merges
-# it on top of docker-compose.yml automatically; the real override file is
+# Copy to `docker-compose.override.yaml` and edit for your host. Compose merges
+# it on top of docker-compose.yaml automatically; the real override file is
 # git-ignored so your paths stay out of version control.
 #
 # Everything here is optional. It is worth setting when you run more than one
@@ -9,7 +9,7 @@
 # `.env.example` for the matching Compose project name.
 #
 # Merge behaviour: `volumes` entries are matched by their container path, so
-# these replace the relative bind mounts in docker-compose.yml rather than
+# these replace the relative bind mounts in docker-compose.yaml rather than
 # adding to them. `container_name` and `command` replace the base outright.
 services:
   marvel-lcg:
