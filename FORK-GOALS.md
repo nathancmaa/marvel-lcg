@@ -1,6 +1,6 @@
 # Marvel Champions Digital: Ronin Edition
 
-> Version 0.7.0 — “Ronin”
+> Version 0.7.1 — “Ronin”
 
 ## Fork Goals
 

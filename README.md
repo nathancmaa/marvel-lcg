@@ -1,6 +1,6 @@
 # Marvel Champions Digital: Ronin Edition
 
-> Version 0.7.0 — “Ronin”
+> Version 0.7.1 — “Ronin”
 
 > **This edition uses Marvel Champions Rules Reference v1.8 as its supported rules model.**
 
@@ -31,6 +31,10 @@ the board.
 - **Decks that survive a rebuild.** User decks are stored outside the
   container, so a `docker compose up --build` no longer discards everything
   synced from MarvelCDB.
+
+**0.7.1** fixes The Elephant's Trunk, which could not be used at all, and
+reports decks that name cards this build does not implement when they sync
+rather than when you draw them. See the [changelog](CHANGELOG.md) for detail.
 
 ## Previously in 0.6.1: Fear No Evil
 

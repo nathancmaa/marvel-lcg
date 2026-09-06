@@ -1,6 +1,6 @@
 # Marvel Champions Digital: Ronin Edition Changelog
 
-> Current release version: 0.7.0 — “Ronin”
+> Current release version: 0.7.1 — “Ronin”
 
 This document records the user-visible and development changes made in this
 fork after it diverged from the original
@@ -10,6 +10,30 @@ The comparison baseline is upstream commit
 [`a77154a`](https://github.com/irefrixs/marvel-lcg/commit/a77154ab7e2f800a6ae82da6e67efd83dc3c8045)
 (`master`, 2026-07-31). Version 0.6.0 is the first release carrying the
 **Ronin Edition** name and the **Echo** codename.
+
+## Version 0.7.1 — “Ronin” (2026-09-06)
+
+Fixes for problems found while playing 0.7.0.
+
+### Rules and cards
+
+- **The Elephant's Trunk** can be used again. It reads "exhaust The
+  Elephant's Trunk and up to 2 *other* Wakanda allies and/or supports", but
+  it is itself a Wakanda support and was listed among its own optional
+  targets — first, ahead of any real choice. Picking it exhausted the same
+  card twice, which could not be paid, and the action failed outright. This
+  is inherited from upstream and predates the fork.
+
+### Decks
+
+- A deck that names cards this installation does not implement is now
+  reported when it syncs, in Settings and in the server log, instead of
+  playing normally until the missing card comes up. The deck still syncs;
+  it is playable up to that point.
+- Asking for such a card no longer returns a server error. Listing an
+  affected deck in the Deck Viewer put an assertion failure and a full
+  traceback in the log for every missing card; the viewer already showed a
+  placeholder, so only the noise and the failed request are gone.
 
 ## Version 0.7.0 — “Ronin” (2026-09-06)
 
