@@ -14,6 +14,15 @@ class GameArea(Object):
 
         game_area = player.GetIdentity().card.game_area
 
+        # Already here, so there is nothing to move. Without this the method
+        # walks the player's cards handing each to AddCard, which asserts that
+        # a card is not already in the area it is being added to -- and every
+        # one of them is. Kang reaches this on defeat: it gathers the players
+        # from the defeated aspect's area into the first one, which in a solo
+        # game is frequently the area they are standing in already.
+        if game_area is self:
+            return
+
         for face in Worlds.GetSideSchemes(game_area):
             self.AddCard(face.card)
         for face in player.GetControlCharacters():
