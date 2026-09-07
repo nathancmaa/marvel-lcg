@@ -161,10 +161,21 @@ class V18SetupUiTests(unittest.TestCase):
         self.assertIn("self.AddPostSecurity('/continue_game'", server)
         self.assertIn('self.controller_manager.game.SaveActiveSession()', world)
 
-        solo_page = (ROOT / 'public/solo.html').read_text(encoding='utf-8')
-        campaign_page = (ROOT / 'public/campaign.html').read_text(encoding='utf-8')
-        self.assertIn('/public/js/solo.js?ronin-session=1', solo_page)
-        self.assertIn('/public/js/campaign.js?ronin-session=1', campaign_page)
+        # The two pages that take part in a session used to be asserted to
+        # carry a hand-written `?ronin-session=1` on their scripts, so a
+        # returning browser could not run the previous version from cache.
+        # AssetVersion took that job over: ReadHtmlFile rewrites every css/js
+        # reference to /v/<token>/, and the token is a content hash, so it
+        # changes exactly when the file does rather than when someone
+        # remembers to bump a string. The hand-written token was left behind
+        # and drifted -- these lines went on asserting `ronin-session=1` long
+        # after the pages had moved to `quickstart-products=2`, which is a test
+        # failing for a reason that has nothing to do with what it is named
+        # after. Cache busting is covered properly in test_asset_versioning.py
+        # (see test_the_token_tracks_content and
+        # test_a_page_is_not_cached_and_carries_the_token); it does not belong
+        # here, and pinning whatever string a page happens to carry today would
+        # only break again on the next bump.
 
 
 if __name__ == "__main__":
