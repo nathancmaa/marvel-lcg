@@ -373,6 +373,9 @@ class GameServerGet(GameServerBase):
                             'wins': row['wins'],
                             'expert_games': row['expert_games'],
                             'expert_wins': row['expert_wins'],
+                            'best_beaten': row['best_beaten'],
+                            'heroic_played': row['heroic_played'],
+                            'heroic_beaten': row['heroic_beaten'],
                         }
                         break
 

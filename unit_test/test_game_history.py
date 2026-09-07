@@ -92,9 +92,13 @@ class GameHistoryTests(unittest.TestCase):
         history.Initialize()
 
         with history._connect() as connection:
+            # Derived rather than pinned: this test is about a v1 database
+            # arriving at the current schema with its games intact, not about
+            # which number that schema happens to be. Written as a literal it
+            # failed on the next bump, which says nothing about migrating.
             self.assertEqual(
                 connection.execute('PRAGMA user_version').fetchone()[0],
-                5,
+                GameHistory.SCHEMA_VERSION,
             )
             columns = {
                 row['name'] for row in connection.execute(
@@ -716,6 +720,119 @@ class GameHistoryTests(unittest.TestCase):
                 connection.execute('SELECT COUNT(*) FROM achievements').fetchone()[0],
                 len(ACHIEVEMENTS),
             )
+
+
+
+class HeroicDifficultyTests(unittest.TestCase):
+    """The Heroic ladder, and the migration that made room for it.
+
+    One square on the coverage grid makes one claim -- the hardest difficulty
+    that pairing has actually been beaten at -- so the ordering matters more
+    than the counts do.
+    """
+
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.path = Path(self.temp_dir.name) / 'statistics.sqlite3'
+        self.history = GameHistory(file_path=str(self.path), replay_folders=[])
+        self.history.enabled = True
+        self.history.Initialize()
+
+    def tearDown(self):
+        self.history.Close()
+        try:
+            self.temp_dir.cleanup()
+        except OSError:
+            # Windows will not unlink the database while it is still mapped.
+            pass
+
+    def record(self, scenario, expert, heroic, result):
+        with self.history._lock, self.history._connect() as connection:
+            connection.execute(
+                'INSERT INTO games (source_key, finished_at, imported_at,'
+                ' hero_code, scenario_key, expert, heroic, result)'
+                ' VALUES (?,?,?,?,?,?,?,?)',
+                (f'{scenario}:{expert}:{heroic}:{result}', '2026-01-01',
+                 '2026-01-01', 'HERO', scenario, expert, heroic, result))
+
+    def beaten(self, scenario):
+        for row in self.history.GetMatchupCounts('all'):
+            if row['scenario_key'] == scenario:
+                return row['best_beaten']
+        return None
+
+    def test_the_ladder_runs_standard_expert_then_heroic_by_level(self):
+        self.record('a', 0, 0, 'win')
+        self.record('b', 1, 0, 'win')
+        self.record('c', 0, 1, 'win')
+        self.record('d', 0, 2, 'win')
+        self.assertEqual(
+            [self.beaten('a'), self.beaten('b'), self.beaten('c'), self.beaten('d')],
+            [1, 2, 3, 4],
+        )
+
+    def test_heroic_outranks_expert(self):
+        # The rule as asked for: Heroic is harder than Expert, so a Heroic 1
+        # clear beats an Expert one even without Expert also being on.
+        self.record('x', 1, 0, 'win')
+        self.record('y', 0, 1, 'win')
+        self.assertGreater(self.beaten('y'), self.beaten('x'))
+
+    def test_expert_and_heroic_together_score_by_the_heroic_level(self):
+        # Not stacked: Expert plus Heroic 1 is a Heroic 1 clear, not a Heroic 2
+        # one, because the level is what sets the extra encounter cards.
+        self.record('x', 1, 1, 'win')
+        self.record('y', 0, 1, 'win')
+        self.assertEqual(self.beaten('x'), self.beaten('y'))
+
+    def test_a_loss_at_heroic_is_not_a_clear(self):
+        self.record('a', 0, 3, 'loss')
+        self.assertEqual(self.beaten('a'), 0)
+
+    def test_the_best_clear_wins_however_the_games_are_ordered(self):
+        self.record('a', 0, 2, 'win')
+        self.record('a', 0, 0, 'win')
+        self.record('a', 1, 0, 'win')
+        self.assertEqual(self.beaten('a'), 4)
+
+    def test_the_level_is_read_from_the_scene_rules(self):
+        self.assertEqual(GameHistory.HeroicLevel(['v18_all', 'mode_heroic_3']), 3)
+        self.assertEqual(GameHistory.HeroicLevel(['v18_all']), 0)
+        self.assertEqual(GameHistory.HeroicLevel([]), 0)
+        self.assertEqual(GameHistory.HeroicLevel(None), 0)
+        # A hand-edited replay should not stop a game being recorded.
+        self.assertEqual(GameHistory.HeroicLevel(['mode_heroic_x']), 0)
+
+    def test_an_older_database_gains_the_column_and_keeps_its_games(self):
+        """The migration, which runs against a database holding real games."""
+        self.history.Close()
+        with sqlite3.connect(self.path) as connection:
+            connection.execute('ALTER TABLE games DROP COLUMN heroic')
+            connection.execute('PRAGMA user_version = 5')
+            connection.execute(
+                'INSERT INTO games (source_key, finished_at, imported_at,'
+                " hero_code, scenario_key, expert, result)"
+                " VALUES ('old','2026-01-01','2026-01-01','HERO','scen',1,'win')")
+
+        migrated = GameHistory(file_path=str(self.path), replay_folders=[])
+        migrated.enabled = True
+        migrated.Initialize()
+        try:
+            with sqlite3.connect(self.path) as connection:
+                version = connection.execute('PRAGMA user_version').fetchone()[0]
+                columns = {
+                    row[1] for row in connection.execute('PRAGMA table_info(games)')
+                }
+                kept = connection.execute('SELECT COUNT(*) FROM games').fetchone()[0]
+            self.assertEqual(version, 6)
+            self.assertIn('heroic', columns)
+            self.assertEqual(kept, 1, 'the migration must not lose games')
+            # The pre-existing Expert win still reads as one.
+            self.assertEqual(
+                migrated.GetMatchupCounts('all')[0]['best_beaten'], 2)
+        finally:
+            migrated.Close()
+        self.history = migrated
 
 
 if __name__ == '__main__':

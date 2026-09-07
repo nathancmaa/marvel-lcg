@@ -31,7 +31,7 @@ REPLAY_FOLDERS = ConfigVariables.Folders('replay_folders', ['./replays/'])
 
 
 class GameHistory:
-    SCHEMA_VERSION = 5
+    SCHEMA_VERSION = 6
     KNOWN_RESULTS = ('win', 'loss', 'unknown', 'abandoned')
     KNOWN_SOURCES = ('digital', 'physical', 'replay_import')
 
@@ -109,6 +109,10 @@ class GameHistory:
                     scenario_name TEXT NOT NULL DEFAULT '',
                     scenario_key TEXT NOT NULL DEFAULT '',
                     expert INTEGER NOT NULL DEFAULT 0 CHECK (expert IN (0, 1)),
+                    -- 0 when Heroic was off, otherwise the level played. A
+                    -- level rather than a flag because Heroic stacks: each
+                    -- one deals another encounter card per player.
+                    heroic INTEGER NOT NULL DEFAULT 0 CHECK (heroic >= 0),
                     result TEXT NOT NULL DEFAULT 'unknown'
                         CHECK (result IN ('win', 'loss', 'unknown', 'abandoned')),
                     game_over_reason TEXT NOT NULL DEFAULT '',
@@ -253,6 +257,43 @@ class GameHistory:
                     'NOT NULL DEFAULT 0 CHECK (is_service IN (0, 1))'
                 )
             connection.execute('PRAGMA user_version = 5')
+            version = 5
+
+        if version < 6:
+            columns = {
+                row['name'] for row in connection.execute(
+                    'PRAGMA table_info(games)'
+                ).fetchall()
+            }
+            if 'heroic' not in columns:
+                # Existing rows take 0, which is honest rather than merely
+                # convenient: nothing before this column could record a Heroic
+                # level, so every game already here was played without one or
+                # played at a level nothing preserved.
+                connection.execute(
+                    'ALTER TABLE games ADD COLUMN heroic INTEGER '
+                    'NOT NULL DEFAULT 0 CHECK (heroic >= 0)'
+                )
+            connection.execute('PRAGMA user_version = 6')
+
+    @staticmethod
+    def HeroicLevel(rules: Any) -> int:
+        """The Heroic level a set of scene rules describes, or 0 for none.
+
+        Taken from the rules rather than from the running world, because the
+        rules are what a replay preserves -- reading the world would record
+        the level for a live game and lose it on every import.
+        """
+        try:
+            for rule in rules or []:
+                text = str(rule)
+                if text.startswith('mode_heroic_'):
+                    level = int(text[len('mode_heroic_'):])
+                    return level if level > 0 else 0
+        except (TypeError, ValueError):
+            # A hand-edited replay should not stop the game being recorded.
+            return 0
+        return 0
 
     @staticmethod
     def NewGameId() -> str:
@@ -412,6 +453,7 @@ class GameHistory:
             'scenario_name': scenario_name,
             'scenario_key': self._slug(scenario_name),
             'expert': int(bool(campaign.expert)),
+            'heroic': self.HeroicLevel(scene.rules),
             'result': result,
             'game_over_reason': str(world.game_over.reason or ''),
             'rounds': world.round_id,
@@ -473,7 +515,8 @@ class GameHistory:
         columns = (
             'source_key', 'finished_at', 'imported_at', 'engine_version',
             'rules_version', 'hero_code', 'hero_name', 'villain_code',
-            'villain_name', 'scenario_name', 'scenario_key', 'expert', 'result',
+            'villain_name', 'scenario_name', 'scenario_key', 'expert',
+            'heroic', 'result',
             'game_over_reason', 'rounds', 'playtime_seconds', 'seed',
             'campaign_id', 'game_mode', 'deck_name', 'deck_source',
             'remaining_hit_points', 'minions_in_play', 'side_schemes_in_play',
@@ -495,6 +538,7 @@ class GameHistory:
             'scenario_name': '',
             'scenario_key': '',
             'expert': 0,
+            'heroic': 0,
             'result': 'unknown',
             'game_over_reason': '',
             'rounds': None,
@@ -664,6 +708,7 @@ class GameHistory:
             'scenario_name': scenario_name,
             'scenario_key': self._slug(scenario_name),
             'expert': int(bool(campaign.get('expert', False))),
+            'heroic': self.HeroicLevel(rules),
             'result': result,
             'game_over_reason': str(metadata.get('game_over_reason', '')),
             'rounds': self._safe_int(metadata.get('rounds')),
@@ -832,6 +877,7 @@ class GameHistory:
             'scenario_name': scenario_name,
             'scenario_key': scenario_key,
             'expert': int(bool(data.get('expert', False))),
+            'heroic': max(0, int(data.get('heroic', 0) or 0)),
             'result': result,
             'game_over_reason': '',
             'rounds': rounds,
@@ -865,7 +911,8 @@ class GameHistory:
 
         columns = (
             'finished_at', 'hero_code', 'hero_name', 'villain_code',
-            'villain_name', 'scenario_name', 'scenario_key', 'expert', 'result',
+            'villain_name', 'scenario_name', 'scenario_key', 'expert',
+            'heroic', 'result',
             'rounds', 'playtime_seconds', 'deck_name', 'notes',
             'remaining_hit_points', 'minions_in_play',
             'side_schemes_in_play', 'undo_count',
@@ -1042,7 +1089,23 @@ class GameHistory:
                 "SUM(CASE WHEN result = 'win' THEN 1 ELSE 0 END) wins, "
                 'SUM(expert) expert_games, '
                 "SUM(CASE WHEN expert = 1 AND result = 'win' THEN 1 ELSE 0 END) "
-                'expert_wins '
+                'expert_wins, '
+                # The best this pairing has been beaten at, on one ladder:
+                # 0 never, 1 Standard, 2 Expert, 3+ Heroic at level - 2.
+                #
+                # Heroic outranks Expert, and a Heroic win scores by its level
+                # whether or not Expert was also on -- the extra encounter card
+                # per level is the thing being measured, and stacking the two
+                # would put Expert + Heroic 1 level with Heroic 2, which it is
+                # not. MAX over wins only: losing at Heroic says you tried it,
+                # not that you cleared it.
+                "MAX(CASE WHEN result != 'win' THEN 0 "
+                'WHEN heroic > 0 THEN 2 + heroic '
+                'WHEN expert = 1 THEN 2 '
+                'ELSE 1 END) best_beaten, '
+                'MAX(heroic) heroic_played, '
+                "MAX(CASE WHEN result = 'win' THEN heroic ELSE 0 END) heroic_beaten "
+
                 f'FROM games{where} '
                 'GROUP BY hero_code, scenario_key',
                 parameters,
@@ -1055,6 +1118,10 @@ class GameHistory:
                 'wins': int(row['wins'] or 0),
                 'expert_games': int(row['expert_games'] or 0),
                 'expert_wins': int(row['expert_wins'] or 0),
+                # 0 not beaten, 1 Standard, 2 Expert, 3+ Heroic (level = value - 2).
+                'best_beaten': int(row['best_beaten'] or 0),
+                'heroic_played': int(row['heroic_played'] or 0),
+                'heroic_beaten': int(row['heroic_beaten'] or 0),
             }
             for row in rows
         ]

@@ -485,6 +485,10 @@ type MatchupCell = {
     wins: number;
     expert_games: number;
     expert_wins: number;
+    /** 0 never beaten, 1 Standard, 2 Expert, 3+ Heroic at (value - 2). */
+    best_beaten: number;
+    heroic_played: number;
+    heroic_beaten: number;
 };
 
 type MatchupMatrix = {
@@ -654,13 +658,18 @@ function renderMatchupGrid(): void {
         for (const scenario of scenarios) {
             const cell = document.createElement('td');
             const data = cellFor(hero, scenario);
-            // An expert win sits on top of a standard one rather than beside
-            // it: beating a scenario on expert is the harder claim, so it is
-            // the one the square makes.
+            // One square, one claim: the hardest difficulty this pairing has
+            // actually been beaten at. Standard, then Expert, then Heroic by
+            // level -- a harder clear replaces an easier one rather than
+            // sitting beside it, so the grid reads as how far you have got.
+            // Heroic beyond 4 keeps the deepest red rather than inventing
+            // shades nobody would tell apart.
+            const beaten = data?.best_beaten ?? 0;
             const state = !data
                 ? 'none'
-                : data.expert_wins > 0 ? 'won-expert'
-                : data.wins > 0 ? 'won'
+                : beaten >= 3 ? `won-heroic-${Math.min(beaten - 2, 4)}`
+                : beaten === 2 ? 'won-expert'
+                : beaten === 1 ? 'won'
                 : 'lost';
             const button = document.createElement('button');
             button.type = 'button';
@@ -668,6 +677,11 @@ function renderMatchupGrid(): void {
             const record = data
                 ? `${data.wins}W ${data.games - data.wins}L`
                     + (data.expert_games ? `, ${data.expert_wins}W expert` : '')
+                    + (data.heroic_beaten > 0
+                        ? `, beaten at Heroic ${data.heroic_beaten}`
+                        : data.heroic_played > 0
+                            ? `, tried at Heroic ${data.heroic_played}`
+                            : '')
                 : 'never played';
             button.title = `${hero.name} vs ${scenario.name} — ${record}`
                 + '\nClick to set this game up';
