@@ -3,6 +3,7 @@ import { UI } from './ui.js'
 import { HoverCard } from './hover.js'
 import { Button } from './buttons.js'
 import { HistoryLog } from './history.js'
+import { DeckTracker } from './deck_tracker.js'
 import { Replay } from './replay.js'
 import { SelectStep } from './select.js'
 import { Effect } from './effect.js'
@@ -195,6 +196,9 @@ export class WindowLoad {
             if (event.key === "Escape") {
                 if( HistoryLog.isOpen() ) {
                     HistoryLog.toggle()
+                }
+                if( DeckTracker.isOpen() ) {
+                    DeckTracker.close()
                 }
                 if( HoverCard.center_preview.has_image ) {
                     Button.disablePause()

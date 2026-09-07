@@ -41,9 +41,32 @@
 }
 
 #deck-tracker-summary {
+    /* Pushed right so the close sits hard against the corner, whatever the
+       summary currently says. */
+    margin-left: auto;
     font-size: 0.72rem;
     color: #aebbc6;
     font-variant-numeric: tabular-nums;
+}
+
+#deck-tracker-close {
+    /* The same gesture, and the same look, as the prompt box's close. */
+    line-height: 1;
+    font-size: 1rem;
+    color: #6d7d8a;
+    cursor: pointer;
+    transition: color 0.3s;
+    user-select: none;
+}
+
+#deck-tracker-close:hover,
+#deck-tracker-close:focus-visible {
+    color: red;
+    outline: none;
+}
+
+#deck-tracker-close:active {
+    transform: scale(0.95);
 }
 
 #deck-tracker-list {

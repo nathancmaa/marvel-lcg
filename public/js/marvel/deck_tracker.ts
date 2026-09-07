@@ -42,6 +42,10 @@ export class DeckTracker {
         DeckTracker.render();
     }
 
+    static close(): void {
+        DeckTracker.panel?.classList.add('hide');
+    }
+
     static isOpen(): boolean {
         return DeckTracker.panel !== null && !DeckTracker.panel.classList.contains('hide');
     }
@@ -215,6 +219,24 @@ export class DeckTracker {
         }
     }
 
+    /**
+     * Wire the close once, at import.
+     *
+     * A static initialiser block would be the obvious home, but the build
+     * targets es2021 and those are es2022. The class is imported for its side
+     * effect either way.
+     */
+    static bindClose(): void {
+        const close = document.getElementById('deck-tracker-close');
+        close?.addEventListener('click', () => DeckTracker.close());
+        close?.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                DeckTracker.close();
+            }
+        });
+    }
+
     static render(): void {
         if (!DeckTracker.list || !DeckTracker.isOpen()) {
             return;
@@ -232,3 +254,5 @@ export class DeckTracker {
         }
     }
 }
+
+DeckTracker.bindClose();
