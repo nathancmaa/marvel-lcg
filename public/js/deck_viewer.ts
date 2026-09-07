@@ -84,6 +84,8 @@ const deckMulliganChips = document.querySelector<HTMLElement>('#deck-mulligan-ch
 const deckMulliganNote = document.querySelector<HTMLElement>('#deck-mulligan-note')!;
 const mulliganHover = document.querySelector<HTMLImageElement>('#mulligan-hover')!;
 const shareDeckButton = document.querySelector<HTMLButtonElement>('#share-deck')!;
+const playDeckButton = document.querySelector<HTMLButtonElement>('#play-deck')!;
+const randomHeroButton = document.querySelector<HTMLButtonElement>('#viewer-random-hero')!;
 const shareStatus = document.querySelector<HTMLElement>('#share-status')!;
 const identityCards = document.querySelector<HTMLElement>('#identity-cards')!;
 const signatureCards = document.querySelector<HTMLElement>('#signature-cards')!;
@@ -807,6 +809,54 @@ async function renderMulligan(choice: DeckChoice, entries: CardEntry[]): Promise
     deckMulligan.hidden = false;
 }
 
+/**
+ * Take the deck you are looking at to the table.
+ *
+ * Quick Game restores its hero from this key on load, so handing the deck over
+ * is a matter of writing it rather than passing anything through the URL. The
+ * scenario is deliberately left alone: Quick Game restores its own last one,
+ * which is a better guess than none and is a single click to change.
+ */
+function playCurrentDeck(): void {
+    if (!currentDeck) {
+        return;
+    }
+    try {
+        localStorage.setItem(quickGameDeckStorageKey, currentDeck.id);
+    } catch {
+        // Without this the deck simply is not preselected, which is a worse
+        // page rather than a broken one.
+    }
+    window.location.assign('/solo');
+}
+
+/**
+ * Pick a hero at random, then one of their decks.
+ *
+ * The same rule as Quick Game's randomiser, for the same reason: shuffling
+ * decks would weight heroes by how many you happen to have for them. Synced
+ * decks win over the precon where both exist.
+ */
+function randomHeroDeck(): void {
+    const byHero = new Map<string, DeckChoice[]>();
+    for (const choice of choices) {
+        const key = heroKeyOf(choice);
+        byHero.set(key, [...(byHero.get(key) ?? []), choice]);
+    }
+    if (byHero.size === 0) {
+        return;
+    }
+    const keys = [...byHero.keys()];
+    const key = keys[Math.floor(Math.random() * keys.length)] as string;
+    const forHero = byHero.get(key) as DeckChoice[];
+    const synced = forHero.filter((choice) => choice.isUserDeck);
+    const pool = synced.length ? synced : forHero;
+    const choice = pool[Math.floor(Math.random() * pool.length)] as DeckChoice;
+
+    deckSelect.value = choice.id;
+    void showDeck(choice);
+}
+
 async function showDeck(choice: DeckChoice): Promise<void> {
     deckStatus.textContent = 'Loading cards…';
     shareStatus.textContent = '';
@@ -942,6 +992,8 @@ hidePreconsToggle.addEventListener('click', () => {
     refreshDeckList();
 });
 
+playDeckButton.addEventListener('click', playCurrentDeck);
+randomHeroButton.addEventListener('click', randomHeroDeck);
 shareDeckButton.addEventListener('click', () => {
     void createShareImage();
 });

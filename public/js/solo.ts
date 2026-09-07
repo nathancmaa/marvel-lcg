@@ -85,6 +85,7 @@ const scenarioStorageKey = 'marvel_lcg_solo_scenario';
 const heroStorageKey = 'marvel_lcg_solo_hero';
 const underlingStorageKey = 'marvel_lcg_solo_underling';
 const standardSetStorageKey = 'marvel_lcg_solo_standard_set';
+const heroicLevelStorageKey = 'marvel_lcg_solo_heroic_level'
 const aspectHeroStorageKey = 'marvel_lcg_solo_aspect_hero';
 
 /**
@@ -118,6 +119,7 @@ const expertModeDescription = document.querySelector<HTMLElement>('#expert-mode-
 const difficultySelection = document.querySelector<HTMLElement>('#difficulty-selection')!;
 const difficultyStepNumber = document.querySelector<HTMLElement>('#difficulty-step-number')!;
 const standardSet = document.querySelector<HTMLSelectElement>('#standard-set')!;
+const heroicLevel = document.querySelector<HTMLSelectElement>('#heroic-level')!;
 const standardSetDescription = document.querySelector<HTMLElement>('#standard-set-description')!;
 const heroSection = document.querySelector<HTMLElement>('#hero-section')!;
 const aspectHero = document.querySelector<HTMLSelectElement>('#aspect-hero')!;
@@ -319,9 +321,14 @@ function updateDifficulty(): void {
     const setName = dealt
         ? standardSet.selectedOptions[0]?.text ?? 'Standard'
         : 'Standard';
-    difficultySelection.textContent = expertMode.checked
+    // Heroic sits alongside the rest rather than replacing it: it stacks with
+    // Expert and with whichever Standard set is dealt.
+    const level = Number(heroicLevel.value);
+    const heroic = Number.isInteger(level) && level > 0 ? ` · Heroic ${level}` : '';
+    const base = expertMode.checked
         ? (dealt ? `Expert · ${setName}` : 'Expert')
         : setName;
+    difficultySelection.textContent = `${base}${heroic}`;
 }
 
 function selectScenario(choice: ScenarioChoice): void {
@@ -696,6 +703,29 @@ function randomizeScenario(): void {
     selectScenario(choice);
 }
 
+/**
+ * Draw a random option from a dropdown, as if it had been chosen.
+ *
+ * Placeholder options -- the empty-valued "Loading…" and "choose one" entries --
+ * are not outcomes, so they are excluded rather than occasionally selected.
+ */
+function randomizeSelect(select: HTMLSelectElement): void {
+    const options = [...select.options].filter((option) => option.value !== '');
+    if (options.length === 0) {
+        return;
+    }
+    const option = options[Math.floor(Math.random() * options.length)] as HTMLOptionElement;
+    select.value = option.value;
+    select.dispatchEvent(new Event('change'));
+}
+
+function heroicRules(): string[] {
+    const level = Number(heroicLevel.value);
+    return Number.isInteger(level) && level > 0
+        ? ['v18_all', `mode_heroic_${level}`]
+        : ['v18_all'];
+}
+
 function renderScenarios(choices: ScenarioChoice[]): void {
     if (requestedGame.scenario) {
         // The box filter is remembered between visits, so a scenario arriving
@@ -749,6 +779,11 @@ function renderHeroes(choices: HeroChoice[]): void {
 async function initialize(): Promise<void> {
     // Restored before the scenarios land, so the first selectScenario already
     // reports the remembered set rather than flicking from Standard I to it.
+    const savedHeroic = localStorage.getItem(heroicLevelStorageKey);
+    if (savedHeroic
+        && [...heroicLevel.options].some((option) => option.value === savedHeroic)) {
+        heroicLevel.value = savedHeroic;
+    }
     const savedStandardSet = localStorage.getItem(standardSetStorageKey);
     if (savedStandardSet
         && [...standardSet.options].some((option) => option.value === savedStandardSet)) {
@@ -889,7 +924,9 @@ async function startGame(): Promise<void> {
             seed: -1,
             timeout: 0,
             challenges: [],
-            rules: ['v18_all'],
+            // Heroic is an engine rule, not a set swap: it deals one extra
+            // encounter card per player per level. Off sends nothing at all.
+            rules: heroicRules(),
             campaign_log: {},
         };
 
@@ -914,6 +951,15 @@ standardSet.addEventListener('change', () => {
     localStorage.setItem(standardSetStorageKey, standardSet.value);
     updateDifficulty();
 });
+heroicLevel.addEventListener('change', () => {
+    localStorage.setItem(heroicLevelStorageKey, heroicLevel.value);
+    updateDifficulty();
+});
+document.querySelector<HTMLButtonElement>('#randomize-aspect-hero')!
+    .addEventListener('click', () => randomizeSelect(aspectHero));
+document.querySelector<HTMLButtonElement>('#randomize-aspect-deck')!
+    .addEventListener('click', () => randomizeSelect(
+        document.querySelector<HTMLSelectElement>('#aspect-deck')!));
 document.querySelector<HTMLButtonElement>('#randomize-hero')!
     .addEventListener('click', randomizeHero);
 document.querySelector<HTMLButtonElement>('#randomize-scenario')!

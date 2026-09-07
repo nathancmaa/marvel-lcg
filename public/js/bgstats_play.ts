@@ -21,17 +21,16 @@ const MARVEL_CHAMPIONS_BGG_ID = 285774;
  * do not change between plays -- so they are constants rather than anything
  * derived from a particular game.
  */
-const SOURCE_GAME_ID = 'ronin-marvel-champions';
-const SOURCE_PLAYER_ID = 'ronin-solo-player';
+// BG Stats remembers which of its own games and players these map to, keyed on
+// these ids, so changing one asks for that match to be made again. Renamed
+// while nothing had yet been imported under the old ones and the match had
+// never been made; they are not free to change once plays exist.
+const SOURCE_GAME_ID = 'marvel-champions-digital';
+const SOURCE_PLAYER_ID = 'marvel-champions-digital-player';
 // What BG Stats shows as the source of these plays, and -- unless a location
 // is set -- the location it files them under too. The edition name was dropped
 // from the app's own chrome, and there is no reason for BG Stats to be the last
 // place carrying it.
-//
-// The two ids below are deliberately NOT renamed to match. BG Stats uses them
-// to re-match a source to the game and player you picked the first time, and
-// changing one asks you to make that match again for no visible gain -- they
-// are never displayed.
 const SOURCE_NAME = 'Marvel Champions Digital';
 
 export type BgStatsGame = {

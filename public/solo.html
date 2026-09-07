@@ -58,12 +58,14 @@
                         <select id="aspect-hero">
                             <option value="">Loading heroes…</option>
                         </select>
+                        <button id="randomize-aspect-hero" class="randomize-button" type="button">Random hero</button>
                     </div>
                     <div class="aspect-field">
                         <label class="aspect-select-label" for="aspect-deck">Aspect deck</label>
                         <select id="aspect-deck">
                             <option value="">Loading aspect decks…</option>
                         </select>
+                        <button id="randomize-aspect-deck" class="randomize-button" type="button">Random deck</button>
                     </div>
                 </div>
                 <a id="aspect-deck-link" class="deck-link" target="_blank" rel="noopener noreferrer" hidden></a>
@@ -136,6 +138,17 @@
                     <option value="standard_iii">Standard III</option>
                 </select>
                 <small id="standard-set-description">The baseline encounter cards every scenario is dealt.</small>
+            </div>
+            <div class="standard-set-option">
+                <label for="heroic-level">Heroic</label>
+                <select id="heroic-level">
+                    <option value="0">Off</option>
+                    <option value="1">Heroic 1</option>
+                    <option value="2">Heroic 2</option>
+                    <option value="3">Heroic 3</option>
+                    <option value="4">Heroic 4</option>
+                </select>
+                <small id="heroic-level-description">One extra encounter card per player, per level. Stacks with Expert.</small>
             </div>
             <label class="expert-option" for="expert-mode">
                 <input id="expert-mode" type="checkbox" role="switch" disabled>
