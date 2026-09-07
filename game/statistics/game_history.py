@@ -986,6 +986,30 @@ class GameHistory:
             self._store_game(self._live_record(game), self._live_card_statistics(game))
         return self.SaveGameRatings(source_key, data)
 
+    def ImportTrackerGames(
+        self,
+        records: List[Dict[str, Any]],
+    ) -> Dict[str, int]:
+        """Store converted tracker rows, skipping ones already held.
+
+        Deduplication is the `source_key` unique index and nothing else: the
+        caller builds that key from the play's own timestamp, hero and
+        scenario, so re-importing the same export a second time inserts
+        nothing. `_store_game` already inserts with OR IGNORE and reports
+        whether a row was actually written.
+        """
+        if not self.available:
+            return {'imported': 0, 'skipped': 0}
+        imported = 0
+        skipped = 0
+        for record in records:
+            stored = self._store_game(record)
+            if stored.get('inserted'):
+                imported += 1
+            else:
+                skipped += 1
+        return {'imported': imported, 'skipped': skipped}
+
     def GetMatchupCounts(self, source: str = 'all') -> List[Dict[str, Any]]:
         """Games grouped by which hero met which scenario.
 

@@ -238,6 +238,118 @@ class GameServerGet(GameServerBase):
                 })
         return heroes, scenarios
 
+    def _tracker_catalogue(self) -> tuple[list, list]:
+        """Heroes and scenarios by the names a tracker would use.
+
+        Heroes carry the disambiguated label as well as the plain name, since
+        two heroes share a name and an export says "Black Panther (Shuri)".
+        """
+        import os
+        import re as _re
+
+        heroes: list = []
+        by_name: dict = {}
+        for path in FileManager.ListFiles(STARTER_DECK_FOLDER.value, ext='.json'):
+            try:
+                data = Json.Load(path)
+            except Exception:
+                continue
+            code = str((data.get('hero') or [''])[0]).split(',')[0].strip().lower()
+            name = str(data.get('name') or '').strip()
+            if not code or not name:
+                continue
+            entry = {
+                'id': os.path.splitext(FileManager.GetBaseName(path))[0],
+                'code': code,
+                'name': name,
+                'label': '',
+            }
+            heroes.append(entry)
+            by_name.setdefault(name, []).append(entry)
+
+        for name, entries in by_name.items():
+            if len(entries) < 2:
+                continue
+            base = _re.sub(r'[^a-z0-9]+', '_', name.lower()).strip('_') + '_'
+            for entry in entries:
+                if entry['id'].startswith(base):
+                    suffix = entry['id'][len(base):].replace('_', ' ').title()
+                    entry['label'] = f'{name} ({suffix})'
+
+        scenarios: list = []
+        for path in FileManager.ListFiles(*SCENARIOS_FOLDERS.value, ext='.json'):
+            file_id = os.path.splitext(FileManager.GetBaseName(path))[0]
+            if file_id.endswith('_expert'):
+                continue
+            try:
+                data = Json.Load(path)
+            except Exception:
+                continue
+            name = str(data.get('name') or '').strip()
+            if name:
+                scenarios.append({'id': file_id, 'name': name})
+        return heroes, scenarios
+
+    async def import_tracker_games(self, request: web.Request) -> web.Response:
+        """Take a Marvel Champions Tracker .xlsx export into game history."""
+        from game.statistics.tracker_import import ReadSheet, TrackerImport
+
+        history = self.game.game_history
+        if history is None:
+            return web.json_response(
+                {'error': 'Game history is disabled.'}, status=400)
+
+        try:
+            body = await request.json()
+        except Exception:
+            return web.json_response({'error': 'Expected a JSON request.'}, status=400)
+
+        source = str(body.get('source', 'physical')).strip().lower()
+        if source not in ('physical', 'digital'):
+            return web.json_response(
+                {'error': 'Source must be physical or digital.'}, status=400)
+
+        import base64
+        try:
+            content = base64.b64decode(str(body.get('file', '')), validate=True)
+        except Exception:
+            return web.json_response({'error': 'The upload was unreadable.'}, status=400)
+        if not content:
+            return web.json_response({'error': 'No file was sent.'}, status=400)
+        if len(content) > 8 * 1024 * 1024:
+            return web.json_response({'error': 'That file is too large.'}, status=400)
+
+        def work() -> dict:
+            rows = ReadSheet(content)
+            heroes, scenarios = self._tracker_catalogue()
+            converter = TrackerImport(heroes, scenarios)
+            records = []
+            problems = []
+            for index, row in enumerate(rows, start=2):
+                if not any(str(value).strip() for value in row.values()):
+                    continue
+                try:
+                    records.append(converter.Convert(row, source))
+                except ValueError as exc:
+                    problems.append(f'Row {index}: {exc}')
+            stored = history.ImportTrackerGames(records)
+            return {
+                'read': len(rows),
+                'imported': stored['imported'],
+                # Already held, from an earlier import of the same plays.
+                'skipped': stored['skipped'],
+                'problems': problems[:40],
+                'problem_count': len(problems),
+            }
+
+        try:
+            result = await TaskManager.ToThread(work)
+        except ValueError as exc:
+            return web.json_response({'error': str(exc)}, status=400)
+        except Exception as exc:
+            return web.json_response({'error': f'Import failed: {exc}'}, status=500)
+        return web.json_response({'available': True, **result})
+
     async def get_matchup_matrix(self, request: web.Request) -> web.Response:
         """Which heroes have beaten which scenarios, as a grid."""
         history = self.game.game_history
@@ -436,6 +548,7 @@ class GameServerGet(GameServerBase):
         self.AddAwaitGetSecurity('/get_sets_json', self.get_sets_json)
         self.AddAwaitGetSecurity('/get_aspect_decks_json', self.get_aspect_decks_json)
         self.AddAwaitGetSecurity('/get_matchup_matrix', self.get_matchup_matrix)
+        self.AddPostSecurity('/import_tracker_games', self.import_tracker_games)
         self.AddAwaitGetSecurity('/get_sets_custom_scenario', self.get_sets_custom_scenario)
         self.AddAwaitGetSecurity('/get_cards_json', self.get_cards_json)
         self.AddAwaitGetSecurity('/get_translate_json', self.get_translate_json)

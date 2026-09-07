@@ -975,3 +975,47 @@ tbody tr:last-child td {
 .page-shell:has(#tab-matchups:not([hidden])) {
     width: min(140rem, 100%);
 }
+
+/* ---- Tracker import ---- */
+.tracker-import {
+    margin: 0 0 1rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid var(--line);
+    border-radius: 0.45rem;
+    background: rgba(4, 10, 18, 0.5);
+}
+
+.tracker-import-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.9rem;
+}
+
+.tracker-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    color: var(--muted);
+    font-size: 0.82rem;
+}
+
+.tracker-field input,
+.tracker-field select {
+    color: #e6eef6;
+}
+
+.tracker-import .panel-note {
+    margin: 0.7rem 0 0;
+}
+
+.tracker-import .panel-note.error {
+    color: var(--red);
+}
+
+.tracker-problems {
+    margin: 0.5rem 0 0;
+    padding-left: 1.1rem;
+    color: var(--muted);
+    font-size: 0.8rem;
+}

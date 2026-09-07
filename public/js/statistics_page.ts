@@ -1,3 +1,5 @@
+import { bgStatsPlayUrl, canPushToBgStats } from './bgstats_play.js';
+
 type SourceFilter = 'all'|'digital'|'physical'|'replay_import';
 type TabName = 'collection'|'history'|'matchups'|'achievements';
 
@@ -181,6 +183,39 @@ async function postJson<T>(url: string, data: unknown): Promise<T> {
 let currentDashboard: Dashboard|null = null;
 let sourceFilter: SourceFilter = 'all';
 let activeTab: TabName = 'collection';
+
+const bgStatsPlayerKey = 'marvel_lcg_bgstats_player';
+
+/**
+ * The name a play is filed under in BG Stats.
+ *
+ * Asked for once and kept in this browser. BG Stats matches it to one of its
+ * own players the first time and remembers that, so it only has to be right
+ * enough to be recognised.
+ */
+function bgStatsPlayerName(): string {
+    let name = '';
+    try {
+        name = localStorage.getItem(bgStatsPlayerKey) ?? '';
+    } catch {
+        name = '';
+    }
+    if (name) {
+        return name;
+    }
+    const asked = window.prompt(
+        'What name should these plays be filed under in BG Stats?', 'Me');
+    name = (asked ?? '').trim();
+    if (!name) {
+        return '';
+    }
+    try {
+        localStorage.setItem(bgStatsPlayerKey, name);
+    } catch {
+        // Remembering is a convenience; being asked again is not an error.
+    }
+    return name;
+}
 let setData: Record<string, SetInfo> = {};
 let products: Product[] = [];
 let ownedProducts = new Set<string>();
@@ -263,11 +298,17 @@ function renderRecent(rows: RecentGame[], unknownGames: number): void {
         return;
     }
     target.innerHTML = rows.map(row => {
-        const actions = row.source === 'physical'
-            ? `<div class="row-actions">
-                <button type="button" data-edit-game="${row.id}" title="Edit physical game">Edit</button>
-                <button type="button" data-delete-game="${row.id}" class="danger" title="Delete physical game">Delete</button>
-            </div>`
+        // Only a decided game: an abandoned one has no result to record and
+        // would arrive in BG Stats as a loss.
+        const push = canPushToBgStats(row)
+            ? `<button type="button" data-bgstats-game="${row.id}" title="Send this play to BG Stats">BG Stats</button>`
+            : '';
+        const edit = row.source === 'physical'
+            ? `<button type="button" data-edit-game="${row.id}" title="Edit physical game">Edit</button>
+               <button type="button" data-delete-game="${row.id}" class="danger" title="Delete physical game">Delete</button>`
+            : '';
+        const actions = push || edit
+            ? `<div class="row-actions">${push}${edit}</div>`
             : '';
         return `<tr>
             <td>${escapeHtml(dateTime(row.finished_at))}</td>
@@ -281,6 +322,22 @@ function renderRecent(rows: RecentGame[], unknownGames: number): void {
             <td>${actions}</td>
         </tr>`;
     }).join('');
+
+    target.querySelectorAll<HTMLButtonElement>('[data-bgstats-game]').forEach(button => {
+        button.addEventListener('click', () => {
+            const game = rows.find(row => row.id === Number(button.dataset.bgstatsGame));
+            if (!game) {
+                return;
+            }
+            const player = bgStatsPlayerName();
+            if (!player) {
+                return;
+            }
+            // A new tab, because the link hands off to the BG Stats app and
+            // navigating away would lose this page's place in the history.
+            window.open(bgStatsPlayUrl(game, player), '_blank', 'noopener');
+        });
+    });
 
     target.querySelectorAll<HTMLButtonElement>('[data-edit-game]').forEach(button => {
         button.addEventListener('click', () => {
@@ -869,6 +926,83 @@ async function saveCollection(): Promise<void> {
     }
 }
 
+type TrackerImportResult = {
+    read: number;
+    imported: number;
+    skipped: number;
+    problems: string[];
+    problem_count: number;
+};
+
+async function importTrackerExport(): Promise<void> {
+    const input = element<HTMLInputElement>('tracker-file');
+    const button = element<HTMLButtonElement>('tracker-import');
+    const status = element<HTMLElement>('tracker-status');
+    const existing = document.getElementById('tracker-problems');
+    existing?.remove();
+    status.classList.remove('error');
+
+    const file = input.files?.[0];
+    if (!file) {
+        status.textContent = 'Choose an .xlsx export from Marvel Champions Tracker first.';
+        return;
+    }
+
+    button.disabled = true;
+    status.textContent = `Reading ${file.name}…`;
+    try {
+        // Sent as base64 in JSON rather than as a multipart upload, because
+        // every other write on this server is a JSON post and one export is a
+        // few kilobytes.
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        let binary = '';
+        for (const byte of bytes) {
+            binary += String.fromCharCode(byte);
+        }
+        const result = await postJson<TrackerImportResult>('/import_tracker_games', {
+            file: btoa(binary),
+            source: element<HTMLSelectElement>('tracker-source').value,
+        });
+
+        const parts = [`${result.imported} imported`];
+        if (result.skipped) {
+            parts.push(`${result.skipped} already held`);
+        }
+        if (result.problem_count) {
+            parts.push(`${result.problem_count} could not be matched`);
+        }
+        status.textContent = `${parts.join(' · ')} of ${result.read} plays read.`;
+
+        if (result.problems.length) {
+            const list = document.createElement('ul');
+            list.id = 'tracker-problems';
+            list.className = 'tracker-problems';
+            for (const problem of result.problems) {
+                const item = document.createElement('li');
+                item.textContent = problem;
+                list.appendChild(item);
+            }
+            status.after(list);
+        }
+
+        if (result.imported) {
+            // The grid is built from this history, so it is no longer current.
+            matchupMatrix = null;
+            await loadDashboard();
+            if (activeTab === 'matchups') {
+                await loadMatchupGrid();
+            }
+        }
+    } catch (reason) {
+        status.classList.add('error');
+        status.textContent = reason instanceof Error
+            ? reason.message
+            : 'The import failed.';
+    } finally {
+        button.disabled = false;
+    }
+}
+
 function bindEvents(): void {
     document.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(button => {
         button.addEventListener('click', () => setActiveTab(button.dataset.tab as TabName));
@@ -888,6 +1022,8 @@ function bindEvents(): void {
         });
     });
     bindMatchupResize();
+    element<HTMLButtonElement>('tracker-import')
+        .addEventListener('click', () => void importTrackerExport());
     element<HTMLInputElement>('matchup-counts').addEventListener('change', renderMatchupGrid);
     element<HTMLInputElement>('matchup-played-only').addEventListener('change', renderMatchupGrid);
     element<HTMLInputElement>('collection-search').addEventListener('input', renderProducts);

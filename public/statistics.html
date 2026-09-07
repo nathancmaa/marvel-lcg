@@ -115,6 +115,23 @@
                         <div><p class="eyebrow">RECENT MISSIONS</p><h2>Games</h2></div>
                         <span id="unknown-note" class="muted"></span>
                     </div>
+                    <div class="tracker-import">
+                        <div class="tracker-import-row">
+                            <label class="tracker-field">
+                                <span>Marvel Champions Tracker export</span>
+                                <input type="file" id="tracker-file" accept=".xlsx">
+                            </label>
+                            <label class="tracker-field">
+                                <span>Record as</span>
+                                <select id="tracker-source">
+                                    <option value="physical">Physical games</option>
+                                    <option value="digital">Digital games</option>
+                                </select>
+                            </label>
+                            <button type="button" id="tracker-import">Import</button>
+                        </div>
+                        <p class="panel-note" id="tracker-status">Plays already held are skipped, so re-importing the same export changes nothing.</p>
+                    </div>
                     <div class="table-scroll">
                         <table>
                             <thead><tr><th>Date</th><th>Source</th><th>Hero</th><th>Villain</th><th>Difficulty</th><th>Result</th><th>Rounds</th><th>Time</th><th></th></tr></thead>
