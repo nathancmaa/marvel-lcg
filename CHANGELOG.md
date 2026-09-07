@@ -57,6 +57,19 @@ Also in this release:
 - **A BG Stats location setting.** Left empty, BG Stats files plays under the
   app's name rather than leaving the field blank, so every play was landing
   somewhere that is not a place.
+- **The campaign deck picker caught up with Quick Game's**: the filter bar,
+  the aspect deck source, and the hero randomiser, from the same modules rather
+  than a second copy that could drift. Aspect decks are frozen for the run the
+  way MarvelCDB decks already were, because a campaign persists its hero as a
+  deck file and an aspect deck is not one until it is written.
+- **The difficulty controls stopped overlapping.** Each carried its own bottom
+  margin, so the gap between any two depended on which happened to be last, and
+  putting Heroic after Expert left them touching. The section spaces its own
+  children now.
+- **The README is this fork's own** rather than an edit of the one upstream:
+  what the project is, who it came from, what it is for, and where your data
+  lives — including that the MarvelCDB deck ID list is held by the browser and
+  is in no server-side backup.
 
 ## Version 0.7.5 — “Cerebro” (2026-09-07)
 
