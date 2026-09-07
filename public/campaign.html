@@ -79,9 +79,40 @@
                     <input type="radio" name="deck-source" value="marvelcdb">
                     <span>MarvelCDB deck</span>
                 </label>
+                <label class="deck-source-option">
+                    <input type="radio" name="deck-source" value="aspect">
+                    <span>Aspect deck</span>
+                </label>
                 <button id="marvelcdb-update" type="button" class="marvelcdb-update" hidden>
                     Update from MarvelCDB
                 </button>
+            </div>
+
+            <div id="aspect-panel" class="aspect-panel" hidden>
+                <div class="aspect-row">
+                    <div class="aspect-field">
+                        <label class="aspect-select-label" for="aspect-hero">Hero</label>
+                        <select id="aspect-hero">
+                            <option value="">Loading heroes…</option>
+                        </select>
+                        <button id="randomize-aspect-hero" class="randomize-button" type="button">Random hero</button>
+                    </div>
+                    <div class="aspect-field">
+                        <label class="aspect-select-label" for="aspect-deck">Aspect deck</label>
+                        <select id="aspect-deck">
+                            <option value="">Loading aspect decks…</option>
+                        </select>
+                        <button id="randomize-aspect-deck" class="randomize-button" type="button">Random deck</button>
+                    </div>
+                </div>
+                <a id="aspect-deck-link" class="deck-link" target="_blank" rel="noopener noreferrer" hidden></a>
+                <p id="aspect-description" class="aspect-description" aria-live="polite"></p>
+                <p class="aspect-credit">
+                    Card lists and notes from
+                    <a id="aspect-source-link" href="#" target="_blank" rel="noopener noreferrer">
+                        Universal Prebuilt Decks on BoardGameGeek</a>.
+                    These decks hold no hero cards, so any hero can carry one.
+                </p>
             </div>
 
             <div id="marvelcdb-panel" class="marvelcdb-panel" hidden>
@@ -95,6 +126,12 @@
                 <div id="marvelcdb-recent" class="marvelcdb-recent" aria-label="Recent decks" hidden></div>
             </div>
 
+            <div class="randomize-row">
+                <button id="randomize-hero" class="randomize-button" type="button">
+                    Random hero
+                </button>
+                <small class="randomize-note">Picks a hero, then one of your synced decks for them.</small>
+            </div>
             <p id="hero-status" class="load-status">Loading decks…</p>
             <div id="hero-list" class="choice-grid" aria-live="polite"></div>
         </section>

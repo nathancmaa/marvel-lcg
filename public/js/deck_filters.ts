@@ -32,6 +32,11 @@ type ControlState = {
     groupByHero: boolean;
 };
 
+// The default, kept as it was so Quick Game remembers what it always has.
+// Each picker gets its own: the bar is remembered between visits, and one
+// narrowed to a single hero -- which the randomiser does deliberately -- would
+// otherwise follow the player onto a different page and leave it showing one
+// hero for no reason they could see.
 const STORAGE_KEY = 'marvel_lcg_solo_deck_filters';
 
 // Card classes as they appear in cards.json `desc.Class`. Anything outside
@@ -63,9 +68,9 @@ const DEFAULT_STATE: ControlState = {
     groupByHero: false,
 };
 
-function readState(): ControlState {
+function readState(storageKey: string): ControlState {
     try {
-        const raw = localStorage.getItem(STORAGE_KEY);
+        const raw = localStorage.getItem(storageKey);
         if (!raw) {
             return {...DEFAULT_STATE};
         }
@@ -86,9 +91,9 @@ function readState(): ControlState {
     }
 }
 
-function writeState(state: ControlState): void {
+function writeState(storageKey: string, state: ControlState): void {
     try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        localStorage.setItem(storageKey, JSON.stringify(state));
     } catch {
         // Persistence is a convenience; losing it is not worth an error.
     }
@@ -255,6 +260,8 @@ export type DeckFiltersOptions<T extends DeckFilterChoice> = {
     createButton: (choice: T) => HTMLElement;
     /** Called after every re-render so the caller can restore selection state. */
     onRendered?: () => void;
+    /** Where this bar remembers itself. Defaults to the Quick Game picker's. */
+    storageKey?: string;
 };
 
 export type DeckFilters<T extends DeckFilterChoice> = {
@@ -274,7 +281,8 @@ export function createDeckFilters<T extends DeckFilterChoice>(
     options: DeckFiltersOptions<T>,
 ): DeckFilters<T> {
     const {listHost, createButton, onRendered} = options;
-    const state = readState();
+    const storageKey = options.storageKey ?? STORAGE_KEY;
+    const state = readState(storageKey);
 
     let source: T[] = [];
     let heroLabels: Map<string, string> = new Map();
@@ -343,7 +351,7 @@ export function createDeckFilters<T extends DeckFilterChoice>(
     }
 
     function persist(): void {
-        writeState(state);
+        writeState(storageKey, state);
     }
 
     function heroLabelOf(choice: T): string {

@@ -15,6 +15,8 @@ import {
     saveCampaignDeck,
 } from './marvelcdb_deck.js';
 import { withCardImageRevision } from './card_image_url.js';
+import { DeckFilters, buildHeroLabels, createDeckFilters, heroKeyOf } from './deck_filters.js';
+import { AspectDeckPicker, createAspectDeckPicker } from './aspect_decks.js';
 
 type ScenarioData = {
     name: string;
@@ -70,6 +72,7 @@ type CampaignGamePayload = {
 };
 
 const heroStorageKey = 'marvel_lcg_solo_hero';
+const aspectHeroStorageKey = 'marvel_lcg_solo_aspect_hero';
 
 const marvelCdbUpdate = document.querySelector<HTMLButtonElement>('#marvelcdb-update')!;
 
@@ -85,6 +88,9 @@ const scenarioSection = document.querySelector<HTMLElement>('#scenario-section')
 const scenarioProgress = document.querySelector<HTMLElement>('#scenario-progress')!;
 const scenarioPreview = document.querySelector<HTMLElement>('#scenario-preview')!;
 const heroList = document.querySelector<HTMLElement>('#hero-list')!;
+const heroSection = document.querySelector<HTMLElement>('#hero-section')
+    ?? heroList.closest('section') as HTMLElement;
+const aspectHero = document.querySelector<HTMLSelectElement>('#aspect-hero')!;
 const heroStatus = document.querySelector<HTMLElement>('#hero-status')!;
 const heroSelection = document.querySelector<HTMLElement>('#hero-selection')!;
 const playButton = document.querySelector<HTMLButtonElement>('#play-button')!;
@@ -96,6 +102,34 @@ let heroChoices: HeroChoice[] = [];
 let selectedCampaign: CampaignDefinition | null = null;
 let selectedScenario: ScenarioChoice | null = null;
 let selectedHero: HeroChoice | null = null;
+let aspectDeckPicker: AspectDeckPicker | null = null;
+
+/**
+ * The deck controls, built the same way Quick Game builds them.
+ *
+ * A campaign picks from the same collection as a one-off game, so the picker
+ * that finds a deck there should be the picker that finds it here -- sorting,
+ * grouping and hiding precons included. Two pickers over one collection is one
+ * of them being the good one.
+ */
+const deckFilters: DeckFilters<HeroChoice> = createDeckFilters<HeroChoice>({
+    listHost: heroList,
+    createButton: (choice) => {
+        const button = createChoiceButton(
+            choice.id,
+            choice.name,
+            choice.imageId,
+            () => selectHero(choice),
+        );
+        button.classList.toggle('user-deck', choice.isUserDeck);
+        return button;
+    },
+    // Re-drawing the list discards the selected styling, so put it back.
+    onRendered: () => markSelected(heroList, selectedHero?.id ?? ''),
+    // Its own, so a hero filter set here -- or by the randomiser -- does not
+    // follow the player over to Quick Game and back.
+    storageKey: 'marvel_lcg_campaign_deck_filters',
+});
 let selectedScenarioIndex = 0;
 let resumedCampaign: SavedCampaign | null = null;
 let isStarting = false;
@@ -241,9 +275,10 @@ function markSelected(container: HTMLElement, selectedId: string): void {
 function updatePlayButton(): void {
     // A resumed campaign already has its frozen deck on disk, so it does not
     // need a freshly resolved one to start the next scenario.
-    const awaitingDeck = deckSourceController?.getSource() === 'marvelcdb'
-        && !deckSourceController.getDeck()
-        && !resumedCampaign;
+    const source = deckSourceController?.getSource();
+    const awaitingDeck = !resumedCampaign && (
+        (source === 'marvelcdb' && !deckSourceController?.getDeck())
+        || (source === 'aspect' && !aspectDeckPicker?.getDeck()));
     playButton.disabled = isStarting
         || deckSourceController?.isBusy() === true
         || !selectedCampaign
@@ -451,24 +486,104 @@ function renderCampaigns(choices: CampaignChoice[]): void {
     campaignStatus.textContent = choices.length ? '' : 'No campaigns are available.';
 }
 
+/**
+ * Pick a hero at random, then one of their decks.
+ *
+ * Identical to Quick Game's rule, deliberately: heroes are shuffled rather
+ * than decks, so a hero you have a dozen netdecks for is no likelier than one
+ * you have a single deck for, and a synced deck beats the precon where both
+ * exist. Two randomisers disagreeing about what a fair draw is would be worse
+ * than either.
+ */
+/** The precon deck for whichever hero a choice belongs to. */
+function preconFor(choice: HeroChoice | null): string {
+    if (!choice) {
+        return '';
+    }
+    const key = heroKeyOf(choice);
+    return heroChoices.find(
+        (other) => !other.isUserDeck && heroKeyOf(other) === key)?.id ?? '';
+}
+
+function populateAspectHeroes(): void {
+    const precons = heroChoices.filter((choice) => !choice.isUserDeck);
+    const labels = buildHeroLabels(precons);
+    const options = precons
+        .map((choice) => ({
+            id: choice.id,
+            label: labels.get(heroKeyOf(choice)) ?? choice.name,
+        }))
+        .sort((left, right) => left.label.localeCompare(
+            right.label, undefined, {sensitivity: 'base'}));
+
+    aspectHero.replaceChildren(
+        ...options.map((option) => new Option(option.label, option.id)));
+    aspectHero.disabled = options.length === 0;
+
+    const saved = localStorage.getItem(aspectHeroStorageKey) ?? '';
+    aspectHero.value = options.some((option) => option.id === saved)
+        ? saved
+        // Falling back to the hero already picked keeps switching into aspect
+        // mode from silently changing who is playing.
+        : (preconFor(selectedHero) || options[0]?.id) ?? '';
+}
+
+/** Make the aspect panel's dropdown the selected hero. */
+function applyAspectHero(): void {
+    const choice = heroChoices.find((item) => item.id === aspectHero.value);
+    if (choice) {
+        selectHero(choice);
+    }
+}
+
+/**
+ * Draw a random option from a dropdown, as if it had been chosen.
+ *
+ * The empty "Loading…" and unset entries are not outcomes, so they are left
+ * out rather than occasionally drawn.
+ */
+function randomizeSelect(select: HTMLSelectElement): void {
+    const options = [...select.options].filter((option) => option.value !== '');
+    if (options.length === 0) {
+        return;
+    }
+    const option = options[Math.floor(Math.random() * options.length)] as HTMLOptionElement;
+    select.value = option.value;
+    select.dispatchEvent(new Event('change'));
+}
+
+function randomizeHero(): void {
+    const byHero = new Map<string, HeroChoice[]>();
+    for (const choice of heroChoices) {
+        const key = heroKeyOf(choice);
+        byHero.set(key, [...(byHero.get(key) ?? []), choice]);
+    }
+    if (byHero.size === 0) {
+        return;
+    }
+    const keys = [...byHero.keys()];
+    const key = keys[Math.floor(Math.random() * keys.length)] as string;
+    const forHero = byHero.get(key) as HeroChoice[];
+    const synced = forHero.filter((choice) => choice.isUserDeck);
+    const pool = synced.length ? synced : forHero;
+    const choice = pool[Math.floor(Math.random() * pool.length)] as HeroChoice;
+
+    deckFilters.filterToHero(key);
+    selectHero(choice);
+}
+
 function renderHeroes(choices: HeroChoice[]): void {
     heroChoices = choices;
-    heroList.replaceChildren();
-    for (const choice of choices) {
-        const button = createChoiceButton(
-            choice.id,
-            choice.name,
-            choice.imageId,
-            () => selectHero(choice),
-        );
-        button.classList.toggle('user-deck', choice.isUserDeck);
-        heroList.appendChild(button);
-    }
+    deckFilters.render(choices);
 
     const savedHeroId = localStorage.getItem(heroStorageKey);
     const savedHero = choices.find((choice) => choice.id === savedHeroId);
     if (savedHero) {
         selectHero(savedHero);
+    }
+    populateAspectHeroes();
+    if (deckSourceController?.getSource() === 'aspect') {
+        applyAspectHero();
     }
     heroStatus.textContent = choices.length ? '' : 'No decks are available.';
 }
@@ -531,16 +646,38 @@ async function refreshSelectedCampaignDeck(): Promise<void> {
 }
 
 async function initialize(): Promise<void> {
+    aspectDeckPicker = createAspectDeckPicker({onChange: updatePlayButton});
+    void aspectDeckPicker.load();
+
     deckSourceController = createDeckSourceController({
         onChange: updatePlayButton,
         onResolved: selectResolvedMarvelCdbDeck,
         onSourceChanged: (source) => {
-            if (source === 'precon') {
+            if (source !== 'marvelcdb') {
                 leaveMarvelCdbMode();
             }
+            // The tiles choose a deck, and an aspect deck replaces the deck, so
+            // in aspect mode they are put away and the panel's dropdown decides
+            // who is playing.
+            heroSection.classList.toggle('hero-decks-hidden', source === 'aspect');
+            if (source === 'aspect') {
+                applyAspectHero();
+            }
+            updatePlayButton();
         },
     });
+    aspectHero.addEventListener('change', () => {
+        localStorage.setItem(aspectHeroStorageKey, aspectHero.value);
+        applyAspectHero();
+    });
+    document.querySelector<HTMLButtonElement>('#randomize-aspect-hero')
+        ?.addEventListener('click', () => randomizeSelect(aspectHero));
+    document.querySelector<HTMLButtonElement>('#randomize-aspect-deck')
+        ?.addEventListener('click', () => randomizeSelect(
+            document.querySelector<HTMLSelectElement>('#aspect-deck')!));
     marvelCdbUpdate.addEventListener('click', () => void refreshSelectedCampaignDeck());
+    document.querySelector<HTMLButtonElement>('#randomize-hero')
+        ?.addEventListener('click', randomizeHero);
 
     const [campaignResult, heroResult] = await Promise.allSettled([
         loadCampaignChoices(),
@@ -607,9 +744,19 @@ async function startGame(): Promise<void> {
     const resolvedDeck = deckSourceController?.getSource() === 'marvelcdb'
         ? deckSourceController.getDeck()
         : null;
-    if (resolvedDeck) {
+    // An aspect deck is only the aspect and basic cards, so the hero keeps its
+    // identity, signature cards, obligations and nemesis set and only the
+    // player deck is replaced -- the same shape a resolved MarvelCDB deck has,
+    // which is why it is frozen for the run the same way.
+    const aspectDeck = deckSourceController?.getSource() === 'aspect'
+        ? aspectDeckPicker?.getDeck() ?? null
+        : null;
+    const deckToFreeze = resolvedDeck ?? (aspectDeck
+        ? {...selectedHero.data, player_deck: [...aspectDeck.player_deck]}
+        : null);
+    if (deckToFreeze) {
         try {
-            const stored = await saveCampaignDeck(selectedCampaign.id, resolvedDeck);
+            const stored = await saveCampaignDeck(selectedCampaign.id, deckToFreeze);
             heroDeck = stored.deck as HeroData;
             heroId = stored.hero_id;
         } catch (error) {
