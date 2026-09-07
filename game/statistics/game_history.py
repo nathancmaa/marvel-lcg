@@ -986,6 +986,50 @@ class GameHistory:
             self._store_game(self._live_record(game), self._live_card_statistics(game))
         return self.SaveGameRatings(source_key, data)
 
+    def GetMatchupCounts(self, source: str = 'all') -> List[Dict[str, Any]]:
+        """Games grouped by which hero met which scenario.
+
+        The pairing is the whole point and no dashboard grouping carries it:
+        those count heroes and scenarios on separate axes, so a hero with ten
+        wins and a scenario with ten losses say nothing about whether the two
+        ever sat down together. The composite index on
+        (hero_code, scenario_key, expert, result) already covers this.
+
+        Only decided games count. An abandoned or unknown result says nothing
+        about how the matchup went, and counting it as a play would make a
+        coverage grid claim ground that was never actually held.
+        """
+        if not self.available:
+            return []
+        source = self._normalize_source_filter(source)
+        with self._lock, self._connect() as connection:
+            where = " WHERE is_service = 0 AND result IN ('win', 'loss')"
+            parameters: tuple[Any, ...] = ()
+            if source != 'all':
+                where += ' AND source = ?'
+                parameters = (source,)
+            rows = connection.execute(
+                'SELECT hero_code, scenario_key, COUNT(*) games, '
+                "SUM(CASE WHEN result = 'win' THEN 1 ELSE 0 END) wins, "
+                'SUM(expert) expert_games, '
+                "SUM(CASE WHEN expert = 1 AND result = 'win' THEN 1 ELSE 0 END) "
+                'expert_wins '
+                f'FROM games{where} '
+                'GROUP BY hero_code, scenario_key',
+                parameters,
+            ).fetchall()
+        return [
+            {
+                'hero_code': str(row['hero_code'] or ''),
+                'scenario_key': str(row['scenario_key'] or ''),
+                'games': int(row['games'] or 0),
+                'wins': int(row['wins'] or 0),
+                'expert_games': int(row['expert_games'] or 0),
+                'expert_wins': int(row['expert_wins'] or 0),
+            }
+            for row in rows
+        ]
+
     def GetDashboard(self, source: str='all') -> Dict[str, Any]:
         if not self.available:
             return {'available': False, 'error': 'Game history is unavailable.'}

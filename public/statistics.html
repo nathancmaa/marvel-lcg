@@ -24,6 +24,7 @@
         <nav class="tabs" aria-label="Collection and statistics sections">
             <button type="button" data-tab="collection">Collection</button>
             <button type="button" data-tab="history">Game History</button>
+            <button type="button" data-tab="matchups">Matchups</button>
             <button type="button" data-tab="achievements">Achievements</button>
         </nav>
 
@@ -119,6 +120,35 @@
                             <thead><tr><th>Date</th><th>Source</th><th>Hero</th><th>Villain</th><th>Difficulty</th><th>Result</th><th>Rounds</th><th>Time</th><th></th></tr></thead>
                             <tbody id="recent-games"></tbody>
                         </table>
+                    </div>
+                </section>
+            </section>
+
+            <section id="tab-matchups" class="tab-panel" data-panel="matchups" hidden>
+                <section class="panel">
+                    <div class="matchup-head">
+                        <div>
+                            <h2>Hero / Scenario Coverage</h2>
+                            <p class="panel-note" id="matchup-summary">Reading your game history…</p>
+                        </div>
+                        <div class="matchup-controls">
+                            <label class="matchup-toggle">
+                                <input type="checkbox" id="matchup-counts">
+                                <span>Show counts</span>
+                            </label>
+                            <label class="matchup-toggle">
+                                <input type="checkbox" id="matchup-played-only">
+                                <span>Played only</span>
+                            </label>
+                        </div>
+                    </div>
+                    <p class="matchup-legend">
+                        <span class="swatch won"></span> won
+                        <span class="swatch lost"></span> played, not won
+                        <span class="swatch none"></span> never played
+                    </p>
+                    <div id="matchup-scroll" class="matchup-scroll">
+                        <table id="matchup-table" class="matchup-table"></table>
                     </div>
                 </section>
             </section>

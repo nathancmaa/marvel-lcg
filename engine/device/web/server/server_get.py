@@ -138,6 +138,143 @@ class GameServerGet(GameServerBase):
         file = FileManager.FindJsonPath("AspectDecks", "aspect_decks.json")
         return self.ReadJsonFile(file)
 
+    @staticmethod
+    def _matchup_slug(value: str) -> str:
+        """The key game history files a scenario under.
+
+        Must stay in step with GameHistory._slug, because a recorded game is
+        keyed on the slug of the scenario's *name* while the catalogue is
+        keyed on its file. The two agree for almost every scenario and both
+        are offered as keys below, so a rename on either side degrades to a
+        blank column rather than a wrong one.
+        """
+        import re as _re
+        value = str(value).strip().lower().replace('&', ' and ')
+        return _re.sub(r'[^a-z0-9]+', '_', value).strip('_')
+
+    @staticmethod
+    def _matchup_file_id(path: str) -> str:
+        import os
+        return os.path.splitext(FileManager.GetBaseName(path))[0]
+
+    def _matchup_axes(self) -> tuple[list, list]:
+        """Every hero and scenario in the game, in release order, with its box.
+
+        Built from the catalogue rather than from the history, because a grid
+        of only what has been played cannot show what has not -- which is the
+        one question a coverage table exists to answer.
+        """
+        import re as _re
+        sets_path = FileManager.FindJsonPath('SetInfo', 'sets_info.json', nullable=True)
+        sets_info = Json.Load(sets_path) if sets_path else {}
+        boxes = [
+            (label, info) for label, info in sets_info.items()
+            if isinstance(info, dict) and _re.match(r'^\d+\.', str(label))
+        ]
+
+        starters = {
+            self._matchup_file_id(path): path
+            for path in FileManager.ListFiles(STARTER_DECK_FOLDER.value, ext='.json')
+        }
+        scenario_files = {
+            self._matchup_file_id(path): path
+            for path in FileManager.ListFiles(*SCENARIOS_FOLDERS.value, ext='.json')
+        }
+
+        heroes: list = []
+        scenarios: list = []
+        for order, (label, info) in enumerate(boxes):
+            box = _re.sub(r'^\d+\.\s*', '', str(label))
+            for hero_id in info.get('heroes', []) or []:
+                path = starters.get(hero_id)
+                if not path:
+                    continue
+                try:
+                    data = Json.Load(path)
+                except Exception:
+                    continue
+                code = str((data.get('hero') or [''])[0]).split(',')[0].strip().lower()
+                if not code:
+                    continue
+                heroes.append({
+                    'id': hero_id,
+                    'code': code,
+                    'name': data.get('name') or hero_id,
+                    'box': box,
+                    'box_order': order,
+                })
+            for scenario_id in info.get('scenarios', []) or []:
+                path = scenario_files.get(scenario_id)
+                if not path:
+                    continue
+                try:
+                    data = Json.Load(path)
+                except Exception:
+                    continue
+                name = data.get('name') or scenario_id
+                keys = list(dict.fromkeys([
+                    self._matchup_slug(name), scenario_id,
+                ]))
+                scenarios.append({
+                    'id': scenario_id,
+                    'keys': keys,
+                    'name': name,
+                    'box': box,
+                    'box_order': order,
+                })
+        return heroes, scenarios
+
+    async def get_matchup_matrix(self, request: web.Request) -> web.Response:
+        """Which heroes have beaten which scenarios, as a grid."""
+        history = self.game.game_history
+        if history is None:
+            return web.json_response({
+                'available': False,
+                'error': 'Game history is disabled.',
+            })
+
+        source = request.rel_url.query.get('source', 'all') or 'all'
+        try:
+            counts = await TaskManager.ToThread(history.GetMatchupCounts, source)
+            heroes, scenarios = await TaskManager.ToThread(self._matchup_axes)
+        except Exception as exc:
+            return web.json_response(
+                {'available': False, 'error': f'Could not build the table: {exc}'},
+                status=500,
+            )
+
+        by_key: dict = {}
+        for row in counts:
+            by_key.setdefault(row['hero_code'], {})[row['scenario_key']] = row
+
+        cells: dict = {}
+        for hero in heroes:
+            played = by_key.get(hero['code'])
+            if not played:
+                continue
+            for scenario in scenarios:
+                for key in scenario['keys']:
+                    row = played.get(key)
+                    if row:
+                        cells[f"{hero['code']}|{scenario['id']}"] = {
+                            'games': row['games'],
+                            'wins': row['wins'],
+                            'expert_games': row['expert_games'],
+                            'expert_wins': row['expert_wins'],
+                        }
+                        break
+
+        return web.json_response({
+            'available': True,
+            'source': source,
+            'heroes': heroes,
+            'scenarios': [
+                {k: v for k, v in scenario.items() if k != 'keys'}
+                for scenario in scenarios
+            ],
+            'cells': cells,
+        })
+
     async def get_sets_custom_scenario(self, request: web.Request) -> web.Response:
         files = FileManager.ListFiles(CUSTOM_SCENARIOS_FOLDER.value, ".json")
         return web.json_response(files)
@@ -284,6 +421,7 @@ class GameServerGet(GameServerBase):
         self.AddAwaitGetSecurity('/get_hero_json', self.get_hero_json)
         self.AddAwaitGetSecurity('/get_sets_json', self.get_sets_json)
         self.AddAwaitGetSecurity('/get_aspect_decks_json', self.get_aspect_decks_json)
+        self.AddAwaitGetSecurity('/get_matchup_matrix', self.get_matchup_matrix)
         self.AddAwaitGetSecurity('/get_sets_custom_scenario', self.get_sets_custom_scenario)
         self.AddAwaitGetSecurity('/get_cards_json', self.get_cards_json)
         self.AddAwaitGetSecurity('/get_translate_json', self.get_translate_json)

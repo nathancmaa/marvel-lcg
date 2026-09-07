@@ -19,6 +19,7 @@ services:
       - /volume1/docker/marvel-lcg/replays:/app/replays
       - /volume1/docker/marvel-lcg/runtime:/app/runtime
       - /volume1/docker/marvel-lcg/deck/user-decks:/app/deck/user-decks
+      - /volume1/docker/marvel-lcg/deck/campaign-decks:/app/deck/campaign-decks
 
     # The app binds 0.0.0.0:2345 by default (`server_addresses` in launch.json).
     # Under `network_mode: host` that is a host-wide port, so a second instance

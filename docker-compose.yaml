@@ -11,5 +11,9 @@ services:
       - ./replays:/app/replays
       - ./runtime:/app/runtime
       - ./deck/user-decks:/app/deck/user-decks
+      # Frozen campaign decks. Written at runtime and deliberately kept
+      # apart from user-decks, so they need a mount of their own or a
+      # rebuild takes every in-progress campaign's deck with it.
+      - ./deck/campaign-decks:/app/deck/campaign-decks
     command: ["python", "-u", "main.py", "-game_statistics_file", "./runtime/statistics.json", "-game_history_file", "./runtime/statistics.sqlite3", "-campaign_progress_file", "./runtime/save_campaign_progress.json", "-active_session_file", "./runtime/save_active_session.json", "-quick_save_folder", "./runtime"]
     restart: unless-stopped

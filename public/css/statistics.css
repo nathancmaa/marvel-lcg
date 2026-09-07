@@ -764,3 +764,184 @@ tbody tr:last-child td {
         grid-column: auto;
     }
 }
+
+/* ---- Hero / scenario coverage grid ---------------------------------------
+   A dense matrix, so the cells carry the meaning and everything around them
+   stays quiet: no cell borders competing with the grid itself, and the two
+   axis label bands doing the grouping instead of rules. */
+
+.matchup-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.matchup-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.9rem;
+}
+
+.matchup-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--muted);
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.matchup-toggle input {
+    accent-color: var(--blue);
+    cursor: inherit;
+}
+
+.matchup-legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 1.1rem;
+    margin: 0.9rem 0 0.6rem;
+    color: var(--muted);
+    font-size: 0.8rem;
+}
+
+.matchup-legend .swatch {
+    display: inline-block;
+    width: 0.85rem;
+    height: 0.85rem;
+    border-radius: 0.15rem;
+    vertical-align: -0.1em;
+    margin-right: 0.15rem;
+}
+
+.matchup-legend .swatch.won { background: #2f8f6b; }
+.matchup-legend .swatch.lost { background: rgba(255, 143, 143, 0.45); }
+.matchup-legend .swatch.none { background: rgba(143, 190, 224, 0.12); }
+
+/* The grid is wider than any screen, so it scrolls in its own box rather than
+   pushing the page sideways. */
+.matchup-scroll {
+    overflow: auto;
+    max-height: 70vh;
+    border: 1px solid var(--line);
+    border-radius: 0.4rem;
+    background: rgba(4, 10, 18, 0.6);
+}
+
+.matchup-table {
+    /* Fixed, so 62 columns keep the width they are given instead of being
+       widened by the rotated labels sitting above them. */
+    table-layout: fixed;
+    border-collapse: separate;
+    border-spacing: 2px;
+    font-size: 0.75rem;
+}
+
+.matchup-table tbody tr {
+    height: 1.4rem;
+}
+
+.matchup-table th {
+    font-weight: 600;
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+.matchup-table .box-label {
+    /* Clipped rather than allowed to collide: a narrow box of one or two
+       scenarios cannot hold its own name at this scale. */
+    overflow: hidden;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--blue);
+    text-align: center;
+    padding: 0.3rem 0.4rem;
+    border-bottom: 1px solid var(--line);
+}
+
+/* Both axis bands take their labels out of flow, so a long box name cannot
+   stretch a short group's rows and a long scenario name cannot widen its
+   column. Each clips instead; the full text stays in the cell title. */
+.matchup-table .box-label.row {
+    position: relative;
+    width: 1.5rem;
+    padding: 0;
+    border-bottom: none;
+    border-right: 1px solid var(--line);
+    overflow: hidden;
+}
+
+.matchup-table .box-label.row span {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* Reads bottom-to-top down the left edge, the way the column band reads
+       left-to-right along the top. */
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+/* Scenario names are long and the columns are one cell wide, so they lean. */
+.matchup-table .scenario-label {
+    position: relative;
+    height: 9rem;
+    width: 1.4rem;
+    padding: 0;
+    overflow: visible;
+}
+
+.matchup-table .scenario-label span {
+    position: absolute;
+    bottom: 0.35rem;
+    left: 50%;
+    transform: rotate(-60deg);
+    transform-origin: left bottom;
+    white-space: nowrap;
+    text-align: left;
+}
+
+.matchup-table .hero-label {
+    width: 9.5rem;
+    max-width: 9.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: right;
+    padding: 0 0.55rem 0 0.35rem;
+    position: sticky;
+    left: 0;
+    background: #0a1220;
+    z-index: 1;
+    color: #e6eef6;
+}
+
+.matchup-cell {
+    width: 1.4rem;
+    height: 1.4rem;
+    padding: 0;
+    text-align: center;
+    border-radius: 0.15rem;
+    background: rgba(143, 190, 224, 0.1);
+    color: #04121a;
+    font-size: 0.65rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.matchup-cell.won { background: #2f8f6b; }
+.matchup-cell.lost { background: rgba(255, 143, 143, 0.4); color: #ffe8e8; }
+.matchup-cell.none { background: rgba(143, 190, 224, 0.08); }
+
+.matchup-empty {
+    caption-side: bottom;
+    padding: 1.5rem;
+    color: var(--muted);
+    text-align: center;
+}

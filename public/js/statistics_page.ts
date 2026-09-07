@@ -1,5 +1,5 @@
 type SourceFilter = 'all'|'digital'|'physical'|'replay_import';
-type TabName = 'collection'|'history'|'achievements';
+type TabName = 'collection'|'history'|'matchups'|'achievements';
 
 type Overview = {
     completed: number;
@@ -432,6 +432,202 @@ async function loadDashboard(): Promise<void> {
     renderDashboard(dashboard);
 }
 
+type MatchupAxis = {
+    id: string;
+    code?: string;
+    name: string;
+    box: string;
+    box_order: number;
+};
+
+type MatchupCell = {
+    games: number;
+    wins: number;
+    expert_games: number;
+    expert_wins: number;
+};
+
+type MatchupMatrix = {
+    available: boolean;
+    error?: string;
+    heroes: MatchupAxis[];
+    scenarios: MatchupAxis[];
+    cells: Record<string, MatchupCell>;
+};
+
+let matchupMatrix: MatchupMatrix | null = null;
+
+/** Runs of equal box labels down an axis, for the grouping rules. */
+function boxRuns(axis: MatchupAxis[]): {box: string; start: number; length: number}[] {
+    const runs: {box: string; start: number; length: number}[] = [];
+    axis.forEach((entry, index) => {
+        const last = runs[runs.length - 1];
+        if (last && last.box === entry.box) {
+            last.length += 1;
+        } else {
+            runs.push({box: entry.box, start: index, length: 1});
+        }
+    });
+    return runs;
+}
+
+function renderMatchupGrid(): void {
+    const table = element<HTMLTableElement>('matchup-table');
+    const summary = element<HTMLElement>('matchup-summary');
+    const matrix = matchupMatrix;
+    if (!matrix || !matrix.available) {
+        table.replaceChildren();
+        summary.textContent = matrix?.error
+            ?? 'Game history is unavailable, so there is nothing to compare yet.';
+        return;
+    }
+
+    const showCounts = element<HTMLInputElement>('matchup-counts').checked;
+    const playedOnly = element<HTMLInputElement>('matchup-played-only').checked;
+    const cellFor = (hero: MatchupAxis, scenario: MatchupAxis): MatchupCell | undefined =>
+        matrix.cells[`${hero.code}|${scenario.id}`];
+
+    let heroes = matrix.heroes;
+    let scenarios = matrix.scenarios;
+    if (playedOnly) {
+        heroes = heroes.filter(h => scenarios.some(s => cellFor(h, s)));
+        scenarios = scenarios.filter(s => heroes.some(h => cellFor(h, s)));
+    }
+
+    // The counts are over the full grid whatever is on screen: coverage of what
+    // you have filtered down to is not the number anybody wants.
+    let played = 0;
+    let won = 0;
+    for (const hero of matrix.heroes) {
+        for (const scenario of matrix.scenarios) {
+            const cell = cellFor(hero, scenario);
+            if (!cell) {
+                continue;
+            }
+            played += 1;
+            if (cell.wins > 0) {
+                won += 1;
+            }
+        }
+    }
+    const possible = matrix.heroes.length * matrix.scenarios.length;
+    summary.textContent = possible === 0
+        ? 'No heroes or scenarios were found.'
+        : `${won} of ${possible} matchups won · ${played} played · `
+            + `${matrix.heroes.length} heroes × ${matrix.scenarios.length} scenarios`;
+
+    if (!heroes.length || !scenarios.length) {
+        table.replaceChildren();
+        table.insertAdjacentHTML('beforeend',
+            '<caption class="matchup-empty">No games recorded yet. '
+            + 'Finish a game and it will appear here.</caption>');
+        return;
+    }
+
+    // Fixed layout takes its widths from the first row, and the first row is
+    // the box band with its colspans -- which left the hero names a single
+    // letter wide. A colgroup states the widths outright instead.
+    const columns = document.createElement('colgroup');
+    for (const width of ['1.5rem', '9.5rem']) {
+        const col = document.createElement('col');
+        col.style.width = width;
+        columns.appendChild(col);
+    }
+    for (let index = 0; index < scenarios.length; index += 1) {
+        const col = document.createElement('col');
+        col.style.width = '1.4rem';
+        columns.appendChild(col);
+    }
+
+    const head = document.createElement('thead');
+    const boxRow = document.createElement('tr');
+    boxRow.appendChild(document.createElement('td'));
+    boxRow.appendChild(document.createElement('td'));
+    for (const run of boxRuns(scenarios)) {
+        const cell = document.createElement('th');
+        cell.className = 'box-label';
+        cell.colSpan = run.length;
+        cell.scope = 'colgroup';
+        cell.textContent = run.box;
+        boxRow.appendChild(cell);
+    }
+    head.appendChild(boxRow);
+
+    const nameRow = document.createElement('tr');
+    nameRow.appendChild(document.createElement('td'));
+    nameRow.appendChild(document.createElement('td'));
+    for (const scenario of scenarios) {
+        const cell = document.createElement('th');
+        cell.className = 'scenario-label';
+        cell.scope = 'col';
+        const span = document.createElement('span');
+        span.textContent = scenario.name;
+        cell.appendChild(span);
+        nameRow.appendChild(cell);
+    }
+    head.appendChild(nameRow);
+    table.replaceChildren(columns, head);
+
+    const body = document.createElement('tbody');
+    const runsByStart = new Map(boxRuns(heroes).map(run => [run.start, run]));
+    heroes.forEach((hero, index) => {
+        const row = document.createElement('tr');
+        const run = runsByStart.get(index);
+        if (run) {
+            const label = document.createElement('th');
+            label.className = 'box-label row';
+            label.rowSpan = run.length;
+            label.scope = 'rowgroup';
+            // Inside a span so it can be taken out of flow: a rotated label is
+            // as tall as its text is long, and a one-hero box would otherwise
+            // stretch its row to the height of the whole box name.
+            const labelText = document.createElement('span');
+            labelText.textContent = run.box;
+            label.appendChild(labelText);
+            row.appendChild(label);
+        }
+        const heroCell = document.createElement('th');
+        heroCell.className = 'hero-label';
+        heroCell.scope = 'row';
+        heroCell.textContent = hero.name;
+        row.appendChild(heroCell);
+
+        for (const scenario of scenarios) {
+            const cell = document.createElement('td');
+            const data = cellFor(hero, scenario);
+            const state = !data ? 'none' : data.wins > 0 ? 'won' : 'lost';
+            cell.className = `matchup-cell ${state}`;
+            if (data) {
+                const record = `${data.wins}W ${data.games - data.wins}L`;
+                cell.title = `${hero.name} vs ${scenario.name} — ${record}`
+                    + (data.expert_games ? ` (${data.expert_wins}W expert)` : '');
+                if (showCounts) {
+                    cell.textContent = String(data.games);
+                }
+            } else {
+                cell.title = `${hero.name} vs ${scenario.name} — never played`;
+            }
+            row.appendChild(cell);
+        }
+        body.appendChild(row);
+    });
+    table.appendChild(body);
+}
+
+async function loadMatchupGrid(): Promise<void> {
+    try {
+        matchupMatrix = await fetchJson<MatchupMatrix>(
+            `/get_matchup_matrix?source=${encodeURIComponent(sourceFilter)}`);
+    } catch (reason) {
+        matchupMatrix = {
+            available: false,
+            error: reason instanceof Error ? reason.message : 'Could not load the table.',
+            heroes: [], scenarios: [], cells: {},
+        };
+    }
+    renderMatchupGrid();
+}
+
 function setActiveTab(tab: TabName): void {
     activeTab = tab;
     document.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(button => {
@@ -443,6 +639,12 @@ function setActiveTab(tab: TabName): void {
         panel.hidden = panel.dataset.panel !== tab;
     });
     history.replaceState(null, '', `#${tab}`);
+    // Fetched when the tab is first opened rather than with the dashboard: the
+    // grid walks every starter deck and scenario file, which is wasted work for
+    // anyone who never looks at it.
+    if (tab === 'matchups' && matchupMatrix === null) {
+        void loadMatchupGrid();
+    }
 }
 
 function selectOptions(select: HTMLSelectElement, choices: GameChoice[], placeholder: string): void {
@@ -632,13 +834,19 @@ function bindEvents(): void {
     document.querySelectorAll<HTMLButtonElement>('[data-source]').forEach(button => {
         button.addEventListener('click', async () => {
             sourceFilter = button.dataset.source as SourceFilter;
+            matchupMatrix = null;
             try {
                 await loadDashboard();
+                if (activeTab === 'matchups') {
+                    await loadMatchupGrid();
+                }
             } catch (reason) {
                 window.alert(reason instanceof Error ? reason.message : 'Could not filter game history.');
             }
         });
     });
+    element<HTMLInputElement>('matchup-counts').addEventListener('change', renderMatchupGrid);
+    element<HTMLInputElement>('matchup-played-only').addEventListener('change', renderMatchupGrid);
     element<HTMLInputElement>('collection-search').addEventListener('input', renderProducts);
     element<HTMLButtonElement>('save-collection').addEventListener('click', () => void saveCollection());
     element<HTMLButtonElement>('log-game').addEventListener('click', () => void openPhysicalGame());
