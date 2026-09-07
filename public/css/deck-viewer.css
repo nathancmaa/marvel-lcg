@@ -586,3 +586,34 @@
     font-style: italic;
     color: #8fa0ad;
 }
+
+/* The card under the pointer. It never takes pointer events: an image that can
+   be hovered can keep itself alive under the cursor, which is how a preview
+   ends up stuck on screen with nothing to dismiss it. */
+.mulligan-hover {
+    position: fixed;
+    z-index: 60;
+    width: 240px;
+    max-width: 45vw;
+    border-radius: 0.6rem;
+    box-shadow: 0 0.8rem 2rem rgba(0, 0, 0, 0.7);
+    pointer-events: none;
+}
+
+.mulligan-hover[hidden] {
+    display: none;
+}
+
+/* Chips are buttons so they can be tabbed to, but they should read as labels. */
+.deck-mulligan-chip {
+    font-family: inherit;
+    background: none;
+    cursor: pointer;
+}
+
+.deck-mulligan-chip:hover,
+.deck-mulligan-chip:focus-visible {
+    border-color: rgba(143, 190, 224, 0.75);
+    color: #ffffff;
+    outline: none;
+}

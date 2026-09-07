@@ -82,6 +82,7 @@ const deckMulligan = document.querySelector<HTMLElement>('#deck-mulligan')!;
 const deckMulliganHead = document.querySelector<HTMLElement>('#deck-mulligan-head')!;
 const deckMulliganChips = document.querySelector<HTMLElement>('#deck-mulligan-chips')!;
 const deckMulliganNote = document.querySelector<HTMLElement>('#deck-mulligan-note')!;
+const mulliganHover = document.querySelector<HTMLImageElement>('#mulligan-hover')!;
 const shareDeckButton = document.querySelector<HTMLButtonElement>('#share-deck')!;
 const shareStatus = document.querySelector<HTMLElement>('#share-status')!;
 const identityCards = document.querySelector<HTMLElement>('#identity-cards')!;
@@ -683,6 +684,36 @@ function renderEntries(container: HTMLElement, entries: CardEntry[]): void {
 }
 
 /**
+ * The card under the pointer, shown beside the chip naming it.
+ *
+ * The image never takes pointer events, so it cannot sit under the cursor and
+ * keep itself alive -- which is how a hover preview ends up stuck on screen.
+ * Scrolling hides it too, because the chip it was anchored to has moved.
+ */
+function showMulliganHover(chip: HTMLElement, entry: CardEntry): void {
+    const box = chip.getBoundingClientRect();
+    mulliganHover.src = withCardImageRevision(`/${entry.cardId}`);
+    mulliganHover.alt = entry.paper.name;
+    mulliganHover.hidden = false;
+
+    // Below the chip by default, above it when there is no room below.
+    const height = mulliganHover.offsetHeight || 340;
+    const below = box.bottom + 8;
+    mulliganHover.style.top = below + height > window.innerHeight
+        ? `${Math.max(8, box.top - height - 8)}px`
+        : `${below}px`;
+    mulliganHover.style.left =
+        `${Math.min(box.left, window.innerWidth - (mulliganHover.offsetWidth || 240) - 8)}px`;
+}
+
+function hideMulliganHover(): void {
+    mulliganHover.hidden = true;
+    mulliganHover.removeAttribute('src');
+}
+
+window.addEventListener('scroll', hideMulliganHover, {passive: true});
+
+/**
  * What to look for in this deck's opening hand.
  *
  * The answer comes from the server rather than being worked out here, so the
@@ -718,8 +749,8 @@ async function renderMulligan(choice: DeckChoice, entries: CardEntry[]): Promise
     }
 
     // Only cards this deck holds, named the way the deck names them.
-    const names = new Map(entries.map(entry => [entry.cardId, entry.paper.name]));
-    const wanted = (advice.cards ?? []).filter(cardId => names.has(cardId));
+    const byId = new Map(entries.map(entry => [entry.cardId, entry]));
+    const wanted = (advice.cards ?? []).filter(cardId => byId.has(cardId));
     if (!wanted.length) {
         return;
     }
@@ -734,9 +765,21 @@ async function renderMulligan(choice: DeckChoice, entries: CardEntry[]): Promise
           + 'you run three of.';
 
     deckMulliganChips.replaceChildren(...wanted.map(cardId => {
-        const chip = document.createElement('span');
+        const entry = byId.get(cardId) as CardEntry;
+        const chip = document.createElement('button');
+        chip.type = 'button';
         chip.className = 'deck-mulligan-chip';
-        chip.textContent = names.get(cardId) as string;
+        chip.textContent = entry.paper.name;
+        // Hover reads the card; clicking opens the full preview, the way every
+        // other card on this page behaves.
+        chip.addEventListener('mouseenter', () => showMulliganHover(chip, entry));
+        chip.addEventListener('mouseleave', hideMulliganHover);
+        chip.addEventListener('focus', () => showMulliganHover(chip, entry));
+        chip.addEventListener('blur', hideMulliganHover);
+        chip.addEventListener('click', () => {
+            hideMulliganHover();
+            openPreview(entry);
+        });
         return chip;
     }));
     deckMulliganNote.textContent = fromAuthor

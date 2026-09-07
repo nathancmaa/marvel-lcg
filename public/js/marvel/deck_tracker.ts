@@ -217,6 +217,13 @@ export class DeckTracker {
             chip.className = held ? 'deck-tracker-chip held' : 'deck-tracker-chip';
             chip.textContent = byId.get(cardId) as string;
             chip.title = held ? 'In your hand' : 'Not in hand';
+            // The same preview the rows below use, so a card you are being
+            // told to look for can be read without hunting for it in the list.
+            const name = byId.get(cardId) as string;
+            chip.addEventListener('mouseenter', () => HoverCard.show(
+                `url("${withCardImageRevision('/' + cardId)}")`,
+                name, '', '', '', '', false));
+            chip.addEventListener('mouseleave', () => HoverCard.hide());
             chips.appendChild(chip);
         }
         panel.appendChild(chips);
