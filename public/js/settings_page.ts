@@ -6,6 +6,7 @@ import {
 const animationTime = document.getElementById('animation-time') as HTMLInputElement
 const animationTimeValue = document.getElementById('animation-time-value') as HTMLOutputElement
 const autoSaveReplays = document.getElementById('autosave-replays') as HTMLInputElement
+const bgStatsPlayer = document.getElementById('bgstats-player') as HTMLInputElement
 const marvelCdbDeckIds = document.getElementById('marvelcdb-deck-ids') as HTMLInputElement
 const marvelCdbSync = document.getElementById('marvelcdb-sync') as HTMLButtonElement
 const marvelCdbStatus = document.getElementById('marvelcdb-status') as HTMLElement
@@ -115,12 +116,16 @@ animationTimeValue.value = `${ANIMATION_TIME_DEFAULT.toFixed(1)} s`
 updateAnimationTime()
 
 autoSaveReplays.checked = UserSettings.getAutoSaveReplays()
+bgStatsPlayer.value = UserSettings.getBgStatsPlayerName()
 marvelCdbDeckIds.value = UserSettings.getMarvelCdbDeckIds()
 updateMarvelCdbControls()
 
 animationTime.addEventListener('input', updateAnimationTime)
 autoSaveReplays.addEventListener('change', () => {
     UserSettings.setAutoSaveReplays(autoSaveReplays.checked)
+})
+bgStatsPlayer.addEventListener('input', () => {
+    UserSettings.setBgStatsPlayerName(bgStatsPlayer.value)
 })
 marvelCdbDeckIds.addEventListener('input', () => updateMarvelCdbControls())
 marvelCdbSync.addEventListener('click', async () => {

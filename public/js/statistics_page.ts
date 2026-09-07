@@ -1,4 +1,5 @@
 import { bgStatsPlayUrl, canPushToBgStats } from './bgstats_play.js';
+import { UserSettings } from './user_settings.js';
 
 type SourceFilter = 'all'|'digital'|'physical'|'replay_import';
 type TabName = 'collection'|'history'|'matchups'|'achievements';
@@ -184,37 +185,16 @@ let currentDashboard: Dashboard|null = null;
 let sourceFilter: SourceFilter = 'all';
 let activeTab: TabName = 'collection';
 
-const bgStatsPlayerKey = 'marvel_lcg_bgstats_player';
-
 /**
  * The name a play is filed under in BG Stats.
  *
- * Asked for once and kept in this browser. BG Stats matches it to one of its
- * own players the first time and remembers that, so it only has to be right
- * enough to be recognised.
+ * A setting rather than a prompt: it has to stay the same between plays for
+ * BG Stats to keep matching it to the same player, and a value that matters
+ * across sessions belongs somewhere it can be seen and corrected. Falls back
+ * to "Me", which BG Stats will ask you to match once like any other name.
  */
 function bgStatsPlayerName(): string {
-    let name = '';
-    try {
-        name = localStorage.getItem(bgStatsPlayerKey) ?? '';
-    } catch {
-        name = '';
-    }
-    if (name) {
-        return name;
-    }
-    const asked = window.prompt(
-        'What name should these plays be filed under in BG Stats?', 'Me');
-    name = (asked ?? '').trim();
-    if (!name) {
-        return '';
-    }
-    try {
-        localStorage.setItem(bgStatsPlayerKey, name);
-    } catch {
-        // Remembering is a convenience; being asked again is not an error.
-    }
-    return name;
+    return UserSettings.getBgStatsPlayerName() || 'Me';
 }
 let setData: Record<string, SetInfo> = {};
 let products: Product[] = [];
@@ -329,13 +309,10 @@ function renderRecent(rows: RecentGame[], unknownGames: number): void {
             if (!game) {
                 return;
             }
-            const player = bgStatsPlayerName();
-            if (!player) {
-                return;
-            }
             // A new tab, because the link hands off to the BG Stats app and
             // navigating away would lose this page's place in the history.
-            window.open(bgStatsPlayUrl(game, player), '_blank', 'noopener');
+            window.open(
+                bgStatsPlayUrl(game, bgStatsPlayerName()), '_blank', 'noopener');
         });
     });
 

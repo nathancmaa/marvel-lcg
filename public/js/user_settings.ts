@@ -5,6 +5,7 @@ export const ANIMATION_TIME_DEFAULT = 0.2
 const animationTimeKey = 'marvel_lcg_animation_time'
 const autoSaveReplaysKey = 'marvel_lcg_autosave_replays'
 const marvelCdbDeckIdsKey = 'marvel_lcg_marvelcdb_deck_ids'
+const bgStatsPlayerKey = 'marvel_lcg_bgstats_player'
 
 function readStorage(key: string): string|null {
     try {
@@ -54,5 +55,21 @@ export class UserSettings {
 
     static setMarvelCdbDeckIds(deckIds: string) {
         writeStorage(marvelCdbDeckIdsKey, deckIds.trim())
+    }
+
+    /**
+     * The name a play is filed under when it is pushed to BG Stats.
+     *
+     * BG Stats matches this to one of its own players the first time and
+     * remembers the match, so it only has to be recognisable rather than
+     * exact -- but it does have to stay the same, which is why it is a
+     * setting rather than something asked for per play.
+     */
+    static getBgStatsPlayerName(): string {
+        return readStorage(bgStatsPlayerKey)?.trim() ?? ''
+    }
+
+    static setBgStatsPlayerName(name: string) {
+        writeStorage(bgStatsPlayerKey, name.trim())
     }
 }
