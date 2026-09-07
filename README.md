@@ -1,257 +1,143 @@
 # Marvel Champions Digital: Cerebro
 
-> Version 0.7.4 — “Cerebro”
-
-> **This edition uses Marvel Champions Rules Reference v1.8 as its supported rules model.**
+A self-hosted, solo-first digital table for **Marvel Champions: The Card Game**.
+It runs as a Docker container on a home server and you play it from a browser —
+desktop, tablet or phone — anywhere on your own network.
 
 > [!CAUTION]
-> **Please support the physical game.** Buy Marvel Champions and its expansions from Fantasy Flight Games, and support your friendly local game store whenever possible. Cerebro is intended as a testing, training, and learning platform—a convenient way to explore heroes, practise decks, and become familiar with the game—not as a replacement for the physical card game.
+> **Please buy the physical game.** Marvel Champions is designed and published
+> by **Fantasy Flight Games**; the cards, characters and artwork are theirs, and
+> Marvel's. This project is not affiliated with either, sells nothing, and
+> ships no card art — it downloads what it displays on demand and works best
+> for people who already own the products they are playing.
+>
+> Treat it as a practice table: a place to learn a hero, test a deck before
+> sleeving it, or get a game in when the box is not in front of you. It is not a
+> substitute for owning the game, and it is not built to be one. Buy the boxes
+> from FFG, and buy them from your local game store if you have one.
 
-## New in 0.7.4: Cerebro
+![The table, mid-game](docs/assets/image-6.png)
 
-Seeing what you have played, and moving games in and out of the app.
+## Where this came from
 
-- **Hero / scenario coverage.** A Matchups tab crossing all 68 heroes with all
-  62 scenarios: light green where you have won, darker green where you have won
-  on expert, red where you have played without one. Clicking a square opens
-  Quick Game already set up — that hero, that scenario, the deck picker narrowed
-  to that hero's own decks.
-- **Push a play to BG Stats.** Every finished game on the Game History tab gets
-  a button that hands the play to the BG Stats app, hero and scenario included.
-  No account or key; the app shows its own import dialog before saving anything.
-- **Import from Marvel Champions Tracker.** Read an .xlsx export straight into
-  game history, as physical or digital plays. Re-importing the same export
-  changes nothing, so it is safe to run again after each session.
-- **Substitutions understand a deck's traits.** Replacement suggestions now
-  weigh the trait a deck is actually built around — X-Men, Web-Warrior, Guardian
-  — instead of treating every shared trait alike, and no longer offer cards your
-  hero cannot legally play.
-- **Fixes.** Side schemes no longer overlap the hero column on a 16:9 desktop or
-  a tablet; the right-hand bar opens from an invisible strip instead of leaving
-  its buttons half on screen; campaign decks are stored outside the container,
-  so a rebuild no longer takes an in-progress campaign's deck with it.
+Three people's work, in order:
 
-## Previously in 0.7.3: Archive
+1. **[irefrixs/marvel-lcg](https://github.com/irefrixs/marvel-lcg)** — the
+   original Marvel Champions: Digital Edition. The rules engine, the card
+   scripting system and the table itself are theirs; everything below is built
+   on top of it.
+2. **[z00lus/marvel-lcg](https://github.com/z00lus/marvel-lcg)** — the Ronin
+   Edition fork, which brought the solo-first framing, the v1.8 rules pass, the
+   replay system and the first serious self-hosting story. Versions 0.6.x are
+   theirs.
+3. **This fork** — 0.7.x onwards. What follows is what it is for.
 
-Building the deck you take in, and choosing how hard the game pushes back.
+If you are choosing where to start, start upstream. This fork exists because I
+wanted specific things for my own solo play, not because the ones above needed
+fixing.
 
-- **Prebuilt aspect decks.** 25 aspect-and-basic card lists, pairable with any
-  hero. A deck on MarvelCDB is always attached to one hero, so a good aspect
-  list could not be lifted off it and handed to somebody else; these carry the
-  cards alone. Pick a hero and a list from the two dropdowns and the hero keeps
-  its identity, signature cards, obligation and nemesis set. Lists and notes
-  come from a BoardGameGeek geeklist, credited in the picker.
-- **Standard I, II or III.** Every game used to be dealt Standard I. All three
-  sets were already implemented; only the choice was missing. Standard II and
-  III stand in for Standard I rather than stacking on it, Expert still layers
-  on top, and the two scenarios played without a Standard set — Kingpin and
-  The Wrecking Crew — say so instead of being given one.
-- **Deck titles link to MarvelCDB.** The title in the Hero heading is the way
-  back to a deck's own page, for a synced deck picked off a tile as much as
-  one pasted in, and for the chosen aspect deck. Only decks this app fetched
-  are linked: a precon's own metadata link is not a deck page.
-- **"My Decks" instead of "Precon".** That tab lists every synced deck
-  alongside the starters, and had been named after only half of what is in it.
+## What this fork is for
 
-## Previously in 0.7.2: Archive
+A single-player table that keeps a record, on a server I control.
 
-Finding what you want to play, and knowing what you own.
+- **A Docker package that runs on a server.** One container, five bind mounts,
+  no database to administer. It lives on a NAS and every device in the house
+  plays the same games against the same history over the local network. There is
+  no cloud service, no account, and nothing leaves the machine.
+- **UI and accessibility that survive a long session.** Legibility, touch
+  targets, contrast and keyboard reach are treated as features. Includes proper
+  **ultrawide and 2/3-width layouts** — the board reflows rather than stretching,
+  and side schemes stop colliding with minions at awkward widths.
+- **Stat tracking worth looking at.** One SQLite history covering digital games,
+  imported replays and games played at the table, with a **hero × scenario
+  coverage grid** showing the hardest difficulty each pairing has been beaten
+  at. Games move in and out: import a **Marvel Champions Tracker** export, push
+  a finished play to **BG Stats**.
+- **Universal aspect decks.** Pick a hero, pick a prebuilt aspect deck, play —
+  the community's Universal Prebuilt Decks, wired into both Quick Game and
+  Campaign.
+- **A deck tracker and mulligan helper** *(in testing)*. What is left in the
+  deck mid-game, and what to look for in an opening hand — quoting the deck
+  author's own advice from MarvelCDB where they gave any, and ranking the deck
+  where they did not.
+- **Deck building against what you actually own.** Mark your collection, and the
+  deck viewer will tell you which cards in a netdeck you are missing and suggest
+  ones you own instead.
+- **Difficulty that goes past Expert.** Standard I/II/III, Expert, and **Heroic
+  1–4**, all selectable from Quick Game and all recorded.
+- **Proxy printing** for cards you do not own yet, laid out for a home printer.
+- **MarvelCDB syncing.** Paste deck IDs once; they refresh daily.
 
-- **Scenario filtering.** The Quick Game scenario picker gained the same
-  controls as the hero picker: filter to one box, sort by new content,
-  release order or name, and group by box — with boxes listed in the order
-  they came out.
-- **Heroes that share a name are told apart.** Black Panther is both T'Challa
-  and Shuri; Spider-Man is both Peter Parker and Miles Morales. Each pair used
-  to collapse into a single entry.
-- **Collection comparison.** The Deck Viewer shows which cards in a deck come
-  from products you have not marked as owned in Collection & Stats — for
-  moving between the digital and physical games. Hidden until you record a
-  collection; every card stays playable here either way.
+Rules correctness, reliable saves and replays, and getting into a game quickly
+come before anything else here.
 
-## Previously in 0.7.0: Ronin
+## Running it
 
-The first release of this fork, continuing from
-[z00lus/marvel-lcg](https://github.com/z00lus/marvel-lcg) 0.6.1. No rules or
-card behaviour changed; this release is about finding your decks and seeing
-the board.
-
-- **Deck browsing.** Filter the Quick Game hero picker to one hero, sort by
-  deck name, hero, aspect, or most recently updated, group by hero, and hide
-  precon decks. The Deck Viewer gets the same grouping and precon toggles, and
-  links each synced deck back to its MarvelCDB page.
-- **Correct MarvelCDB syncing.** A bare deck number now resolves to a
-  published decklist rather than a personally shared deck. The two are
-  separate records that share their numbering, so a number copied off the site
-  could previously sync something else entirely.
-- **A board that fits the screen.** Displays wider than 16:9 are no longer
-  letterboxed — a 3440x1440 screen gains roughly five card widths per row —
-  and rows no longer slide underneath the deck columns as upgrades pile up.
-- **Prompts that stay out of the way.** The target-selection prompt moves off
-  the cards it is asking you to choose between, and the right-hand button bar
-  keeps a strip on screen you can actually hit.
-- **Decks that survive a rebuild.** User decks are stored outside the
-  container, so a `docker compose up --build` no longer discards everything
-  synced from MarvelCDB.
-
-**0.7.1** fixed The Elephant's Trunk, which could not be used at all, and
-reports decks that name cards this build does not implement when they sync
-rather than when you draw them. See the [changelog](CHANGELOG.md) for detail.
-
-## Previously in 0.6.1: Fear No Evil
-
-The complete solo Quick Game scenario line from **Fear No Evil** is now
-available: five interchangeable-underling scenarios plus the fixed Kingpin
-finale.
-
-- **Stop the Presses!** in Standard and Expert modes, with deterministic
-  Daily Bugle Persona setup, all four stamina-powered Persona supports, and
-  the required **Tombstone** and **Tracksuit Mafia** modular sets.
-- **Protection Racket** in Standard and Expert modes, with all five selectable
-  main schemes and the **Disasters** and **Tracksuit Mafia** modular sets.
-- **The Getaway** scenario in Standard and Expert modes.
-- **Art Museum Heist** in Standard and Expert modes, including its ART
-  attachment flow and the required **The Owl** encounter set.
-- **The Raft Breakout** in Standard and Expert modes, including **Master Key**,
-  PRISONER setup, the required **Tombstone** encounter set, and all currently
-  implemented underling choices.
-- **Kingpin** in Standard and Expert modes, including his two-sided villain
-  stages, nemesis/UNDERLING setup, Public Support, and the required
-  **Tombstone** and **Tracksuit Mafia** sets without the Standard set.
-- **Bullseye**, **Electro**, **Hammerhead**, **Purple Man**, and **Typhoid
-  Mary** as selectable underlings, each with Standard and Expert stage pairs
-  and a complete encounter set. Typhoid Mary includes her two-sided villain,
-  Disturbed Psyche, and Mary Walker/Establish Trust state cycle.
-- The required **Cops** and **Drive** encounter sets.
-- **Echo** and **Daredevil** starter decks and hero integrations.
-- Clear `NEW` labels for the new scenarios, heroes, and underlings in Quick
-  Game, with new scenarios shown first and the correct main-scheme previews.
-
-All scenario scripts and setup paths have focused automated coverage. Manual
-solo replay validation remains ongoing for the newly completed encounters.
-
-Other additions in this release include:
-
-- **Jessica Jones**, her starter deck, nemesis set, and focused rules tests.
-  Cards whose published art is unavailable are rendered as readable text-only
-  cards instead of blank placeholders.
-- An optional **1–5 star rating** for both the hero and scenario at the end of
-  a game. Ratings are stored with the shared game history for future rankings.
-
-## Fork Goals
-
-This fork focuses on a simple and convenient **solo Marvel Champions experience**.
-
-- **Solo-first gameplay:** the primary use case is one player controlling one hero. Multiplayer and PvP are not development priorities.
-- **Simplified UI:** starting a game should require only choosing a scenario, selecting a prepared hero deck, and pressing **Play**. Campaigns use a separate, equally simple flow.
-- **Linux server:** the game is designed to run as a lightweight self-hosted server on Linux, with play happening from a desktop, tablet, or mobile browser over a trusted local network.
-
-Development should prioritize rules correctness, reliable saves and replays, and improvements that make solo games easier to start and play.
-
-## Snapshot
-
-![](/docs/assets/image-6.png)
-
-## Running
-
-### Linux and macOS
-
-Install Git, Python 3.10 or newer, and Node.js, then run:
+Docker is the intended way to run this. Everything else is a development
+convenience.
 
 ```bash
-INSTALL_DIR=marvel-lcg   # any folder name you like
-git clone https://github.com/nathancmaa/marvel-lcg.git "$INSTALL_DIR"
-cd "$INSTALL_DIR"
-./run.sh
+git clone https://github.com/nathancmaa/marvel-lcg.git
+cd marvel-lcg
+docker compose up -d --build
 ```
 
-Git names the folder after the repository when no destination is given, so
-set `INSTALL_DIR` if you would rather keep several versions side by side.
+Open `http://127.0.0.1:2345/`, or `http://SERVER_IP:2345/` from any other device
+on the same trusted network.
 
-`run.sh` creates the virtual environment, installs Python dependencies, compiles the frontend when necessary, and starts the server. Open `http://127.0.0.1:2345/` locally or `http://SERVER_IP:2345/` from another device on the same trusted network.
-
-### Docker
-
-From the cloned project directory, run:
+To update:
 
 ```bash
-docker compose up --build
-```
-
-Open `http://127.0.0.1:2345/`. Use `docker compose up --build -d` to run in the background and `docker compose stop` to stop it. Docker is also the recommended way to run the server on Windows.
-
-The `runtime/` bind mount preserves statistics, campaign progress, the active **Continue Game** checkpoint, and QSave/Save 1–3 files across container rebuilds. Saved replays and downloaded assets are likewise preserved by their respective bind mounts.
-
-### Headless AI player
-
-The repository includes a Codex skill and MCP server that can play and test
-solo games directly through the engine without a browser or WebSocket client.
-Codex discovers the repository-scoped `marvel-lcg-player` skill automatically
-when opened in this repository. Register its MCP server once with:
-
-```bash
-python3 tools/install_marvel_lcg_codex.py
-```
-
-For a game server running on another machine on the same trusted network:
-
-```bash
-python3 tools/install_marvel_lcg_codex.py \
-  --server-url http://SERVER_IP:2345
-```
-
-Restart Codex after registration, start the game server, and invoke
-`$marvel-lcg-player` or ask Codex to play or test a solo game. See
-[Headless MCP player](docs/headless_mcp.md) for the tool contract, behavior,
-and safety notes.
-
-### Collection and tabletop games
-
-Open **Collection & Stats** from the main menu to mark the physical products you own, review digital and tabletop win rates, and track achievements. Use **Log Physical Game** to add a finished physical solo game. Manually logged games can be edited or deleted; statistics and achievement progress are recalculated automatically. All of this data is stored in the same `statistics.sqlite3` database used by digital game history.
-
-#### Stopping and starting the Docker server
-
-Temporarily stop the server while keeping its container:
-
-```powershell
-docker compose stop
-```
-
-Start the same container again without rebuilding it:
-
-```powershell
-docker compose start
-```
-
-Restart the running server:
-
-```powershell
-docker compose restart
-```
-
-`docker compose down` may also be used when you want to stop and remove the container and its Compose network. The next `docker compose up -d` recreates them. Project data remains in the `runtime/`, `replays/`, and `assets/` bind-mounted host directories. Running `down` is not required for a normal update, and `down -v` should be reserved for cases where Docker-managed volumes are intentionally being removed.
-
-#### Updating on Windows with Docker Desktop
-
-Open PowerShell in the existing cloned repository, update the source, and rebuild the service:
-
-```powershell
-git status --short
 git pull --ff-only origin master
 docker compose build --pull
-docker compose up -d --remove-orphans
+docker compose up -d
 ```
 
-Continue Game is stored in `runtime/save_active_session.json`; QSave and Save 1–3 are stored in `runtime/save_0.json` through `runtime/save_3.json`. Because `runtime/` is mounted from the Windows host, these files survive container rebuilds and recreation.
+Deploy from a terminal rather than a NAS management UI. Container managers
+frequently ignore `docker-compose.override.yaml`, which silently drops your
+volume paths and makes a healthy container look like it has lost your data.
 
-If `git status` shows tracked local changes, preserve or commit them before pulling. Do not reset them blindly. Check the updated container with:
+### Managing the container
 
-```powershell
-docker compose ps
+```bash
+docker compose stop      # stop, keeping the container
+docker compose start     # start it again without rebuilding
+docker compose restart   # restart a running server
+docker compose ps        # check it is up
 docker compose logs --tail=100 marvel-lcg
 ```
 
-Open `http://127.0.0.1:2345/` and use `Ctrl+F5` if the browser still shows cached frontend files. Future updates only require `git pull --ff-only origin master`, `docker compose build --pull`, and `docker compose up -d --remove-orphans`. The `down -v` option is unnecessary for updates and should be used only when Docker-managed volumes are intentionally being removed.
+`docker compose down` stops and removes the container and its network; the next
+`up -d` recreates them, and your data is untouched because it lives in the bind
+mounts rather than in the container. `down` is not needed for a normal update,
+and `down -v` removes Docker-managed volumes — you almost never want it.
+
+If a page still looks stale after an update, hard-refresh it (`Ctrl+F5`).
+
+### Custom paths
+
+`docker-compose.override.yaml` is gitignored and merges on top of the base
+file, so machine-specific paths survive a `git pull`. Copy
+`docker-compose.override.yaml.example` to start. Volumes are matched by their
+container path, so an entry there **replaces** the base mount rather than adding
+to it — check `docker compose config` after editing, and see
+[Your data, and backing it up](#your-data-and-backing-it-up) for how to confirm
+where things actually landed.
+
+### Without Docker
+
+Install Git, Python 3.10 or newer, and Node.js, then:
+
+```bash
+git clone https://github.com/nathancmaa/marvel-lcg.git
+cd marvel-lcg
+./run.sh
+```
+
+`run.sh` creates the virtual environment, installs dependencies, compiles the
+frontend when it has changed, and starts the server. A systemd unit
+(`marvel-lcg.service`) is included for running it as a service; see
+[INSTALL-SERVER.md](INSTALL-SERVER.md).
 
 ## Your data, and backing it up
 
@@ -319,38 +205,36 @@ something the app accumulates. There is nothing there to back up, and a
 reinstall gets the same values. What *is* yours is the per-deck advice written
 by each deck's author, and that is stored with the deck in `deck/user-decks/`.
 
-## Progress
+## Headless AI player
 
-### Compared with upstream
+The repository includes a Codex skill and MCP server that can play and test
+solo games directly through the engine without a browser or WebSocket client.
+Codex discovers the repository-scoped `marvel-lcg-player` skill automatically
+when opened in this repository. Register its MCP server once with:
 
-Compared with the original [irefrixs/marvel-lcg](https://github.com/irefrixs/marvel-lcg), this fork currently adds:
+```bash
+python3 tools/install_marvel_lcg_codex.py
+```
 
-- A Rules Reference **v1.8** engine update focused on solo rules correctness, including timing, status cards, damage, targeting, and ability initiation.
-- Solo-first **Quick Game** and **Campaign** screens with prepared-deck selection, remembered choices, and optional Expert difficulty.
-- A cohesive Ronin-themed interface with improved tablet and touch layouts, a settings screen, adjustable animation speed, and replay autosaving.
-- Reliable replay saving, browsing, downloading, loading, step controls, timeline seeking, and paused-at-start playback.
-- Unified SQLite history for digital, imported-replay, and manually logged physical games, with collection management, source filters, matchup statistics, and shared achievements.
-- Optional post-game hero and scenario ratings stored alongside the shared game history.
-- Manual and daily synchronization of public MarvelCDB deck IDs into a clearly marked user-deck collection.
-- Readable text-only card rendering when a card is implemented but published art is unavailable.
-- Better self-hosting through `run.sh`, Docker Compose, LAN-friendly defaults, a systemd unit, and Linux server documentation.
+For a game server running on another machine on the same trusted network:
 
-### Community integrations and new heroes
+```bash
+python3 tools/install_marvel_lcg_codex.py \
+  --server-url http://SERVER_IP:2345
+```
 
-Campaign support and the initial Hercules implementation were merged from the [sdolle1775 fork](https://github.com/sdolle1775/marvel-lcg). The merged campaign work covers Mutant Genesis, NeXt Evolution, Age of Apocalypse, Agents of S.H.I.E.L.D., Galaxy's Most Wanted, and The Mad Titan's Shadow, together with related campaign-state fixes. After the merge, Hercules' special decks, card scripts, UI placement, and rules behavior were corrected in this fork and covered by focused tests.
+Restart Codex after registration, start the game server, and invoke
+`$marvel-lcg-player` or ask Codex to play or test a solo game. See
+[Headless MCP player](docs/headless_mcp.md) for the tool contract, behavior,
+and safety notes.
 
-The **Echo**, **Wonder Man**, **Daredevil**, and **Jessica Jones** hero integrations are original work created for this fork. They include starter decks, card scripts, special-deck handling where required, targeted tests, and ongoing replay-based playtesting.
+## Rules
 
-Fear No Evil integration includes **Stop the Presses!**, **Protection
-Racket**, **The Getaway**, **Art Museum Heist**, **The Raft Breakout**, and the
-fixed **Kingpin** finale; all five selectable underlings (**Bullseye**,
-**Electro**, **Hammerhead**, **Purple Man**, and **Typhoid Mary**); and the
-**Cops**, **Drive**, **The Owl**, **Tombstone**, **Disasters**, and **Tracksuit
-Mafia** encounter sets. Standard and Expert setup, card loading, and focused
-rules behavior are covered by automated tests; manual replay playtesting of
-the newest encounters is ongoing.
+This edition follows **Marvel Champions Rules Reference v1.8**. Card behaviour
+is scripted per card rather than approximated, and solo timing — status cards,
+damage, targeting, ability initiation — is the part most work goes into.
 
-Based on the original open-source [Marvel Champions: Digital Edition](https://irefrixs.itch.io/marvel-lcg) by Irefrixs.
+Release notes for every version are in [CHANGELOG.md](CHANGELOG.md).
 
 ## Security Warning
 

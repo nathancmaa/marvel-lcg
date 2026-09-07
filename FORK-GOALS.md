@@ -1,6 +1,10 @@
-# Marvel Champions Digital: Cerebro
+# Marvel Champions Digital: Cerebro — fork goals
 
-> Version 0.7.4 — “Cerebro”
+> These are stated in full, with what came of them, under **What this fork is
+> for** in [the README](README.md). This file is kept because the changelog
+> refers to it, and because a short statement of intent is easier to check a
+> change against than a feature list. It carries no version number: it is about
+> direction rather than any particular release.
 
 ## Fork Goals
 
