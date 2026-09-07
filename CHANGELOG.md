@@ -16,6 +16,23 @@ renumbered onto the 0.7 line. Their tags and releases carry the new numbers
 and point at the same commits; the commits that cut them still name the old
 ones.
 
+## Version 0.7.4.1 — “Cerebro” (2026-09-07)
+
+Start page presentation.
+
+- New wallpaper, and the file is no longer named after the edition: it is
+  `background.webp`, referenced by the route that serves it and the six
+  stylesheets and pages that ask for it.
+- The wallpaper ships in `public/` rather than `assets/textures/`. `assets` is
+  a bind mount in the Docker deployment and a mount shadows whatever the image
+  was built with, so a wallpaper kept there could be correct in the image and
+  still not be the file being served. It is app chrome rather than something the
+  player owns, and did not belong in that volume.
+- The start page no longer carries a "Ronin Edition" heading. The edition is
+  already in the page title and in the release label directly underneath, so it
+  appeared three times in as many lines. The test now asserts it is absent, so
+  it cannot drift back unnoticed.
+
 ## Version 0.7.4 — “Cerebro” (2026-09-07)
 
 Seeing what you have played, and moving games in and out of the app.
