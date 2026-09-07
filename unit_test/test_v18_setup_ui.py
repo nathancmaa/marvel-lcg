@@ -94,7 +94,16 @@ class V18SetupUiTests(unittest.TestCase):
     def test_quick_game_uses_only_v18_rules(self):
         source = (ROOT / "public/js/solo.ts").read_text(encoding="utf-8")
 
-        self.assertIn("rules: ['v18_all']", source)
+        # Quick Game builds its rules through heroicRules() now that Heroic is
+        # offered, so the flat literal this used to look for is gone. What the
+        # test is actually about survives: both branches of that builder start
+        # from v18_all, and neither Quick Game nor anything it sends carries a
+        # legacy rules-compatibility flag. Asserting the branches rather than
+        # the call keeps it a real check -- dropping v18_all from either one
+        # still fails here.
+        self.assertIn("rules: heroicRules()", source)
+        self.assertIn("['v18_all', `mode_heroic_${level}`]", source)
+        self.assertIn("['v18_all']", source)
         self.assertNotIn("v16_all", source)
         self.assertNotIn("encounter_cards_ignore_crisis", source)
 
