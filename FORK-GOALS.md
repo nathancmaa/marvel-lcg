@@ -1,6 +1,6 @@
 # Marvel Champions Digital: Ronin Edition
 
-> Version 0.7.3 — “Archive”
+> Version 0.7.4 — “Cerebro”
 
 ## Fork Goals
 

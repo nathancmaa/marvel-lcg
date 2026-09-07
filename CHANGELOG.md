@@ -1,6 +1,6 @@
 # Marvel Champions Digital: Ronin Edition Changelog
 
-> Current release version: 0.7.3 — “Archive”
+> Current release version: 0.7.4 — “Cerebro”
 
 This document records the user-visible and development changes made in this
 fork after it diverged from the original
@@ -15,6 +15,69 @@ Versions 0.7.2 and 0.7.3 were briefly published as 0.8.0 and 0.8.1 and were
 renumbered onto the 0.7 line. Their tags and releases carry the new numbers
 and point at the same commits; the commits that cut them still name the old
 ones.
+
+## Version 0.7.4 — “Cerebro” (2026-09-07)
+
+Seeing what you have played, and moving games in and out of the app.
+
+### Matchups
+
+- A new tab in Collection & Statistics crosses every hero with every scenario,
+  68 by 62, drawn from the catalogue rather than from the history: a grid of
+  only what has been played cannot show what has not, which is the question a
+  coverage table exists to answer.
+- A square is light green where the matchup has been won, darker green where it
+  has been won on expert, and red where it has been played without a win. An
+  expert win sits on top of a standard one because it is the harder claim. Only
+  decided games count; an abandoned game says nothing about how it went.
+- Clicking a square opens Quick Game already set up — that hero selected, that
+  scenario selected, the deck picker narrowed to that hero's own decks and the
+  scenario box filter cleared so the tile is visible. The choice applies to that
+  visit only and is not written back over what the picker usually opens on.
+- The grid sizes its squares to the window, and this tab gives up the page's
+  reading-width cap, which everything else keeps.
+- Hero and villain names carry their box in a tooltip. A card panel was built
+  for this and removed again: three attempts at making a floating panel dismiss
+  reliably all failed, and it needs an approach that is not a hand-positioned
+  element over a scrolling grid.
+
+### Games in and out
+
+- Every decided game on the Game History tab can be pushed to BG Stats. The play
+  travels as one deep link with no account or key, and the app shows its own
+  import dialog before saving. Two of the BG Stats fields fit this game exactly:
+  a player's role is the hero, and the board is the scenario. Marvel Champions
+  is win-or-loss, so the play carries no score.
+- Marvel Champions Tracker exports can be read straight into game history, as
+  physical plays by default or as digital. The .xlsx is parsed with the standard
+  library, so the server gains an import screen without gaining a dependency.
+- Plays are keyed on their own timestamp, hero and scenario, so re-importing the
+  same export inserts nothing. A row whose hero or scenario cannot be matched is
+  reported rather than stored under an approximation.
+
+### Deck building
+
+- Substitution suggestions are ranked on the traits a deck is actually built
+  around rather than on any shared trait. A trait counts only where the deck
+  both pays it off and can field it, weighted by how much of the deck is
+  committed on both sides. 54 of a 96-deck collection have such a theme.
+- Cards playable only by an identity carrying a named trait are excluded, the
+  same way off-aspect cards already were. Sixty-eight player cards carry that
+  clause and most heroes cannot play most of them.
+
+### Fixes
+
+- Side schemes overlapped the centre column on a 16:9 desktop and on a 4:3
+  tablet. The stage now grows from the width the stylesheet asks for, which
+  differs per layout, instead of assuming the base one.
+- The right-hand button bar opens from an invisible strip against the screen
+  edge rather than parking part of itself on screen.
+- The start page reported 0.6.1 while running 0.7.3, and the test covering it
+  asserted that same stale string, so it passed throughout. It now checks the
+  version being built.
+- z00lus is credited on the start page alongside Irefrixs.
+- Frozen campaign decks had no mount of their own, so a rebuild took every
+  in-progress campaign's deck with it.
 
 ## Version 0.7.3 — “Archive” (2026-09-06)
 

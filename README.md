@@ -1,13 +1,37 @@
 # Marvel Champions Digital: Ronin Edition
 
-> Version 0.7.3 — “Archive”
+> Version 0.7.4 — “Cerebro”
 
 > **This edition uses Marvel Champions Rules Reference v1.8 as its supported rules model.**
 
 > [!CAUTION]
 > **Please support the physical game.** Buy Marvel Champions and its expansions from Fantasy Flight Games, and support your friendly local game store whenever possible. Ronin Edition is intended as a testing, training, and learning platform—a convenient way to explore heroes, practise decks, and become familiar with the game—not as a replacement for the physical card game.
 
-## New in 0.7.3
+## New in 0.7.4: Cerebro
+
+Seeing what you have played, and moving games in and out of the app.
+
+- **Hero / scenario coverage.** A Matchups tab crossing all 68 heroes with all
+  62 scenarios: light green where you have won, darker green where you have won
+  on expert, red where you have played without one. Clicking a square opens
+  Quick Game already set up — that hero, that scenario, the deck picker narrowed
+  to that hero's own decks.
+- **Push a play to BG Stats.** Every finished game on the Game History tab gets
+  a button that hands the play to the BG Stats app, hero and scenario included.
+  No account or key; the app shows its own import dialog before saving anything.
+- **Import from Marvel Champions Tracker.** Read an .xlsx export straight into
+  game history, as physical or digital plays. Re-importing the same export
+  changes nothing, so it is safe to run again after each session.
+- **Substitutions understand a deck's traits.** Replacement suggestions now
+  weigh the trait a deck is actually built around — X-Men, Web-Warrior, Guardian
+  — instead of treating every shared trait alike, and no longer offer cards your
+  hero cannot legally play.
+- **Fixes.** Side schemes no longer overlap the hero column on a 16:9 desktop or
+  a tablet; the right-hand bar opens from an invisible strip instead of leaving
+  its buttons half on screen; campaign decks are stored outside the container,
+  so a rebuild no longer takes an in-progress campaign's deck with it.
+
+## Previously in 0.7.3: Archive
 
 Building the deck you take in, and choosing how hard the game pushes back.
 
