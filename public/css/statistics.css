@@ -856,9 +856,31 @@ tbody tr:last-child td {
     white-space: nowrap;
 }
 
+/* The villain names stay put while the rows scroll under them, which the hero
+   names on the left already did. Both bands are sticky against the same scroll
+   box, so the corner they share has to outrank each of them. */
+.matchup-table thead th,
+.matchup-table thead td {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    background: #0a1220;
+}
+
+.matchup-table thead td:first-child {
+    left: 0;
+    z-index: 4;
+}
+
 /* Scenario names are long and the columns are one cell wide, so they lean. */
 .matchup-table .scenario-label {
-    position: relative;
+    /* Sticky rather than relative: it still establishes the containing block
+       the rotated label is positioned against, and it is more specific than
+       the thead rule above, so relative would have quietly won. */
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    background: #0a1220;
     height: 9.5rem;
     width: var(--matchup-cell, 1.4rem);
     padding: 0;

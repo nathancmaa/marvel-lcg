@@ -489,6 +489,38 @@ function matchupPopover(): HTMLElement {
  */
 let popoverTimer = 0;
 
+/**
+ * The one check that cannot desync: is the browser still hovering the name?
+ *
+ * Every event-based attempt at this failed -- mouseleave, then a document-wide
+ * pointermove -- because they all depend on an event being delivered, and
+ * something in the real page swallows them: a rotated label whose hit area
+ * overlaps its neighbours, an anchor replaced mid-hover by a redraw, a pointer
+ * that leaves the window. Asking the element whether it matches :hover reads
+ * the state the browser is already keeping, so there is nothing to miss. It
+ * runs only while the panel is open.
+ */
+let popoverWatch = 0;
+let popoverAnchor: HTMLElement | null = null;
+
+function watchMatchupPopover(anchor: HTMLElement): void {
+    popoverAnchor = anchor;
+    window.clearInterval(popoverWatch);
+    popoverWatch = window.setInterval(() => {
+        const current = popoverAnchor;
+        if (!current || !current.isConnected) {
+            hideMatchupPopover();
+            return;
+        }
+        // Keyboard focus holds it open; a pointer that has gone elsewhere does
+        // not, whatever events did or did not arrive on the way.
+        const held = current.matches(':hover') || current === document.activeElement;
+        if (!held) {
+            hideMatchupPopover();
+        }
+    }, 150);
+}
+
 function scheduleHideMatchupPopover(): void {
     window.clearTimeout(popoverTimer);
     popoverTimer = window.setTimeout(hideMatchupPopover, 120);
@@ -522,6 +554,7 @@ function showMatchupPopover(anchor: HTMLElement, entry: MatchupAxis): void {
     panel.appendChild(text);
 
     window.clearTimeout(popoverTimer);
+    watchMatchupPopover(anchor);
     panel.hidden = false;
 
     // Placed against the anchor, then pulled back inside the window: near the
@@ -543,6 +576,9 @@ function showMatchupPopover(anchor: HTMLElement, entry: MatchupAxis): void {
 
 function hideMatchupPopover(): void {
     window.clearTimeout(popoverTimer);
+    window.clearInterval(popoverWatch);
+    popoverWatch = 0;
+    popoverAnchor = null;
     matchupPopover().hidden = true;
 }
 
