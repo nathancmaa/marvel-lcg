@@ -1,5 +1,5 @@
 .area .card.type-status-card .face {
-    /* The custom Ronin status artwork uses the canonical 596x380 ratio. */
+    /* The custom Cerebro status artwork uses the canonical 596x380 ratio. */
     --status-card-width: calc(var(--card-width) * 0.6376);
     --status-card-height: var(--card-width);
 

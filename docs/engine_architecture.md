@@ -2,7 +2,7 @@
 
 # Engine Architecture
 
-This document describes the internal architecture of the Marvel Champions Digital: Ronin Edition game engine. It's intended for developers who want to understand, modify, or extend the engine.
+This document describes the internal architecture of the Marvel Champions Digital: Cerebro game engine. It's intended for developers who want to understand, modify, or extend the engine.
 
 For writing card scripts, see [Card Scripting Guide](card_scripting_guide.md).
 

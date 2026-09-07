@@ -1,10 +1,10 @@
 # AGENTS.md
 
-This file applies to the entire repository. It is guidance for coding agents working on **Marvel Champions Digital: Ronin Edition**.
+This file applies to the entire repository. It is guidance for coding agents working on **Marvel Champions Digital: Cerebro**.
 
 ## Project overview
 
-Marvel Champions Digital: Ronin Edition is a Python game engine with an aiohttp web server and a browser frontend written in HTML, CSS, and TypeScript. The current development identity is **Version 0.7.4 — “Cerebro”**.
+Marvel Champions Digital: Cerebro is a Python game engine with an aiohttp web server and a browser frontend written in HTML, CSS, and TypeScript. The current development identity is **Version 0.7.4 — “Cerebro”**.
 
 The main layers are:
 

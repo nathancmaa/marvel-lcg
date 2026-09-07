@@ -32,6 +32,10 @@ CEREBRO_REVERSED_IDENTITY_BASE_IDS = frozenset({
     "38001",  # Rogue
 })
 
+# Deliberately still says ronin. This is a cache revision, not a name: it
+# is part of every cached identity-side filename, so changing it discards
+# the whole card image cache and re-downloads it. Bump it when the images
+# need to change, not when the fork does.
 CEREBRO_SIDE_CACHE_REVISION = "ronin-side-v1"
 
 class Cache:

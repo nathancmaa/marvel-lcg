@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <title>New Game</title>
-    <link rel="icon" type="image/x-icon" href="/favicon.ico?ronin=1">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico?cerebro=1">
     <link rel="stylesheet" href="/public/css/menu/style.css">
     <link rel="stylesheet" href="/public/css/font-awesome.css">
 <style>
@@ -1970,6 +1970,8 @@ p:has(#timeout_text) {
 <script>
     // Define the key for caching the form data object
     const CACHE_KEY = 'form_cache_data';
+    // Keeps its old name: it records that a one-off migration has already run
+    // for this browser, so renaming it would run that migration again.
     const STATISTICS_NOTIFICATION_DEFAULT_OFF_MIGRATION = 'ronin_statistics_notification_default_off_v1';
     cache_ids = ['hide_bug_report', 'show_achievement', 'scene_3d', 'statistics_notification', 'mode_heroic_slider', 'mode_skirmish',
         'mode', 'challenge', 'settings_other',

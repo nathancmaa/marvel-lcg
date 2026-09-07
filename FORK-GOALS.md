@@ -1,4 +1,4 @@
-# Marvel Champions Digital: Ronin Edition
+# Marvel Champions Digital: Cerebro
 
 > Version 0.7.4 — “Cerebro”
 

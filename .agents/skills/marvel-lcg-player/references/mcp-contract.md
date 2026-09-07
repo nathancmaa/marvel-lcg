@@ -1,6 +1,6 @@
 # Marvel LCG MCP contract
 
-The MCP process talks to a running Ronin Edition server through authenticated
+The MCP process talks to a running Cerebro server through authenticated
 JSON endpoints. It does not render HTML and does not use WebSockets.
 
 ## Tools

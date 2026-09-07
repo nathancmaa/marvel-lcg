@@ -27,7 +27,7 @@ def main() -> int:
     parser.add_argument(
         "--server-url",
         default="http://127.0.0.1:2345",
-        help="URL of the running Ronin Edition server",
+        help="URL of the running Cerebro server",
     )
     parser.add_argument(
         "--password",

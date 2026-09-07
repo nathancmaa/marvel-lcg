@@ -192,7 +192,7 @@ class MarvelCdbDeckSync:
             url,
             headers={
                 'Accept': 'application/json',
-                'User-Agent': 'Marvel Champions Digital: Ronin Edition/0.6.1',
+                'User-Agent': 'Marvel Champions Digital: Cerebro/0.6.1',
             },
         )
 

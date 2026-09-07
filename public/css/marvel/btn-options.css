@@ -25,7 +25,7 @@
     background-color: #3b3b3ba4;
 }
 
-/* The Ronin theme gives this container padding, a border, and a background.
+/* The Cerebro theme gives this container padding, a border, and a background.
    Without an option button those decorations otherwise remain as a small
    empty circle in the middle of the table. */
 #option-buttons:empty {

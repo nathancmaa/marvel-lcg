@@ -1,6 +1,6 @@
 ---
 name: marvel-lcg-player
-description: "Play, test, or diagnose Marvel Champions Digital: Ronin Edition solo games through the local marvel_lcg MCP server. Use when asked to play a full game, test a hero/deck/scenario, reproduce a gameplay problem, inspect a running headless game, or save and analyze the resulting replay."
+description: "Play, test, or diagnose Marvel Champions Digital: Cerebro solo games through the local marvel_lcg MCP server. Use when asked to play a full game, test a hero/deck/scenario, reproduce a gameplay problem, inspect a running headless game, or save and analyze the resulting replay."
 ---
 
 # Marvel LCG Player

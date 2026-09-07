@@ -1,6 +1,6 @@
 # Headless MCP player
 
-Ronin Edition exposes a small authenticated JSON API for an autonomous solo
+Cerebro exposes a small authenticated JSON API for an autonomous solo
 player. The API drives the existing controller and rules engine directly. It
 does not load HTML, inspect the DOM, or use WebSockets.
 

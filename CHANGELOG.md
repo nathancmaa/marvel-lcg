@@ -1,6 +1,6 @@
 # Marvel Champions Digital: Ronin Edition Changelog
 
-> Current release version: 0.7.5 — “Cerebro”
+> Current release version: 0.7.6
 
 This document records the user-visible and development changes made in this
 fork after it diverged from the original
@@ -15,6 +15,48 @@ Versions 0.7.2 and 0.7.3 were briefly published as 0.8.0 and 0.8.1 and were
 renumbered onto the 0.7 line. Their tags and releases carry the new numbers
 and point at the same commits; the commits that cut them still name the old
 ones.
+
+## Version 0.7.6 (2026-09-07)
+
+The fork has one name now. It is **Marvel Champions Digital: Cerebro**, and
+releases carry a number rather than a codename of their own. Echo, Ronin,
+Archive and Cerebro named four versions between them and then stopped earning
+their keep: a codename dates a build without saying anything about it, and a
+release nobody can refer to by number is harder to talk about, not easier.
+Cerebro is the name that stayed. Earlier entries below keep the names they
+shipped under.
+
+- Renamed throughout: the product name, every page title, the archive
+  eyebrows, the credits page, the theme stylesheet, the docs and the MCP
+  tooling. `RELEASE_CODENAME` is gone from build.py, so a release is a number.
+- Three things deliberately still say ronin, each with a reason written beside
+  it: the card-image cache revision and its client-side twin, where the value
+  is part of every cached filename and changing it would throw the whole image
+  cache away; and a browser flag recording that a one-off settings migration
+  has already run, which renaming would run again.
+- The hand-written `?ronin-session=1` on the Quick Game and Campaign links is
+  gone, along with the matching busters on scripts and stylesheets. Nothing
+  ever read the query parameter, pages are served `no-cache`, and every css and
+  js reference is rewritten to a content-hashed `/v/<token>/` URL at serve
+  time -- so they busted nothing and only went stale. The favicon's buster is
+  kept and renamed, because that one is still doing the job: the rewriter
+  versions css and js, not icons.
+
+Also in this release:
+
+- **Heroic, end to end.** It was always in the engine and only reachable from
+  Advanced Setup; Quick Game now offers it, and games record the level they
+  were played at. Each square on the coverage grid shows the hardest
+  difficulty that pairing has been beaten at -- Standard, Expert, then Heroic
+  by level in deepening red. Tabletop games can record a level too.
+- **Randomisers** for hero and villain on Quick Game, for the deck viewer, and
+  one for each aspect dropdown. The hero draw shuffles heroes rather than
+  decks, so a hero you have twelve netdecks for is no likelier than one you
+  have a single deck for, and it prefers a synced deck over the precon.
+- **Play this deck**, from the deck viewer straight to a set-up Quick Game.
+- **A BG Stats location setting.** Left empty, BG Stats files plays under the
+  app's name rather than leaving the field blank, so every play was landing
+  somewhere that is not a place.
 
 ## Version 0.7.5 — “Cerebro” (2026-09-07)
 

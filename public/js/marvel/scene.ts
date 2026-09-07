@@ -67,7 +67,7 @@ function clearRightAnchors(): void {
 /**
  * Set the stage width and re-pin the right-hand furniture.
  *
- * The offsets are measured fresh every time rather than cached once. The Ronin
+ * The offsets are measured fresh every time rather than cached once. The Cerebro
  * theme moves these decks inward under a `min-aspect-ratio: 3 / 2` media query,
  * so a cached offset would go stale the moment the window crossed that
  * breakpoint -- and because the override is inline, it would win over the media

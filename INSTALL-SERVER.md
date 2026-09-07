@@ -1,4 +1,4 @@
-# Installing Marvel Champions Digital: Ronin Edition as a Server
+# Installing Marvel Champions Digital: Cerebro as a Server
 
 > Version 0.7.4 — “Cerebro”
 

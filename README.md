@@ -1,11 +1,11 @@
-# Marvel Champions Digital: Ronin Edition
+# Marvel Champions Digital: Cerebro
 
 > Version 0.7.4 — “Cerebro”
 
 > **This edition uses Marvel Champions Rules Reference v1.8 as its supported rules model.**
 
 > [!CAUTION]
-> **Please support the physical game.** Buy Marvel Champions and its expansions from Fantasy Flight Games, and support your friendly local game store whenever possible. Ronin Edition is intended as a testing, training, and learning platform—a convenient way to explore heroes, practise decks, and become familiar with the game—not as a replacement for the physical card game.
+> **Please support the physical game.** Buy Marvel Champions and its expansions from Fantasy Flight Games, and support your friendly local game store whenever possible. Cerebro is intended as a testing, training, and learning platform—a convenient way to explore heroes, practise decks, and become familiar with the game—not as a replacement for the physical card game.
 
 ## New in 0.7.4: Cerebro
 

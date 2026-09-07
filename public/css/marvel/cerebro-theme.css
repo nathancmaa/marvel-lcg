@@ -87,7 +87,7 @@ body {
     box-shadow: 0 0.6rem 1.4rem rgba(0, 0, 0, 0.4);
 }
 
-/* Shared Ronin controls --------------------------------------------------- */
+/* Shared Cerebro controls --------------------------------------------------- */
 
 #option-buttons {
     gap: calc(0.45 * var(--font-size-out));

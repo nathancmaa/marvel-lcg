@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class V18SetupUiTests(unittest.TestCase):
 
-    def test_ronin_edition_release_identity_is_consistent(self):
+    def test_release_identity_is_consistent(self):
         """The strings the UI shows agree with the numbers they come from.
 
         Written against the literal 0.6.1 it was cut at, this went stale the
@@ -23,7 +23,7 @@ class V18SetupUiTests(unittest.TestCase):
 
         self.assertEqual(
             Build.PRODUCT_NAME,
-            'Marvel Champions Digital: Ronin Edition',
+            'Marvel Champions Digital: Cerebro',
         )
         self.assertEqual(
             Build.RELEASE_VERSION,
@@ -37,9 +37,13 @@ class V18SetupUiTests(unittest.TestCase):
             Ver.ui_version_str,
             f"{Ver.version}{'r' if Build.release else 'd'}",
         )
-        self.assertEqual(
-            Ver.release_label,
-            f'Version {Build.RELEASE_VERSION} — “{Build.RELEASE_CODENAME}”',
+        # No codename any more: the fork carries one name and releases carry
+        # a number. A label that still tried to interpolate one would not
+        # merely read oddly, it would fail to build.
+        self.assertEqual(Ver.release_label, f'Version {Build.RELEASE_VERSION}')
+        self.assertFalse(
+            hasattr(Build, 'RELEASE_CODENAME'),
+            'per-release codenames were dropped; RELEASE_CODENAME should be gone',
         )
 
     def test_the_changelog_names_the_version_being_built(self):
@@ -52,8 +56,7 @@ class V18SetupUiTests(unittest.TestCase):
         changelog = (ROOT / 'CHANGELOG.md').read_text(encoding='utf-8')
 
         self.assertIn(
-            f'> Current release version: {Build.RELEASE_VERSION} '
-            f'— “{Build.RELEASE_CODENAME}”',
+            f'> Current release version: {Build.RELEASE_VERSION}',
             changelog,
         )
 
@@ -68,18 +71,19 @@ class V18SetupUiTests(unittest.TestCase):
         """
         source = (ROOT / 'public/main.html').read_text(encoding='utf-8')
 
-        self.assertIn('Marvel Champions Digital: Ronin Edition', source)
+        self.assertIn('Marvel Champions Digital: Cerebro', source)
         self.assertIn('<h1>Marvel Champions Digital</h1>', source)
         self.assertIn(Build.RELEASE_LABEL, source)
         # The edition is named in the page title and in the release label
         # underneath, so a heading repeating it was the third time in as many
         # lines. It is deliberately not there.
         self.assertNotIn('<h2>Ronin Edition</h2>', source)
+        self.assertNotIn('<h2>Cerebro</h2>', source)
 
     def test_start_page_credits_the_forks_it_came_from(self):
         """Both upstreams, not just the first.
 
-        The Ronin Edition name, and the 0.6.x releases this fork continues
+        The fork name, and the 0.6.x releases this fork continues
         from, are z00lus's work; crediting only Irefrixs skipped the fork this
         one is actually made of.
         """

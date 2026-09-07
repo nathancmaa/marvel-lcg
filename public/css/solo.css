@@ -407,6 +407,22 @@ input {
 
 .difficulty-section {
     border-color: rgba(207, 162, 91, 0.48);
+    /* The controls space themselves rather than each carrying a bottom margin.
+       With margins, the gap between any two depended on which of them happened
+       to be last -- reordering Expert and Heroic left them touching, because
+       the one that had the margin was no longer the one that needed it. */
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+/* Owned by the section's gap now. Kept off only here, because both rules are
+   shared with content on other pages that still lays itself out -- and the
+   heading would otherwise carry its own margin on top of the gap, leaving this
+   section looser under its title than every other one on the page. */
+.difficulty-section .standard-set-option,
+.difficulty-section .section-heading {
+    margin-bottom: 0;
 }
 
 .underling-section {

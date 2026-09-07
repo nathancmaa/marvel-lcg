@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Minimal stdio MCP server for a running Ronin Edition engine.
+"""Minimal stdio MCP server for a running Cerebro engine.
 
 The process uses only Python's standard library.  It translates MCP tool calls
 into the authenticated JSON endpoints under ``/api/agent``; no HTML, DOM or

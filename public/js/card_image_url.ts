@@ -11,6 +11,9 @@ const cerebroReversedIdentityBaseIds = new Set([
     '38001', // Rogue
 ]);
 
+// Still says ronin on purpose -- see CEREBRO_SIDE_CACHE_REVISION in
+// engine/file/cache.py. The two must match, and changing the value throws
+// away every cached card image.
 export const cerebroSideCacheRevision = 'ronin-side-v1';
 
 export function cardImageIdFromUrl(imageUrl: string): string {

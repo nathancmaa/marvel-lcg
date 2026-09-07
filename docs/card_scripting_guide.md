@@ -2,7 +2,7 @@
 
 # Card Scripting Guide
 
-This guide teaches you how to write card ability scripts for Marvel Champions Digital: Ronin Edition.
+This guide teaches you how to write card ability scripts for Marvel Champions Digital: Cerebro.
 
 ## Security Warning
 
