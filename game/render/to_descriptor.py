@@ -4,7 +4,7 @@ from game.card import *
 from game.card.face import *
 from game.render.descriptor.world import WorldDescriptor
 from game.render.descriptor.card import CardDescriptor
-from game.render.mulligan_suggest import SuggestMulliganCards
+from game.render.mulligan_suggest import MulliganAdviceFor
 from game.deck import *
 from game.world import *
 from game.player import *
@@ -47,23 +47,13 @@ class ToDescriptor:
         scene_players = getattr(scene, 'players', None) or []
         hero = (scene_players[player.player_id]
                 if player.player_id < len(scene_players) else None)
-        metadata = getattr(hero, 'metadata', None) or {}
-        cards = str(metadata.get('mulligan_cards', '') or '')
-        player_descriptor.mulligan_cards = [
-            card_id for card_id in cards.split(',') if card_id
-        ]
-        player_descriptor.mulligan_note = str(metadata.get('mulligan_note', '') or '')
-        if player_descriptor.mulligan_cards:
-            player_descriptor.mulligan_source = 'author'
-        elif hero is not None:
-            # Nobody wrote advice for this deck -- roughly three in four, and
-            # every precon and aspect deck. Rank it from what it is made of.
-            player_descriptor.mulligan_cards = SuggestMulliganCards(
-                getattr(hero, 'player_deck', []) or [],
-                getattr(hero, 'hero_deck', []) or [],
-            )
-            if player_descriptor.mulligan_cards:
-                player_descriptor.mulligan_source = 'deck'
+        (player_descriptor.mulligan_cards,
+         player_descriptor.mulligan_note,
+         player_descriptor.mulligan_source) = MulliganAdviceFor(
+            getattr(hero, 'metadata', None),
+            getattr(hero, 'player_deck', []) or [],
+            getattr(hero, 'hero_deck', []) or [],
+        )
         return player_descriptor
 
     @staticmethod

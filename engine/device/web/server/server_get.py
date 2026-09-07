@@ -413,6 +413,34 @@ class GameServerGet(GameServerBase):
             content_type='application/json',
         )
 
+    async def get_mulligan_advice(self, request: web.Request) -> web.Response:
+        """What to look for in this deck's opening hand.
+
+        The deck viewer asks for the same answer the table shows, from the same
+        function, so the two can never disagree about whether a set of cards is
+        the author's recommendation or our ranking of their deck.
+        """
+        from game.render.mulligan_suggest import MulliganAdviceFor
+
+        try:
+            body = await request.json()
+        except Exception:
+            return web.json_response({'error': 'Expected a JSON request.'}, status=400)
+        if not isinstance(body, dict):
+            return web.json_response({'error': 'Expected a JSON object.'}, status=400)
+
+        as_ids = lambda value: [
+            str(card_id) for card_id in value if str(card_id)
+        ] if isinstance(value, list) else []
+        metadata = body.get('metadata')
+        cards, note, source = MulliganAdviceFor(
+            metadata if isinstance(metadata, dict) else {},
+            as_ids(body.get('player_deck')),
+            as_ids(body.get('hero_deck')),
+        )
+        return web.json_response(
+            {'cards': cards, 'note': note, 'source': source})
+
     async def get_completion_rate(self, request: web.Request) -> web.Response:
         return web.Response(text=str(self.game.statistics.completion_rate))
 
@@ -539,6 +567,7 @@ class GameServerGet(GameServerBase):
         self.AddAwaitGetSecurity('/get_cards_json', self.get_cards_json)
         self.AddAwaitGetSecurity('/get_translate_json', self.get_translate_json)
         self.AddAwaitGetSecurity('/get_card_json', self.get_card_json)
+        self.AddPostSecurity('/get_mulligan_advice', self.get_mulligan_advice)
         self.AddAwaitGetSecurity('/get_completion_rate', self.get_completion_rate)
         self.AddAwaitGetSecurity('/get_statistics', self.get_statistics)
         self.AddAwaitGetSecurity('/get_session_statistics', self.get_session_statistics)

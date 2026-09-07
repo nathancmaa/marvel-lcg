@@ -92,6 +92,28 @@ def _score(paper: Any, copies: int, is_signature: bool) -> float:
     return score
 
 
+def MulliganAdviceFor(
+    metadata: Dict[str, Any]|None,
+    player_deck: Sequence[str],
+    hero_deck: Sequence[str],
+) -> Tuple[List[str], str, str]:
+    """The advice to show for a deck: the author's if they gave any, else ours.
+
+    Returns ``(card_ids, note, source)`` where source is 'author', 'deck', or
+    '' when there is nothing to say. This is the whole policy, in one place,
+    because the table and the deck viewer must never disagree about which kind
+    of claim they are making.
+    """
+    meta = metadata or {}
+    written = str(meta.get('mulligan_cards', '') or '')
+    authored = [card_id for card_id in written.split(',') if card_id]
+    if authored:
+        return authored, str(meta.get('mulligan_note', '') or ''), 'author'
+
+    ranked = SuggestMulliganCards(player_deck, hero_deck)
+    return (ranked, '', 'deck') if ranked else ([], '', '')
+
+
 def SuggestMulliganCards(
     player_deck: Sequence[str],
     hero_deck: Sequence[str],

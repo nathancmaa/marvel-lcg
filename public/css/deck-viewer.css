@@ -536,3 +536,53 @@
     color: #d8f1ff;
     border-bottom-color: #9fdcff;
 }
+
+/* What to look for in the opening hand, in the deck summary. The author's own
+   words and our ranking of their deck are both shown here, and the heading
+   colour is what tells them apart -- gold for a person, blue for us. */
+.deck-mulligan {
+    margin: 0.75rem 0 0;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid rgba(143, 190, 224, 0.28);
+    border-radius: 0.45rem;
+    background: rgba(10, 18, 28, 0.55);
+}
+
+.deck-mulligan[hidden] {
+    display: none;
+}
+
+.deck-mulligan-head {
+    margin: 0 0 0.4rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: #e7b950;
+}
+
+.deck-mulligan-head.guessed {
+    color: #8fbee0;
+}
+
+.deck-mulligan-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+}
+
+.deck-mulligan-chip {
+    padding: 0.15rem 0.45rem;
+    border: 1px solid rgba(143, 190, 224, 0.35);
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    color: #cfe0ee;
+}
+
+.deck-mulligan-note {
+    margin: 0.45rem 0 0;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    font-style: italic;
+    color: #8fa0ad;
+}

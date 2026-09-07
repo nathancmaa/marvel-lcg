@@ -27,6 +27,13 @@ type CardPaper = {
     pack?: string;
 };
 
+type MulliganAdvice = {
+    cards: string[];
+    note: string;
+    // 'author' when the deck's writer named them, 'deck' when we ranked them.
+    source: string;
+};
+
 type SetInfo = {
     name: string;
     heroes?: string[];
@@ -71,6 +78,10 @@ const deckName = document.querySelector<HTMLElement>('#deck-name')!;
 const deckCount = document.querySelector<HTMLElement>('#deck-count')!;
 const deckAspects = document.querySelector<HTMLElement>('#deck-aspects')!;
 const collectionGap = document.querySelector<HTMLElement>('#collection-gap')!;
+const deckMulligan = document.querySelector<HTMLElement>('#deck-mulligan')!;
+const deckMulliganHead = document.querySelector<HTMLElement>('#deck-mulligan-head')!;
+const deckMulliganChips = document.querySelector<HTMLElement>('#deck-mulligan-chips')!;
+const deckMulliganNote = document.querySelector<HTMLElement>('#deck-mulligan-note')!;
 const shareDeckButton = document.querySelector<HTMLButtonElement>('#share-deck')!;
 const shareStatus = document.querySelector<HTMLElement>('#share-status')!;
 const identityCards = document.querySelector<HTMLElement>('#identity-cards')!;
@@ -671,6 +682,69 @@ function renderEntries(container: HTMLElement, entries: CardEntry[]): void {
     container.replaceChildren(...entries.map(createCardTile));
 }
 
+/**
+ * What to look for in this deck's opening hand.
+ *
+ * The answer comes from the server rather than being worked out here, so the
+ * viewer and the table can never disagree about whether a set of cards is the
+ * author's recommendation or our ranking of their deck -- and so the measured
+ * weights behind that ranking live in exactly one file.
+ */
+async function renderMulligan(choice: DeckChoice, entries: CardEntry[]): Promise<void> {
+    deckMulligan.hidden = true;
+    deckMulliganChips.replaceChildren();
+    deckMulliganNote.textContent = '';
+
+    let advice: MulliganAdvice;
+    try {
+        const response = await fetch('/get_mulligan_advice', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                metadata: choice.data.metadata ?? {},
+                player_deck: choice.data.player_deck ?? [],
+                hero_deck: choice.data.hero_deck ?? [],
+            }),
+        });
+        if (!response.ok) {
+            return;
+        }
+        advice = await response.json() as MulliganAdvice;
+    } catch (error) {
+        // A deck reads perfectly well without this, so a failure here is
+        // silence rather than an error message over the decklist.
+        console.warn('Could not load mulligan advice', error);
+        return;
+    }
+
+    // Only cards this deck holds, named the way the deck names them.
+    const names = new Map(entries.map(entry => [entry.cardId, entry.paper.name]));
+    const wanted = (advice.cards ?? []).filter(cardId => names.has(cardId));
+    if (!wanted.length) {
+        return;
+    }
+
+    const fromAuthor = advice.source === 'author';
+    deckMulliganHead.textContent = fromAuthor ? 'Author looks for' : 'Worth digging for';
+    deckMulliganHead.classList.toggle('guessed', !fromAuthor);
+    deckMulliganHead.title = fromAuthor
+        ? "The cards this deck's author named when writing about the mulligan."
+        : 'Nobody wrote mulligan advice for this deck, so these are ranked from '
+          + 'what it is made of: permanents, the hero’s own kit, and cards '
+          + 'you run three of.';
+
+    deckMulliganChips.replaceChildren(...wanted.map(cardId => {
+        const chip = document.createElement('span');
+        chip.className = 'deck-mulligan-chip';
+        chip.textContent = names.get(cardId) as string;
+        return chip;
+    }));
+    deckMulliganNote.textContent = fromAuthor
+        ? (advice.note ?? '')
+        : "Ranked from this deck, not the author's notes.";
+    deckMulligan.hidden = false;
+}
+
 async function showDeck(choice: DeckChoice): Promise<void> {
     deckStatus.textContent = 'Loading cards…';
     shareStatus.textContent = '';
@@ -738,6 +812,10 @@ async function showDeck(choice: DeckChoice): Promise<void> {
         } else {
             marvelCdbLink.removeAttribute('href');
         }
+
+        // Deliberately not awaited: it is one more round trip and the deck is
+        // already worth reading without it.
+        void renderMulligan(choice, [...signatures, ...playerDeck]);
 
         deckSourceBadge.hidden = false;
         deckSourceBadge.textContent = choice.isUserDeck ? 'MY DECK' : 'STARTER DECK';
