@@ -545,6 +545,7 @@ async function showSubstitutes(entry: CardEntry): Promise<void> {
             ownedPacks: ownedProducts,
             deckAspectCounts,
             deckCardIds: new Set(currentShareEntries.map((item) => item.cardId)),
+            deckPapers,
             limit: 6,
         });
         const splash = isSplashInclude(entry.paper as CardPaperLike, deckAspectCounts);

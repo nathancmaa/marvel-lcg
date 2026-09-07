@@ -19,6 +19,13 @@ import {
     isSubstitutable,
     profileCard,
 } from './card_profile.js';
+import {
+    TraitDemand,
+    buildTraitDemand,
+    buildTraitVocabulary,
+    identityGateOf,
+    traitsOf,
+} from './card_traits.js';
 
 export type SubstitutionCandidate = {
     paper: CardPaperLike;
@@ -39,15 +46,30 @@ export type SubstitutionRequest = {
     deckAspectCounts: ReadonlyMap<string, number>;
     /** Card ids already in the deck, so a suggestion is not one you have. */
     deckCardIds: ReadonlySet<string>;
+    /**
+     * The whole constructed deck, identity and signature cards included.
+     *
+     * Used to work out what the deck is built around, and which traits its
+     * hero carries. Omitting it costs the synergy term and the identity-gate
+     * filter; nothing else changes.
+     */
+    deckPapers?: readonly CardPaperLike[];
     limit?: number;
 };
 
 // A replacement is chosen for what it does; everything else only breaks ties.
-const WEIGHT_FUNCTION = 0.62;
-const WEIGHT_COST = 0.14;
-const WEIGHT_TYPE = 0.12;
-const WEIGHT_RESOURCE = 0.07;
-const WEIGHT_TRAIT = 0.05;
+//
+// Synergy is the one tie-break with real weight behind it, because a trait the
+// deck is built around is not decoration: in a deck with ten cards paying off
+// X-Men, an X-Men card carries its own small engine with it. It still cannot
+// outvote function on its own, which is the rule the whole ranking is built
+// on -- a card is replaced by something that does its job, not by something
+// that shares its badge.
+const WEIGHT_FUNCTION = 0.55;
+const WEIGHT_SYNERGY = 0.20;
+const WEIGHT_COST = 0.11;
+const WEIGHT_TYPE = 0.09;
+const WEIGHT_RESOURCE = 0.05;
 
 /** How well one magnitude stands in for another, 0..1. */
 function magnitudeMatch(wanted: number, offered: number): number {
@@ -96,14 +118,50 @@ function resourceScore(target: CardProfile, candidate: CardProfile): number {
     return shared ? 1 : 0;
 }
 
-function traitScore(target: CardProfile, candidate: CardProfile): number {
-    if (target.traits.length === 0) {
-        return 0.5;
+/**
+ * How well a candidate keeps up whatever the deck is built around.
+ *
+ * Only traits the deck actually pays off count, and only those the card being
+ * replaced was contributing: swapping a card that was never part of the X-Men
+ * theme should not be judged on whether its replacement is an X-Man. Where
+ * there is no theme to keep, every candidate scores the same and the term
+ * drops out of the ranking rather than favouring anybody.
+ */
+function synergyScore(
+    target: CardPaperLike,
+    candidate: CardPaperLike,
+    demand: TraitDemand,
+): number {
+    if (demand.size === 0) {
+        return NEUTRAL_SYNERGY;
     }
-    const wanted = new Set(target.traits);
-    const shared = candidate.traits.filter((trait) => wanted.has(trait)).length;
-    return shared / target.traits.length;
+    const targetTraits = traitsOf(target);
+    const candidateTraits = traitsOf(candidate);
+    let wanted = 0;
+    let kept = 0;
+    for (const [trait, weight] of demand) {
+        if (!targetTraits.has(trait)) {
+            continue;
+        }
+        wanted += weight;
+        if (candidateTraits.has(trait)) {
+            kept += weight;
+        }
+    }
+    if (wanted === 0) {
+        return NEUTRAL_SYNERGY;
+    }
+    return kept / wanted;
 }
+
+/**
+ * What this term is worth when there is nothing to say.
+ *
+ * Not zero: a card with no theme to keep would then be scored as having failed
+ * to keep it, and every suggestion in a themeless deck would lose a fifth of
+ * its score for no reason. Mid-scale leaves the ranking to the other terms.
+ */
+const NEUTRAL_SYNERGY = 0.5;
 
 const ASPECT_NAMES: ReadonlySet<string> = new Set([
     'Aggression', 'Justice', 'Leadership', 'Protection',
@@ -195,8 +253,34 @@ const FUNCTION_WORDS: Record<CardFunction, string> = {
     ramp: 'cost reduction',
 };
 
-function explain(target: CardProfile, candidate: CardProfile): string[] {
+function explain(
+    target: CardProfile,
+    candidate: CardProfile,
+    targetPaper: CardPaperLike,
+    candidatePaper: CardPaperLike,
+    demand: TraitDemand,
+    vocabulary: ReadonlyMap<string, string>,
+): string[] {
     const reasons: string[] = [];
+
+    // Said first when it applies: in a deck built around a trait it is often
+    // the whole reason one candidate beats another that reads just as well.
+    const targetTraits = traitsOf(targetPaper);
+    const candidateTraits = traitsOf(candidatePaper);
+    const kept = [...demand.keys()]
+        .filter((trait) => targetTraits.has(trait) && candidateTraits.has(trait))
+        .sort((left, right) => (demand.get(right) ?? 0) - (demand.get(left) ?? 0))
+        .map((trait) => vocabulary.get(trait) ?? trait);
+    if (kept.length) {
+        reasons.push(`keeps your ${kept.slice(0, 2).join(' and ')} count`);
+    } else {
+        const lost = [...demand.keys()]
+            .filter((trait) => targetTraits.has(trait) && !candidateTraits.has(trait))
+            .map((trait) => vocabulary.get(trait) ?? trait);
+        if (lost.length) {
+            reasons.push(`not ${lost.slice(0, 2).join(' or ')}, which this deck builds on`);
+        }
+    }
 
     const shared = [...target.functions.keys()]
         .filter((job) => candidate.functions.has(job))
@@ -236,6 +320,20 @@ export function suggestSubstitutes(request: SubstitutionRequest): SubstitutionCa
     const limit = request.limit ?? 6;
     const targetProfile = profileCard(target);
     const allowedAspects = legalAspectsFor(targetProfile, deckAspectCounts);
+    const deckPapers = request.deckPapers ?? [];
+    const vocabulary = buildTraitVocabulary(pool);
+    const demand = buildTraitDemand(deckPapers, vocabulary);
+    // Whatever the hero is, gathered from the identity cards in the deck. An
+    // empty set means we were not told, so the gate cannot be checked and is
+    // left alone rather than rejecting everything it applies to.
+    const identityTraits = new Set<string>();
+    for (const paper of deckPapers) {
+        if (paper.type === 'Hero' || paper.type === 'AlterEgo') {
+            for (const trait of traitsOf(paper)) {
+                identityTraits.add(trait);
+            }
+        }
+    }
 
     const scored: SubstitutionCandidate[] = [];
     for (const paper of pool) {
@@ -253,15 +351,26 @@ export function suggestSubstitutes(request: SubstitutionRequest): SubstitutionCa
         if (!isSubstitutable(profile) || !isLegalInDeck(profile, allowedAspects)) {
             continue;
         }
+        // A card gated on an identity trait this hero lacks can never be
+        // played, so it is no more a substitute than an off-aspect card is.
+        const gate = identityGateOf(paper);
+        if (gate && identityTraits.size > 0 && !identityTraits.has(gate)) {
+            continue;
+        }
 
         const score =
             WEIGHT_FUNCTION * functionScore(targetProfile, profile)
+            + WEIGHT_SYNERGY * synergyScore(target, paper, demand)
             + WEIGHT_COST * costScore(targetProfile, profile)
             + WEIGHT_TYPE * (profile.type === targetProfile.type ? 1 : 0.35)
-            + WEIGHT_RESOURCE * resourceScore(targetProfile, profile)
-            + WEIGHT_TRAIT * traitScore(targetProfile, profile);
+            + WEIGHT_RESOURCE * resourceScore(targetProfile, profile);
 
-        scored.push({paper, profile, score, reasons: explain(targetProfile, profile)});
+        scored.push({
+            paper,
+            profile,
+            score,
+            reasons: explain(targetProfile, profile, target, paper, demand, vocabulary),
+        });
     }
 
     scored.sort((left, right) =>
