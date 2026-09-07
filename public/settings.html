@@ -201,6 +201,14 @@
         </section>
 
         <section class="setting">
+            <label class="setting-title" for="bgstats-location">BG Stats location</label>
+            <p class="setting-description">Where BG Stats files these plays. Left empty it does not stay blank — BG Stats uses the app's name as the location, so every play lands somewhere called "Marvel Champions Digital".</p>
+            <div class="setting-control">
+                <input type="text" id="bgstats-location" autocomplete="off" maxlength="80" placeholder="Marvel Champions Digital">
+            </div>
+        </section>
+
+        <section class="setting">
             <label class="setting-title" for="marvelcdb-deck-ids">MarvelCDB deck IDs</label>
             <p class="setting-description">Comma-separated public deck IDs, or MarvelCDB deck/decklist links. Decks refresh now when you press Sync and automatically once every 24 hours.</p>
             <div class="deck-ids-row">

@@ -196,6 +196,11 @@ let activeTab: TabName = 'collection';
 function bgStatsPlayerName(): string {
     return UserSettings.getBgStatsPlayerName() || 'Me';
 }
+
+/** Empty means "let BG Stats fall back to the source name", which it does. */
+function bgStatsLocation(): string {
+    return UserSettings.getBgStatsLocation();
+}
 let setData: Record<string, SetInfo> = {};
 let products: Product[] = [];
 let ownedProducts = new Set<string>();
@@ -312,7 +317,8 @@ function renderRecent(rows: RecentGame[], unknownGames: number): void {
             // A new tab, because the link hands off to the BG Stats app and
             // navigating away would lose this page's place in the history.
             window.open(
-                bgStatsPlayUrl(game, bgStatsPlayerName()), '_blank', 'noopener');
+                bgStatsPlayUrl(game, bgStatsPlayerName(), bgStatsLocation()),
+                '_blank', 'noopener');
         });
     });
 

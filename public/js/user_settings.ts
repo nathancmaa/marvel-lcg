@@ -6,6 +6,7 @@ const animationTimeKey = 'marvel_lcg_animation_time'
 const autoSaveReplaysKey = 'marvel_lcg_autosave_replays'
 const marvelCdbDeckIdsKey = 'marvel_lcg_marvelcdb_deck_ids'
 const bgStatsPlayerKey = 'marvel_lcg_bgstats_player'
+const bgStatsLocationKey = 'marvel_lcg_bgstats_location'
 
 function readStorage(key: string): string|null {
     try {
@@ -71,5 +72,21 @@ export class UserSettings {
 
     static setBgStatsPlayerName(name: string) {
         writeStorage(bgStatsPlayerKey, name.trim())
+    }
+
+    /**
+     * Where BG Stats files these plays.
+     *
+     * Left empty, BG Stats does not leave the location blank -- it files the
+     * play under the source name, so every play from here lands somewhere
+     * called "Marvel Champions Digital" whether or not that is a place. This
+     * is how you say it happened at home, or at a table, or anywhere real.
+     */
+    static getBgStatsLocation(): string {
+        return readStorage(bgStatsLocationKey)?.trim() ?? ''
+    }
+
+    static setBgStatsLocation(location: string) {
+        writeStorage(bgStatsLocationKey, location.trim())
     }
 }
