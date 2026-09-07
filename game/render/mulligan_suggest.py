@@ -40,7 +40,11 @@ from typing import Any, Dict, List, Sequence, Tuple
 # Rounded from the measured per-feature lifts into tiers, because three
 # significant figures would claim a precision 92 data points do not support.
 UPGRADE_OR_SUPPORT = 0.6
-SIGNATURE = 0.6
+# The least stable of these: it ranged 0.92 to 1.99 across twenty half-splits
+# of the first 23 decks, and settled to 1.41 once the ground truth grew to 31.
+# Recall is flat between 0.4 and 0.6, so this follows the measurement rather
+# than the marginally better number.
+SIGNATURE = 0.4
 THREE_COPIES = 0.7
 TEXT_HINT = 0.6
 EVENT = 0.2

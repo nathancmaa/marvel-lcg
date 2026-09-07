@@ -323,7 +323,15 @@ class MarvelCdbDeckSync:
         # and the sentence naming them. The description itself is not kept: it
         # runs to thousands of characters and this metadata travels to the
         # table in a URL query string.
-        AttachMulliganAdvice(metadata, remote_deck.get('description_md', ''))
+        # The names are passed so an author who wrote "mulligan for Ingenuity"
+        # rather than linking the card is still understood -- but only against
+        # cards this deck actually holds, which is what keeps prose matching
+        # from inventing citations.
+        AttachMulliganAdvice(
+            metadata,
+            remote_deck.get('description_md', ''),
+            cls._deck_card_names(converted),
+        )
         metadata.update({
             'marvelcdb_id': deck_id,
             'marvelcdb_kind': kind,
@@ -454,6 +462,26 @@ class MarvelCdbDeckSync:
             if CardsDB.TryFindCardPaper(card_id) is None:
                 unknown.append(card_id)
         return unknown
+
+    @staticmethod
+    def _deck_card_names(deck: Dict[str, Any]) -> Dict[str, str]:
+        """Every card this deck holds, by name, for reading prose against.
+
+        Empty while the card database is still loading, which turns prose
+        matching off rather than letting it match nothing and look broken.
+        """
+        from cards.database import CardsDB
+
+        if not CardsDB.papers:
+            return {}
+
+        names: Dict[str, str] = {}
+        for card_id in set(deck.get('player_deck', []) + deck.get('hero_deck', [])):
+            paper = CardsDB.TryFindCardPaper(card_id)
+            name = str(getattr(paper, 'name', '') or '') if paper else ''
+            if name:
+                names[name] = card_id
+        return names
 
     @classmethod
     def _deck_hero_code(cls, deck: Dict[str, Any]) -> str:

@@ -23,8 +23,18 @@ from typing import Any, Dict, List, Tuple
 # What counts as talking about the opening hand.
 MULLIGAN_PHRASE = re.compile(r'mulligan|opening hand|starting hand', re.I)
 
-# MarvelCDB writes card citations as [Display Name](/card/01234).
-CARD_LINK = re.compile(r'\[([^\]]{1,60})\]\(/card/(\d+[a-z]?)\)')
+# MarvelCDB writes card citations as [Display Name](/card/01234), and -- when
+# an author pastes the address bar rather than using the editor's card button --
+# as the same link spelled absolutely. Missing the second form cost two decks
+# out of ninety-six, which is small until you are one of them.
+CARD_LINK = re.compile(
+    r'\[([^\]]{1,60})\]\((?:https?://(?:www\.)?marvelcdb\.com)?/card/(\d+[a-z]?)\)')
+
+# Some authors just write the name. Matching prose against arbitrary card names
+# would be reckless, so this only ever matches names belonging to *this deck*,
+# on whole words, longest first -- without which "Vibranium" claims the mention
+# of "Vibranium Suit" sitting next to it.
+MIN_NAME = 5
 
 # How far either side of a mention to look for cited cards. A sentence or two:
 # wide enough for "mulligan hard for X and Y", narrow enough not to drag in the
@@ -61,7 +71,32 @@ def _sentence_around(text: str, index: int) -> str:
     return text[start:end].strip()
 
 
-def ExtractMulliganAdvice(description: str) -> Tuple[List[str], str]:
+def _named_in(window: str, deck_cards: Dict[str, str]) -> List[str]:
+    """Card ids whose names this passage spells out, longest name first."""
+    found: List[str] = []
+    haystack = window.lower()
+    taken: List[Tuple[int, int]] = []
+    for name in sorted(deck_cards, key=len, reverse=True):
+        if len(name) < MIN_NAME:
+            continue
+        for match in re.finditer(r'\b' + re.escape(name) + r'\b', haystack):
+            span = match.span()
+            # A longer name already claimed this text; the shorter one is part
+            # of it rather than a second card.
+            if any(start <= span[0] and span[1] <= end for start, end in taken):
+                continue
+            taken.append(span)
+            card_id = deck_cards[name]
+            if card_id not in found:
+                found.append(card_id)
+            break
+    return found
+
+
+def ExtractMulliganAdvice(
+    description: str,
+    deck_cards: Dict[str, str]|None = None,
+) -> Tuple[List[str], str]:
     """The cards an author names about the opening hand, and why.
 
     Returns ``(card_ids, note)``. Both are empty when the description says
@@ -74,11 +109,16 @@ def ExtractMulliganAdvice(description: str) -> Tuple[List[str], str]:
     if not text.strip():
         return [], ''
 
+    by_name = {name.lower(): card_id for name, card_id in (deck_cards or {}).items()}
     card_ids: List[str] = []
     notes: List[str] = []
     for match in MULLIGAN_PHRASE.finditer(text):
         window = text[max(0, match.start() - LOOK_BEHIND): match.start() + LOOK_AHEAD]
-        for _, card_id in CARD_LINK.findall(window):
+        linked = [card_id for _, card_id in CARD_LINK.findall(window)]
+        # Links are the author being explicit and are always preferred; names
+        # are only consulted where they linked nothing at all, so a deck that
+        # cites properly can never have prose dragged in beside it.
+        for card_id in linked or _named_in(window, by_name):
             if card_id not in card_ids:
                 card_ids.append(card_id)
         sentence = _clean(_sentence_around(text, match.start()))
@@ -96,9 +136,13 @@ def ExtractMulliganAdvice(description: str) -> Tuple[List[str], str]:
     return card_ids[:MAX_CARDS], note
 
 
-def AttachMulliganAdvice(metadata: Dict[str, Any], description: str) -> None:
+def AttachMulliganAdvice(
+    metadata: Dict[str, Any],
+    description: str,
+    deck_cards: Dict[str, str]|None = None,
+) -> None:
     """Record the advice on a converted deck, if the description carries any."""
-    card_ids, note = ExtractMulliganAdvice(description)
+    card_ids, note = ExtractMulliganAdvice(description, deck_cards)
     if not card_ids:
         return
     metadata['mulligan_cards'] = ','.join(card_ids)

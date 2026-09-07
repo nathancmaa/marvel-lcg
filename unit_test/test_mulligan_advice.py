@@ -66,6 +66,44 @@ class TestExtractMulliganAdvice(unittest.TestCase):
         self.assertEqual(cards, [])
         self.assertEqual(note, '')
 
+    def test_it_reads_an_absolute_marvelcdb_link(self):
+        # Authors who paste the address bar instead of using the editor's card
+        # button write the same link the long way. Two decks in ninety-six.
+        cards, _ = ExtractMulliganAdvice(
+            'Mulligan for [Avengers Mansion](https://marvelcdb.com/card/01091).')
+        self.assertEqual(cards, ['01091'])
+
+    def test_it_reads_a_card_this_deck_holds_named_in_prose(self):
+        cards, _ = ExtractMulliganAdvice(
+            'Mulligan hard for Vibranium Suit early.', {'Vibranium Suit': '01091'})
+        self.assertEqual(cards, ['01091'])
+
+    def test_a_longer_card_name_wins_over_one_inside_it(self):
+        # Without this, "Vibranium" claims the mention of "Vibranium Suit"
+        # sitting right next to it and the panel names a card nobody meant.
+        cards, _ = ExtractMulliganAdvice(
+            'Mulligan hard for Vibranium Suit early.',
+            {'Vibranium Suit': '01091', 'Vibranium': '01092'})
+        self.assertEqual(cards, ['01091'])
+
+    def test_prose_matching_respects_word_boundaries(self):
+        cards, _ = ExtractMulliganAdvice(
+            'Mulligan across the quaked ground.', {'Quake': '01091'})
+        self.assertEqual(cards, [])
+
+    def test_links_are_preferred_over_prose(self):
+        # An author who cites properly is being explicit; prose beside it is
+        # discussion, not a second recommendation.
+        cards, _ = ExtractMulliganAdvice(
+            'Mulligan for [A](/card/00009), not Vibranium Suit.',
+            {'Vibranium Suit': '01091'})
+        self.assertEqual(cards, ['00009'])
+
+    def test_prose_only_matches_cards_the_deck_actually_holds(self):
+        # The guard that makes reading prose safe at all.
+        cards, _ = ExtractMulliganAdvice('Mulligan hard for Vibranium Suit.', {})
+        self.assertEqual(cards, [])
+
     def test_a_description_that_never_mentions_it_yields_nothing(self):
         # A little over half of real decks land here. That is the ordinary
         # answer, not a failure.
