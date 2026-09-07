@@ -1,3 +1,4 @@
+import { DeckTracker } from './deck_tracker.js'
 import { Lib } from './lib.js'
 import { Setting, ButtonSetting } from './settings.js'
 import { Game } from './game.js'
@@ -738,6 +739,10 @@ export class Button{
         Button.createButtonBase(parent_div_right, {
             text: "Log",
             onClick: () => {Button.doToggleHistory()}
+        })
+        Button.createButtonBase(parent_div_right, {
+            text: "Deck",
+            onClick: () => {DeckTracker.toggle()}
         })
         Button.createButtonBase(parent_div_right, {
             text: "Pause",

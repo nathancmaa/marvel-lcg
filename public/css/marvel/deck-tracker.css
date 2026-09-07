@@ -1,0 +1,104 @@
+/* The deck tracker: a decklist you can check mid-game.
+   Docked to the right, clear of the right side bar it is opened from, and
+   scrolling on its own so a 40-card list never pushes the board around. */
+
+#deck-tracker {
+    position: fixed;
+    top: 3vh;
+    right: 4.5rem;
+    z-index: var(--z-index-right-side-bar);
+    display: flex;
+    flex-direction: column;
+    width: 17rem;
+    max-height: 82vh;
+    border: 1px solid rgba(143, 190, 224, 0.45);
+    border-radius: 0.5rem;
+    background: rgba(6, 12, 20, 0.94);
+    box-shadow: 0 0.6rem 1.6rem rgba(0, 0, 0, 0.55);
+    font-family: Arial, sans-serif;
+    color: #e6eef6;
+}
+
+#deck-tracker.hide {
+    display: none;
+}
+
+#deck-tracker-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.6rem;
+    padding: 0.55rem 0.7rem;
+    border-bottom: 1px solid rgba(143, 190, 224, 0.35);
+}
+
+#deck-tracker-title {
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-size: 0.78rem;
+    color: #78d2ff;
+}
+
+#deck-tracker-summary {
+    font-size: 0.72rem;
+    color: #aebbc6;
+    font-variant-numeric: tabular-nums;
+}
+
+#deck-tracker-list {
+    list-style: none;
+    margin: 0;
+    padding: 0.3rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.deck-tracker-row {
+    display: grid;
+    grid-template-columns: 1.4rem 1fr 1.2rem;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.22rem 0.3rem;
+    border-radius: 0.25rem;
+    background: rgba(143, 190, 224, 0.08);
+    font-size: 0.8rem;
+    cursor: help;
+}
+
+.deck-tracker-row:hover {
+    background: rgba(120, 210, 255, 0.18);
+}
+
+/* Every copy is out of the deck. Dimmed rather than removed, so the list stays
+   the same shape all game and you can see what has already been. */
+.deck-tracker-row.drawn {
+    opacity: 0.4;
+}
+
+.deck-tracker-cost {
+    display: grid;
+    place-content: center;
+    height: 1.25rem;
+    border-radius: 0.2rem;
+    background: rgba(60, 120, 190, 0.75);
+    font-size: 0.72rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.deck-tracker-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.deck-tracker-count {
+    text-align: center;
+    font-weight: 700;
+    font-size: 0.75rem;
+    color: #e7b950;
+    font-variant-numeric: tabular-nums;
+}

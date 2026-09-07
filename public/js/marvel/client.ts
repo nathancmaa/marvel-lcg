@@ -1,3 +1,4 @@
+import { DeckTracker } from './deck_tracker.js'
 import { ButtonSetting, Setting } from './settings.js'
 import { Game } from './game.js'
 import { Cards } from './cards.js'
@@ -342,6 +343,9 @@ export class Client {
         const data = await response.json();
 
         Game.world_descriptor = new WorldDescriptor(data)
+        // The tracker reads straight off the descriptor, so it only has to
+        // be told that one arrived. It does nothing while closed.
+        DeckTracker.refresh()
         console.log("world_state render_id:", Game.world_descriptor.render_id)
 
         if( true || Client.last_turn_id == Game.world_descriptor.render_id )
