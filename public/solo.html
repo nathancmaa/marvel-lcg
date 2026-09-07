@@ -30,6 +30,12 @@
                 </div>
                 <span id="hero-selection" class="current-selection">Not selected</span>
             </div>
+            <div class="randomize-row">
+                <button id="randomize-hero" class="randomize-button" type="button">
+                    Random hero
+                </button>
+                <small class="randomize-note">Picks a hero, then one of your synced decks for them.</small>
+            </div>
             <div class="deck-source" role="group" aria-label="Deck">
                 <label class="deck-source-option">
                     <input type="radio" name="deck-source" value="precon" checked>
@@ -92,6 +98,11 @@
                     <h2 id="scenario-heading">Scenario</h2>
                 </div>
                 <span id="scenario-selection" class="current-selection">Not selected</span>
+            </div>
+            <div class="randomize-row">
+                <button id="randomize-scenario" class="randomize-button" type="button">
+                    Random villain
+                </button>
             </div>
             <p id="scenario-status" class="load-status">Loading scenarios…</p>
             <div id="scenario-list" class="choice-grid" aria-live="polite"></div>

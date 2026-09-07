@@ -96,6 +96,14 @@ export type ScenarioFilters<T extends ScenarioFilterChoice> = {
      * that is actually selected.
      */
     showAllProducts(): void;
+    /**
+     * Narrow the list to one box, as if the dropdown were used.
+     *
+     * The counterpart of deck_filters' filterToHero, and there for the same
+     * reason: something else picked a scenario, and the list should be showing
+     * the tile that got picked rather than whatever it was last narrowed to.
+     */
+    filterToBox(productLabel: string): void;
 };
 
 export function createScenarioFilters<T extends ScenarioFilterChoice>(
@@ -310,6 +318,21 @@ export function createScenarioFilters<T extends ScenarioFilterChoice>(
             }
             state.product = '';
             productSelect.value = '';
+            writeState(state);
+            draw();
+        },
+        filterToBox(productLabel: string): void {
+            // Only if the box is actually offered: a scenario whose product is
+            // missing from sets_info would otherwise select a value the box
+            // does not have and silently empty the list.
+            const offered = Array.prototype.some.call(
+                productSelect.options,
+                (option: HTMLOptionElement) => option.value === productLabel);
+            if (!offered) {
+                return;
+            }
+            state.product = productLabel;
+            productSelect.value = productLabel;
             writeState(state);
             draw();
         },

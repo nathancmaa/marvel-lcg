@@ -924,3 +924,42 @@ input {
 #hero-section.hero-decks-hidden #hero-status {
     display: none;
 }
+
+/* Randomisers. Quiet by default: they sit above lists you are already reading,
+   and a button that shouts competes with the choices it is offering. */
+.randomize-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.55rem;
+}
+
+.randomize-button {
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.3rem 0.7rem;
+    border-radius: 0.3rem;
+    border: 1px solid rgba(143, 190, 224, 0.4);
+    background: rgba(120, 210, 255, 0.08);
+    color: #9fd7f5;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.randomize-button:hover,
+.randomize-button:focus-visible {
+    background: rgba(120, 210, 255, 0.16);
+    border-color: rgba(143, 190, 224, 0.75);
+    outline: none;
+}
+
+.randomize-button:active {
+    transform: scale(0.98);
+}
+
+.randomize-note {
+    font-size: 0.72rem;
+    color: #8fa0ad;
+}

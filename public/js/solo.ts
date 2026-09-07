@@ -130,6 +130,7 @@ let selectedUnderling: UnderlingChoice | null = null;
 let underlingChoices: UnderlingChoice[] = [];
 let isStarting = false;
 let heroChoices: HeroChoice[] = [];
+let scenarioChoices: ScenarioChoice[] = [];
 let heroBeforeMarvelCdb: HeroChoice | null = null;
 
 const deckFilters: DeckFilters<HeroChoice> = createDeckFilters<HeroChoice>({
@@ -642,6 +643,59 @@ async function loadHeroChoices(): Promise<HeroChoice[]> {
         });
 }
 
+/**
+ * Pick a hero at random, then a deck for them.
+ *
+ * Two decisions worth stating. It shuffles heroes rather than decks: shuffling
+ * decks would make a hero you have twelve netdecks for twelve times likelier
+ * than one you only have the precon for, so the shape of the collection would
+ * quietly decide who you play. And once a hero is drawn it always prefers a
+ * synced deck, falling back to the precon only when there is none, because a
+ * synced deck is one you went and got on purpose.
+ *
+ * Filters are overridden rather than respected -- this is for when you do not
+ * want to choose, so narrowing the pool to whatever the list happened to be
+ * showing would be the opposite of the point. The filter is then set to the
+ * hero it landed on, so the list shows the pick rather than hiding it.
+ */
+function randomizeHero(): void {
+    const byHero = new Map<string, HeroChoice[]>();
+    for (const choice of heroChoices) {
+        // A netdeck loaded into the box this session is not part of the
+        // collection being shuffled.
+        if (choice.isResolvedMarvelCdb) {
+            continue;
+        }
+        const key = heroKeyOf(choice);
+        byHero.set(key, [...(byHero.get(key) ?? []), choice]);
+    }
+    if (byHero.size === 0) {
+        return;
+    }
+
+    const keys = [...byHero.keys()];
+    const key = keys[Math.floor(Math.random() * keys.length)] as string;
+    const forHero = byHero.get(key) as HeroChoice[];
+    const synced = forHero.filter((choice) => choice.isUserDeck);
+    const pool = synced.length ? synced : forHero;
+    const choice = pool[Math.floor(Math.random() * pool.length)] as HeroChoice;
+
+    leaveMarvelCdbMode();
+    deckFilters.filterToHero(key);
+    selectHero(choice);
+}
+
+/** The same idea for the other side of the table. */
+function randomizeScenario(): void {
+    if (scenarioChoices.length === 0) {
+        return;
+    }
+    const choice = scenarioChoices[
+        Math.floor(Math.random() * scenarioChoices.length)] as ScenarioChoice;
+    scenarioFilters.filterToBox(choice.productLabel);
+    selectScenario(choice);
+}
+
 function renderScenarios(choices: ScenarioChoice[]): void {
     if (requestedGame.scenario) {
         // The box filter is remembered between visits, so a scenario arriving
@@ -650,6 +704,7 @@ function renderScenarios(choices: ScenarioChoice[]): void {
         scenarioFilters.showAllProducts();
     }
     const savedId = requestedGame.scenario || localStorage.getItem(scenarioStorageKey);
+    scenarioChoices = choices;
     scenarioFilters.render(choices);
 
     const savedChoice = choices.find((choice) => choice.id === savedId);
@@ -859,4 +914,9 @@ standardSet.addEventListener('change', () => {
     localStorage.setItem(standardSetStorageKey, standardSet.value);
     updateDifficulty();
 });
+document.querySelector<HTMLButtonElement>('#randomize-hero')!
+    .addEventListener('click', randomizeHero);
+document.querySelector<HTMLButtonElement>('#randomize-scenario')!
+    .addEventListener('click', randomizeScenario);
+
 void initialize();
