@@ -691,6 +691,9 @@ function renderEntries(container: HTMLElement, entries: CardEntry[]): void {
  * Scrolling hides it too, because the chip it was anchored to has moved.
  */
 function showMulliganHover(chip: HTMLElement, entry: CardEntry): void {
+    if (!mulliganHover) {
+        return;
+    }
     const box = chip.getBoundingClientRect();
     mulliganHover.src = withCardImageRevision(`/${entry.cardId}`);
     mulliganHover.alt = entry.paper.name;
@@ -707,6 +710,9 @@ function showMulliganHover(chip: HTMLElement, entry: CardEntry): void {
 }
 
 function hideMulliganHover(): void {
+    if (!mulliganHover) {
+        return;
+    }
     mulliganHover.hidden = true;
     mulliganHover.removeAttribute('src');
 }
@@ -722,6 +728,14 @@ window.addEventListener('scroll', hideMulliganHover, {passive: true});
  * weights behind that ranking live in exactly one file.
  */
 async function renderMulligan(choice: DeckChoice, entries: CardEntry[]): Promise<void> {
+    // A half-updated deploy -- new script against a cached document -- leaves
+    // these missing, and reading .hidden off null used to throw here and take
+    // the whole advice block down without a word. Say so instead.
+    if (!deckMulligan || !deckMulliganChips || !deckMulliganNote || !deckMulliganHead) {
+        console.warn('Mulligan advice: the page is missing its markup. '
+            + 'Reload with a hard refresh to pick up the current document.');
+        return;
+    }
     deckMulligan.hidden = true;
     deckMulliganChips.replaceChildren();
     deckMulliganNote.textContent = '';
@@ -738,6 +752,11 @@ async function renderMulligan(choice: DeckChoice, entries: CardEntry[]): Promise
             }),
         });
         if (!response.ok) {
+            // Chiefly a 404, which means the server predates this endpoint --
+            // the deck reads fine without advice, but silence here cost real
+            // time to diagnose once.
+            console.warn(`Mulligan advice unavailable: ${response.status} `
+                + `${response.statusText}. The server may be older than the page.`);
             return;
         }
         advice = await response.json() as MulliganAdvice;
