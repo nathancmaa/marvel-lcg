@@ -145,6 +145,12 @@
     margin-bottom: 0.35rem;
 }
 
+/* Our own ranking rather than the author's words: stated in a quieter colour
+   than the gold reserved for what a person actually wrote. */
+.deck-tracker-advice-head.guessed {
+    color: #8fbee0;
+}
+
 .deck-tracker-chips {
     display: flex;
     flex-wrap: wrap;

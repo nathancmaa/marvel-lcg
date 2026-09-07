@@ -422,6 +422,8 @@ class PlayerDescriptor {
     /** The deck author's opening-hand advice, if the deck carried any. */
     mulligan_cards          : string[];
     mulligan_note           : string;
+    /** 'author' if the deck's writer named them, 'deck' if we ranked them. */
+    mulligan_source         : string;
 
     constructor(obj: any, control_player: number) {
         this.area_hero                  = toPlayerCardDescriptorList(control_player, obj['area_hero'], "player-all-area-hero", {is_in_play: true});
@@ -442,6 +444,7 @@ class PlayerDescriptor {
         }
         this.mulligan_cards             = Array.isArray(obj['mulligan_cards']) ? obj['mulligan_cards'] : [];
         this.mulligan_note              = String(obj['mulligan_note'] ?? '');
+        this.mulligan_source            = String(obj['mulligan_source'] ?? '');
         this.obligations_area           = toPlayerCardDescriptorList(control_player, obj['obligations_area'], "player-all-area-hero", {is_in_play: true, is_obligation: true});
         this.environment_area           = toPlayerCardDescriptorList(control_player, obj['environment_area'], "player-all-area-hero", {is_in_play: true, is_obligation: true});
         this.resources                  = obj['resources'];

@@ -65,8 +65,10 @@ def ExtractMulliganAdvice(description: str) -> Tuple[List[str], str]:
     """The cards an author names about the opening hand, and why.
 
     Returns ``(card_ids, note)``. Both are empty when the description says
-    nothing about the opening hand, which is a little over half of decks --
-    that is an ordinary answer and not a failure.
+    nothing usable about the opening hand, which measured across a whole
+    96-deck collection is about three decks in four -- an ordinary answer and
+    not a failure. (An early 25-deck sample suggested two in five; the full
+    collection is the number to trust.)
     """
     text = str(description or '')
     if not text.strip():

@@ -4,6 +4,7 @@ from game.card import *
 from game.card.face import *
 from game.render.descriptor.world import WorldDescriptor
 from game.render.descriptor.card import CardDescriptor
+from game.render.mulligan_suggest import SuggestMulliganCards
 from game.deck import *
 from game.world import *
 from game.player import *
@@ -52,6 +53,17 @@ class ToDescriptor:
             card_id for card_id in cards.split(',') if card_id
         ]
         player_descriptor.mulligan_note = str(metadata.get('mulligan_note', '') or '')
+        if player_descriptor.mulligan_cards:
+            player_descriptor.mulligan_source = 'author'
+        elif hero is not None:
+            # Nobody wrote advice for this deck -- roughly three in four, and
+            # every precon and aspect deck. Rank it from what it is made of.
+            player_descriptor.mulligan_cards = SuggestMulliganCards(
+                getattr(hero, 'player_deck', []) or [],
+                getattr(hero, 'hero_deck', []) or [],
+            )
+            if player_descriptor.mulligan_cards:
+                player_descriptor.mulligan_source = 'deck'
         return player_descriptor
 
     @staticmethod

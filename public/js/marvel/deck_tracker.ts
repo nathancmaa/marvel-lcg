@@ -154,12 +154,15 @@ export class DeckTracker {
     }
 
     /**
-     * What the deck's author said about the opening hand.
+     * What to look for in the opening hand.
      *
-     * Their words and their card choices, not an opinion of ours -- the cards
-     * they named while writing about the mulligan, marked according to whether
-     * each is in hand right now. About two decks in five say anything at all;
-     * the rest simply show nothing.
+     * Two different claims, and the panel never blurs them. When the deck's
+     * author wrote about the mulligan -- roughly one deck in four -- these are
+     * their cards and their words, and we only mark which are in hand. When
+     * they did not, the cards are ranked from the deck's own composition, and
+     * the heading says so: that ranking finds about a third of what an author
+     * would have named, against a sixth by chance, which is worth showing and
+     * not worth mistaking for the author's own advice.
      */
     private static renderAdvice(): void {
         const panel = DeckTracker.advice;
@@ -193,9 +196,17 @@ export class DeckTracker {
         }
         panel.classList.remove('hide');
 
+        const fromAuthor = player?.mulligan_source === 'author';
         const heading = document.createElement('div');
-        heading.className = 'deck-tracker-advice-head';
-        heading.textContent = 'Author looks for';
+        heading.className = fromAuthor
+            ? 'deck-tracker-advice-head'
+            : 'deck-tracker-advice-head guessed';
+        heading.textContent = fromAuthor ? 'Author looks for' : 'Worth digging for';
+        heading.title = fromAuthor
+            ? "The cards this deck's author named when writing about the mulligan."
+            : 'Nobody wrote mulligan advice for this deck, so these are ranked '
+              + 'from what it is made of: permanents, your own kit, and cards '
+              + 'you run three of. Cost is ignored -- it does not predict.';
         panel.appendChild(heading);
 
         const chips = document.createElement('div');
@@ -210,12 +221,17 @@ export class DeckTracker {
         }
         panel.appendChild(chips);
 
-        const note = String(player?.mulligan_note ?? '');
+        const note = fromAuthor ? String(player?.mulligan_note ?? '') : '';
         if (note) {
             const quote = document.createElement('p');
             quote.className = 'deck-tracker-quote';
             quote.textContent = note;
             panel.appendChild(quote);
+        } else if (!fromAuthor) {
+            const basis = document.createElement('p');
+            basis.className = 'deck-tracker-quote';
+            basis.textContent = "Ranked from this deck, not the author's notes.";
+            panel.appendChild(basis);
         }
     }
 

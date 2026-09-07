@@ -22,6 +22,7 @@ from engine.marvelcdb.mulligan_notes import (
     ExtractMulliganAdvice,
 )
 from cards.database import CardsDB
+from game.render.mulligan_suggest import SUGGESTION_COUNT, SuggestMulliganCards
 from game.render.to_descriptor import ToDescriptor
 from game.scene.loader import SceneLoader
 from game.world.world import World
@@ -88,6 +89,48 @@ class TestExtractMulliganAdvice(unittest.TestCase):
         self.assertLessEqual(len(metadata['mulligan_cards'].split(',')), 8)
 
 
+class TestSuggestMulliganCards(unittest.TestCase):
+    """The fallback for the ~3 in 4 decks whose author wrote nothing.
+
+    These pin the behaviour the measurement is confident about -- the two
+    strong negatives held their sign across all twenty half-splits -- rather
+    than exact orderings, which 23 decks cannot justify freezing.
+    """
+
+    def starter(self, name: str = 'spider_man'):
+        deck = json.loads(
+            (ROOT / f'deck/starter/{name}.json').read_text(encoding='utf-8'))
+        return deck.get('player_deck', []), deck.get('hero_deck', [])
+
+    def test_it_suggests_a_hands_worth_from_a_real_deck(self):
+        player_deck, hero_deck = self.starter()
+        picks = SuggestMulliganCards(player_deck, hero_deck)
+        self.assertEqual(len(picks), SUGGESTION_COUNT)
+        self.assertEqual(len(set(picks)), len(picks))
+        for card_id in picks:
+            self.assertIn(card_id, set(player_deck) | set(hero_deck))
+
+    def test_it_never_suggests_a_plain_resource(self):
+        # The strongest signal in the data, at 0.17: across 23 decks authors
+        # essentially never say to keep one, and it never crossed 1.0 in any
+        # half-split.
+        player_deck, hero_deck = self.starter()
+        for card_id in SuggestMulliganCards(player_deck, hero_deck):
+            paper = CardsDB.TryFindCardPaper(card_id)
+            self.assertNotEqual(paper.type, 'Resource', paper.name)
+
+    def test_the_same_deck_always_suggests_the_same_cards(self):
+        # The panel redraws on every world update, so an unstable order would
+        # reshuffle the chips under the player mid-mulligan.
+        player_deck, hero_deck = self.starter()
+        first = SuggestMulliganCards(player_deck, hero_deck)
+        second = SuggestMulliganCards(list(reversed(player_deck)), hero_deck)
+        self.assertEqual(first, second)
+
+    def test_an_empty_deck_suggests_nothing(self):
+        self.assertEqual(SuggestMulliganCards([], []), [])
+
+
 class TestAdviceReachesThePlayerDescriptor(unittest.TestCase):
 
     def build_player_descriptor(self, metadata: dict):
@@ -119,9 +162,20 @@ class TestAdviceReachesThePlayerDescriptor(unittest.TestCase):
         self.assertEqual(descriptor.mulligan_cards, ['26036', '01091'])
         self.assertEqual(descriptor.mulligan_note, 'Mulligan hard for Meditation.')
 
-    def test_a_deck_with_no_advice_arrives_empty_rather_than_broken(self):
+    def test_author_advice_is_labelled_as_the_authors(self):
+        descriptor = self.build_player_descriptor({
+            'mulligan_cards': '26036',
+            'mulligan_note': 'Mulligan hard for Meditation.',
+        })
+        self.assertEqual(descriptor.mulligan_source, 'author')
+
+    def test_a_deck_with_no_advice_falls_back_and_says_so(self):
+        # Not empty any more: a deck nobody wrote about is ranked from its own
+        # composition, and the source says which claim is being made so the
+        # panel never presents our ranking as somebody's advice.
         descriptor = self.build_player_descriptor({})
-        self.assertEqual(descriptor.mulligan_cards, [])
+        self.assertEqual(descriptor.mulligan_source, 'deck')
+        self.assertEqual(len(descriptor.mulligan_cards), SUGGESTION_COUNT)
         self.assertEqual(descriptor.mulligan_note, '')
 
 

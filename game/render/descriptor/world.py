@@ -64,6 +64,10 @@ class WorldDescriptor:
         # MarvelCDB and said anything about it. Card ids and one sentence.
         mulligan_cards: List[str] = field(default_factory=lambda: [])
         mulligan_note: str = field(default='')
+        # 'author' when the deck's own writer named these cards, 'deck' when
+        # they were ranked from the deck's composition. The client says which,
+        # because they are not the same kind of claim.
+        mulligan_source: str = field(default='')
     players: List[PlayerDescriptor] = field(default_factory=lambda: [])
     # player_id: int = field(default=0)
     # Other
