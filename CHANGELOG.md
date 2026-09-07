@@ -1,6 +1,6 @@
 # Marvel Champions Digital: Ronin Edition Changelog
 
-> Current release version: 0.7.4 — “Cerebro”
+> Current release version: 0.7.5 — “Cerebro”
 
 This document records the user-visible and development changes made in this
 fork after it diverged from the original
@@ -15,6 +15,50 @@ Versions 0.7.2 and 0.7.3 were briefly published as 0.8.0 and 0.8.1 and were
 renumbered onto the 0.7 line. Their tags and releases carry the new numbers
 and point at the same commits; the commits that cut them still name the old
 ones.
+
+## Version 0.7.5 — “Cerebro” (2026-09-07)
+
+Two features about knowing your own deck, and the diagnostics that today's
+debugging said were missing.
+
+- **Deck tracker.** A Deck button beside Log opens the decklist mid-game: every
+  card that started in the deck, how many are left, and the ones that have all
+  come out dimmed rather than removed, so the list keeps its shape all game.
+  Hovering a row shows the card. Sorted by cost, and that is a rule rather than
+  a preference — the engine sends the player deck to the client in real order,
+  so a tracker that displayed it would hand you information the game means you
+  not to have. Dismissed with the close in its corner or with Escape, without
+  reaching back to the side bar.
+
+- **Mulligan advice from the deck's author.** MarvelCDB descriptions often say
+  what to keep in an opening hand, and the author knows what their deck is
+  trying to do better than anything here could infer. The cards they name are
+  shown at the top of the tracker with their own sentence beneath, and the ones
+  already in your hand picked out. Finding it is the whole problem: across a
+  96-deck collection, 33 descriptions mention the opening hand and only one put
+  a heading on it, so the extraction follows the card links authors leave, the
+  absolute form of those links, and — where they linked nothing — card names
+  written in prose, matched only against cards the deck actually holds.
+  Thirty-one of ninety-six decks yield advice this way.
+
+- **A ranking for the rest.** The other three decks in four, and every precon
+  and aspect deck, get five cards ranked from what the deck is made of, under a
+  heading that says so rather than borrowing the author's authority. The
+  weights are measured, not invented, and the measurement was worth doing: cost
+  does not predict at all — flat across the curve, and the cards authors name
+  cost more than average — while plain resources score 0.17 and allies 0.42.
+  What authors dig for is the engine: an Upgrade or Support, often one they run
+  three of. Leave-one-deck-out, the top five catches about a third of what an
+  author would have named against a sixth by chance. Real, and modest, which is
+  why it is never presented as somebody's advice.
+
+- **Both in the deck viewer**, from the same function the table uses, so the two
+  can never disagree about which kind of claim they are making.
+
+- **Deck folders and the game history database log their absolute paths at
+  startup.** A relative `./statistics.sqlite3` reads the same whether or not the
+  volume beneath it is mounted, and a missing or misdirected mount is invisible
+  from inside the container until it presents as data loss much later.
 
 ## Version 0.7.4.2 — “Cerebro” (2026-09-07)
 
