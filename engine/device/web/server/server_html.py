@@ -25,7 +25,12 @@ class GameServerHTML(GameServerBase):
         self.AddHtmlSecurity('/puzzle_editor', './public/puzzle_editor.html')
         self.AddHtmlSecurity('/puzzle_test', './public/replay.html')
         self.AddHtmlSecurity('/report', './public/report.html')
+        # In public/ rather than assets/textures/, because assets is a bind
+        # mount in the Docker deployment and a mount shadows whatever the image
+        # was built with. The wallpaper is part of the app, not user data, so
+        # shipping it under assets meant a git pull could never deliver it: the
+        # new file went into the image where the mount hid it.
         self.AddHtmlSecurity(
             '/background.webp',
-            './assets/textures/background.webp',
+            './public/background.webp',
         )
