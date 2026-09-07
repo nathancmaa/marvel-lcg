@@ -70,8 +70,11 @@ class V18SetupUiTests(unittest.TestCase):
 
         self.assertIn('Marvel Champions Digital: Ronin Edition', source)
         self.assertIn('<h1>Marvel Champions Digital</h1>', source)
-        self.assertIn('<h2>Ronin Edition</h2>', source)
         self.assertIn(Build.RELEASE_LABEL, source)
+        # The edition is named in the page title and in the release label
+        # underneath, so a heading repeating it was the third time in as many
+        # lines. It is deliberately not there.
+        self.assertNotIn('<h2>Ronin Edition</h2>', source)
 
     def test_start_page_credits_the_forks_it_came_from(self):
         """Both upstreams, not just the first.

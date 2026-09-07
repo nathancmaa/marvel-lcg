@@ -7,7 +7,7 @@ body {
     background-color: #07101a;
     background-image:
         linear-gradient(rgba(4, 9, 15, 0.66), rgba(4, 9, 15, 0.82)),
-        url('/ronin-start-background.webp');
+        url('/background.webp');
     background-position: center;
     background-repeat: no-repeat;
     background-size: cover;

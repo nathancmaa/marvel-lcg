@@ -26,6 +26,6 @@ class GameServerHTML(GameServerBase):
         self.AddHtmlSecurity('/puzzle_test', './public/replay.html')
         self.AddHtmlSecurity('/report', './public/report.html')
         self.AddHtmlSecurity(
-            '/ronin-start-background.webp',
-            './assets/textures/ronin-start-background.webp',
+            '/background.webp',
+            './assets/textures/background.webp',
         )
