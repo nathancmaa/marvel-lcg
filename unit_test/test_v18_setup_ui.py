@@ -57,16 +57,36 @@ class V18SetupUiTests(unittest.TestCase):
             changelog,
         )
 
-    def test_start_page_displays_ronin_edition_and_echo_release(self):
+    def test_start_page_displays_the_version_being_built(self):
+        """The home page names the version, and it is the one in build.py.
+
+        This assertion used to be the literal 0.6.1 the page was written at,
+        and it passed for four releases while the page told everyone who
+        opened it that they were running 0.6.1 -- a green test holding a stale
+        string in place, which is worse than no test at all. Derived from
+        Build, it fails the moment a version bump forgets this page.
+        """
         source = (ROOT / 'public/main.html').read_text(encoding='utf-8')
 
         self.assertIn('Marvel Champions Digital: Ronin Edition', source)
         self.assertIn('<h1>Marvel Champions Digital</h1>', source)
         self.assertIn('<h2>Ronin Edition</h2>', source)
-        self.assertIn('Version 0.6.1 — “Echo”', source)
+        self.assertIn(Build.RELEASE_LABEL, source)
+
+    def test_start_page_credits_the_forks_it_came_from(self):
+        """Both upstreams, not just the first.
+
+        The Ronin Edition name, and the 0.6.x releases this fork continues
+        from, are z00lus's work; crediting only Irefrixs skipped the fork this
+        one is actually made of.
+        """
+        source = (ROOT / 'public/main.html').read_text(encoding='utf-8')
+
         self.assertIn('Based on', source)
         self.assertIn('Marvel Champions: Digital Edition', source)
         self.assertIn('by Irefrixs', source)
+        self.assertIn('by z00lus', source)
+        self.assertIn('https://github.com/z00lus/marvel-lcg', source)
 
     def test_quick_game_uses_only_v18_rules(self):
         source = (ROOT / "public/js/solo.ts").read_text(encoding="utf-8")
