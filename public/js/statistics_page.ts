@@ -475,23 +475,17 @@ function matchupPopover(): HTMLElement {
         panel.id = 'matchup-popover';
         panel.className = 'matchup-popover';
         panel.hidden = true;
-        // It takes pointer events rather than letting them through. Passing
-        // them through meant a click aimed at the panel landed on whichever
-        // square happened to be under it, and that square starts a game.
-        panel.addEventListener('mouseenter', () => {
-            window.clearTimeout(popoverTimer);
-        });
-        panel.addEventListener('mouseleave', hideMatchupPopover);
         document.body.appendChild(panel);
     }
     return panel;
 }
 
 /**
- * Hiding is deferred so the pointer can cross the gap into the panel.
+ * Hiding is deferred by a frame or two, not long enough to reach the panel.
  *
- * Without it the panel closes the moment the pointer leaves the name, which
- * is the whole width of the gap away from being usable.
+ * The delay only stops a flicker when the pointer crosses between two names;
+ * the panel itself is not a place to travel to, and closing before the pointer
+ * arrives is what keeps it from covering the next name.
  */
 let popoverTimer = 0;
 

@@ -954,6 +954,14 @@ tbody tr:last-child td {
     border-radius: 0.5rem;
     background: rgba(6, 12, 20, 0.97);
     box-shadow: 0 0.6rem 1.6rem rgba(0, 0, 0, 0.55);
+    /* Transparent to the pointer, which is what makes it a tooltip rather than
+       a surface. Taking pointer events was an attempt to stop clicks landing
+       on the squares underneath, but a panel that captures clicks captures
+       hover too: it opens directly in the path of the pointer, so moving to
+       the next name landed on the panel instead and it never let go. It is
+       gone before a click can reach it now, because leaving the name closes
+       it. */
+    pointer-events: none;
 }
 
 .matchup-popover-cards {
