@@ -1,5 +1,3 @@
-import { withCardImageRevision } from './card_image_url.js';
-
 type SourceFilter = 'all'|'digital'|'physical'|'replay_import';
 type TabName = 'collection'|'history'|'matchups'|'achievements';
 
@@ -437,7 +435,6 @@ async function loadDashboard(): Promise<void> {
 type MatchupAxis = {
     id: string;
     code?: string;
-    faces: string[];
     name: string;
     box: string;
     box_order: number;
@@ -460,173 +457,10 @@ type MatchupMatrix = {
 
 let matchupMatrix: MatchupMatrix | null = null;
 
-/**
- * The floating card panel for one hero or scenario.
- *
- * The box each came from used to be a band down each axis, but a box holding
- * one hero cannot hold its own name at this scale: the labels ran into each
- * other and into the header. The box is a detail about one entry rather than a
- * structure of the grid, so it belongs here beside the card it describes.
- */
-function matchupPopover(): HTMLElement {
-    let panel = document.getElementById('matchup-popover');
-    if (!panel) {
-        panel = document.createElement('div');
-        panel.id = 'matchup-popover';
-        panel.className = 'matchup-popover';
-        panel.hidden = true;
-        document.body.appendChild(panel);
-    }
-    return panel;
-}
-
-/**
- * Hiding is deferred by a frame or two, not long enough to reach the panel.
- *
- * The delay only stops a flicker when the pointer crosses between two names;
- * the panel itself is not a place to travel to, and closing before the pointer
- * arrives is what keeps it from covering the next name.
- */
-let popoverTimer = 0;
-
-/**
- * The one check that cannot desync: is the browser still hovering the name?
- *
- * Every event-based attempt at this failed -- mouseleave, then a document-wide
- * pointermove -- because they all depend on an event being delivered, and
- * something in the real page swallows them: a rotated label whose hit area
- * overlaps its neighbours, an anchor replaced mid-hover by a redraw, a pointer
- * that leaves the window. Asking the element whether it matches :hover reads
- * the state the browser is already keeping, so there is nothing to miss. It
- * runs only while the panel is open.
- */
-let popoverWatch = 0;
-let popoverAnchor: HTMLElement | null = null;
-
-function watchMatchupPopover(anchor: HTMLElement): void {
-    popoverAnchor = anchor;
-    window.clearInterval(popoverWatch);
-    popoverWatch = window.setInterval(() => {
-        const current = popoverAnchor;
-        if (!current || !current.isConnected) {
-            hideMatchupPopover();
-            return;
-        }
-        // Keyboard focus holds it open; a pointer that has gone elsewhere does
-        // not, whatever events did or did not arrive on the way.
-        const held = current.matches(':hover') || current === document.activeElement;
-        if (!held) {
-            hideMatchupPopover();
-        }
-    }, 150);
-}
-
-function scheduleHideMatchupPopover(): void {
-    window.clearTimeout(popoverTimer);
-    popoverTimer = window.setTimeout(hideMatchupPopover, 120);
-}
-
-function showMatchupPopover(anchor: HTMLElement, entry: MatchupAxis): void {
-    const panel = matchupPopover();
-    panel.replaceChildren();
-
-    const cards = document.createElement('div');
-    cards.className = 'matchup-popover-cards';
-    for (const face of entry.faces.slice(0, 2)) {
-        const image = document.createElement('img');
-        image.loading = 'lazy';
-        image.alt = '';
-        image.src = withCardImageRevision('/' + face);
-        cards.appendChild(image);
-    }
-    if (cards.childElementCount) {
-        panel.appendChild(cards);
-    }
-
-    const name = document.createElement('strong');
-    name.textContent = entry.name;
-    const box = document.createElement('span');
-    box.className = 'matchup-popover-box';
-    box.textContent = entry.box;
-    const text = document.createElement('div');
-    text.className = 'matchup-popover-text';
-    text.append(name, box);
-    panel.appendChild(text);
-
-    window.clearTimeout(popoverTimer);
-    watchMatchupPopover(anchor);
-    panel.hidden = false;
-
-    // Placed against the anchor, then pulled back inside the window: near the
-    // right edge of a 62-column grid there is nothing to the right to open on.
-    const rect = anchor.getBoundingClientRect();
-    const size = panel.getBoundingClientRect();
-    const margin = 8;
-    let left = rect.right + margin;
-    if (left + size.width > window.innerWidth - margin) {
-        left = Math.max(margin, rect.left - size.width - margin);
-    }
-    let top = rect.top;
-    if (top + size.height > window.innerHeight - margin) {
-        top = Math.max(margin, window.innerHeight - size.height - margin);
-    }
-    panel.style.left = Math.round(left) + 'px';
-    panel.style.top = Math.round(top) + 'px';
-}
-
-function hideMatchupPopover(): void {
-    window.clearTimeout(popoverTimer);
-    window.clearInterval(popoverWatch);
-    popoverWatch = 0;
-    popoverAnchor = null;
-    matchupPopover().hidden = true;
-}
-
-const ANCHOR_MARK = 'data-matchup-anchor';
-
-function bindMatchupPopover(anchor: HTMLElement, entry: MatchupAxis): void {
-    anchor.tabIndex = 0;
-    anchor.setAttribute(ANCHOR_MARK, '');
-    anchor.addEventListener('mouseenter', () => showMatchupPopover(anchor, entry));
-    anchor.addEventListener('focus', () => showMatchupPopover(anchor, entry));
-    anchor.addEventListener('mouseleave', scheduleHideMatchupPopover);
-    anchor.addEventListener('blur', scheduleHideMatchupPopover);
-}
-
-/**
- * Every other way out of the panel.
- *
- * A label's own mouseleave is not enough on its own: the pointer can leave the
- * grid entirely in one movement, the grid can scroll out from under the panel,
- * or the label can be replaced by a redraw while it is still showing -- and
- * then the panel sits over the chart with nothing left to close it.
- */
-function bindMatchupPopoverDismissal(): void {
-    // The one rule that cannot get stuck: if the pointer moves and is not on a
-    // name, the panel closes. Pairing mouseenter with mouseleave was the tidier
-    // idea and it kept failing, because there are too many ways to leave -- a
-    // rotated label whose hit area reaches into the grid, an anchor replaced by
-    // a redraw while the pointer is still on it, a movement that crosses out of
-    // the window between events. This asks the pointer where it is rather than
-    // trusting that the matching leave arrived.
-    document.addEventListener('pointermove', (event) => {
-        if (matchupPopover().hidden) {
-            return;
-        }
-        const target = event.target as Element | null;
-        if (target?.closest?.(`[${ANCHOR_MARK}]`)) {
-            return;
-        }
-        hideMatchupPopover();
-    }, {passive: true});
-
-    const scroll = document.getElementById('matchup-scroll');
-    scroll?.addEventListener('scroll', hideMatchupPopover, {passive: true});
-    scroll?.addEventListener('mouseleave', scheduleHideMatchupPopover);
-    window.addEventListener('scroll', hideMatchupPopover, {passive: true});
+/** Re-draw the grid when the window changes size, so the squares follow it. */
+function bindMatchupResize(): void {
     let resizeTimer = 0;
     window.addEventListener('resize', () => {
-        hideMatchupPopover();
         // Coalesced: dragging a window edge fires this continuously and the
         // grid is a few thousand cells.
         window.clearTimeout(resizeTimer);
@@ -635,11 +469,6 @@ function bindMatchupPopoverDismissal(): void {
                 renderMatchupGrid();
             }
         }, 120);
-    });
-    document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape') {
-            hideMatchupPopover();
-        }
     });
 }
 
@@ -665,7 +494,6 @@ function renderMatchupGrid(): void {
     const table = element<HTMLTableElement>('matchup-table');
     const summary = element<HTMLElement>('matchup-summary');
     const matrix = matchupMatrix;
-    hideMatchupPopover();
     if (!matrix || !matrix.available) {
         table.replaceChildren();
         summary.textContent = matrix?.error
@@ -761,8 +589,11 @@ function renderMatchupGrid(): void {
         cell.scope = 'col';
         const span = document.createElement('span');
         span.textContent = scenario.name;
+        // The full name and its box, through the browser's own tooltip. A
+        // hand-built panel kept getting stuck open over the grid; this one the
+        // browser opens and closes itself, so it cannot.
+        cell.title = `${scenario.name} — ${scenario.box}`;
         cell.appendChild(span);
-        bindMatchupPopover(span, scenario);
         nameRow.appendChild(cell);
     }
     head.appendChild(nameRow);
@@ -776,8 +607,8 @@ function renderMatchupGrid(): void {
         heroCell.scope = 'row';
         const heroName = document.createElement('span');
         heroName.textContent = hero.name;
+        heroCell.title = `${hero.name} — ${hero.box}`;
         heroCell.appendChild(heroName);
-        bindMatchupPopover(heroName, hero);
         row.appendChild(heroCell);
 
         for (const scenario of scenarios) {
@@ -1056,7 +887,7 @@ function bindEvents(): void {
             }
         });
     });
-    bindMatchupPopoverDismissal();
+    bindMatchupResize();
     element<HTMLInputElement>('matchup-counts').addEventListener('change', renderMatchupGrid);
     element<HTMLInputElement>('matchup-played-only').addEventListener('change', renderMatchupGrid);
     element<HTMLInputElement>('collection-search').addEventListener('input', renderProducts);

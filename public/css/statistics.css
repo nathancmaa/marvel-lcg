@@ -857,10 +857,15 @@ tbody tr:last-child td {
 }
 
 /* The villain names stay put while the rows scroll under them, which the hero
-   names on the left already did. Both bands are sticky against the same scroll
-   box, so the corner they share has to outrank each of them. */
-.matchup-table thead th,
-.matchup-table thead td {
+   names on the left already did.
+
+   The whole row is what sticks, and the row is what carries the backdrop.
+   Making each cell sticky with its own background looked equivalent and was
+   not: the labels lean left and overflow into the cell before them, so every
+   cell painted its own background over its neighbour's text and the names came
+   out clipped to about six characters each. One backdrop behind the whole row
+   has nothing to paint over. */
+.matchup-table thead tr {
     position: sticky;
     top: 0;
     z-index: 3;
@@ -868,19 +873,19 @@ tbody tr:last-child td {
 }
 
 .matchup-table thead td:first-child {
+    position: sticky;
     left: 0;
     z-index: 4;
+    background: #0a1220;
 }
 
 /* Scenario names are long and the columns are one cell wide, so they lean. */
 .matchup-table .scenario-label {
-    /* Sticky rather than relative: it still establishes the containing block
-       the rotated label is positioned against, and it is more specific than
-       the thead rule above, so relative would have quietly won. */
-    position: sticky;
-    top: 0;
-    z-index: 3;
-    background: #0a1220;
+    /* Relative, not sticky: the row above does the sticking. This only needs to
+       be the containing block the rotated label is positioned against, and it
+       must stay transparent so the label leaning in from the next column is
+       not painted over. */
+    position: relative;
     height: 9.5rem;
     width: var(--matchup-cell, 1.4rem);
     padding: 0;
@@ -898,7 +903,7 @@ tbody tr:last-child td {
     /* Leaning at 60 degrees, a label reaches up by about 0.87 of its width,
        so 10rem of text needs 8.7rem of header. Anything longer -- "The Once
        and Future Kang" -- is cut with an ellipsis rather than allowed to run
-       out through the top of the panel. The full name is in the popover. */
+       out through the top of the header. The full name is in the tooltip. */
     max-width: 10rem;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -952,73 +957,11 @@ tbody tr:last-child td {
     padding: 0;
 }
 
-.matchup-table .hero-label span,
-.matchup-table .scenario-label span {
+.matchup-table .hero-label,
+.matchup-table .scenario-label {
     cursor: help;
 }
 
-.matchup-table .hero-label span:focus-visible,
-.matchup-table .scenario-label span:focus-visible {
-    outline: 2px solid var(--blue);
-    outline-offset: 2px;
-}
-
-/* The card panel. Fixed, so it is not clipped by the grid's own scroll box. */
-.matchup-popover {
-    position: fixed;
-    z-index: 60;
-    display: flex;
-    flex-direction: column;
-    gap: 0.55rem;
-    padding: 0.6rem;
-    max-width: 22rem;
-    border: 1px solid var(--line);
-    border-radius: 0.5rem;
-    background: rgba(6, 12, 20, 0.97);
-    box-shadow: 0 0.6rem 1.6rem rgba(0, 0, 0, 0.55);
-    /* Transparent to the pointer, which is what makes it a tooltip rather than
-       a surface. Taking pointer events was an attempt to stop clicks landing
-       on the squares underneath, but a panel that captures clicks captures
-       hover too: it opens directly in the path of the pointer, so moving to
-       the next name landed on the panel instead and it never let go. It is
-       gone before a click can reach it now, because leaving the name closes
-       it. */
-    pointer-events: none;
-}
-
-.matchup-popover-cards {
-    display: flex;
-    gap: 0.4rem;
-}
-
-.matchup-popover-cards img {
-    width: 9.5rem;
-    border-radius: 0.35rem;
-    background: rgba(143, 190, 224, 0.1);
-}
-
-.matchup-popover-text {
-    display: flex;
-    flex-direction: column;
-    gap: 0.1rem;
-}
-
-.matchup-popover-text strong {
-    color: #e6eef6;
-    font-size: 0.95rem;
-}
-
-.matchup-popover-box {
-    color: var(--muted);
-    font-size: 0.78rem;
-}
-
-.matchup-empty {
-    caption-side: bottom;
-    padding: 1.5rem;
-    color: var(--muted);
-    text-align: center;
-}
 
 .matchup-legend .matchup-hint {
     margin-left: auto;
