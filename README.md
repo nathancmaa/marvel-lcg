@@ -253,6 +253,72 @@ docker compose logs --tail=100 marvel-lcg
 
 Open `http://127.0.0.1:2345/` and use `Ctrl+F5` if the browser still shows cached frontend files. Future updates only require `git pull --ff-only origin master`, `docker compose build --pull`, and `docker compose up -d --remove-orphans`. The `down -v` option is unnecessary for updates and should be used only when Docker-managed volumes are intentionally being removed.
 
+## Your data, and backing it up
+
+Everything the app remembers about you lives in a handful of places. Nothing
+here is written anywhere else, and none of it leaves the machine.
+
+### On the server
+
+Paths are relative to the project directory, and all of them are configurable —
+a Docker deployment maps them onto host folders through `volumes:` in
+`docker-compose.yaml`, and an override file can point them somewhere else
+entirely. If you are not certain where yours actually are, the running app says
+so at startup:
+
+```bash
+docker logs <container> | grep -E "Game history ready|MarvelCDB decks"
+```
+
+and the definitive answer for a container is:
+
+```bash
+docker inspect <container> --format '{{range .Mounts}}{{.Source}} -> {{.Destination}}{{"\n"}}{{end}}'
+```
+
+| Path | What is in it | Worth backing up |
+| --- | --- | --- |
+| `runtime/statistics.sqlite3` | Game history, your product collection, matchup coverage, achievements, ratings and notes | **Yes — this is the one.** Everything else is replaceable |
+| `deck/user-decks/` | Decks synced from MarvelCDB, each carrying its author's mulligan advice; plus `.marvelcdb-sync-state.json` | Yes, though a sync rebuilds it |
+| `deck/campaign-decks/` | Decks frozen to in-progress campaigns | Yes, if a campaign is mid-run |
+| `runtime/save_campaign_progress.json` | Campaign progress | Yes |
+| `runtime/save_active_session.json` | The game you can resume from the start page | Only if one is in progress |
+| `runtime/statistics.json` | Per-card statistics | Optional |
+| `replays/` | Saved replays | Your call — they can be large |
+| `assets/cache/` | Card images downloaded on demand | No. It rebuilds itself, and it is the largest folder here |
+
+A backup is a file copy. Stop the app first if you can: `statistics.sqlite3` is
+SQLite in WAL mode, and copying it while a game is being written can capture a
+torn database.
+
+```bash
+docker compose down
+tar czf marvel-backup-$(date +%F).tar.gz runtime deck/user-decks deck/campaign-decks
+docker compose up -d
+```
+
+### In your browser
+
+Some settings are held by the browser rather than the server, which means they
+are per-device and are **not** in any server-side backup:
+
+- **The MarvelCDB deck ID list.** This is the one people lose without noticing.
+  The sync list lives in the browser that entered it, so opening the app on a
+  new device shows an empty list even though the decks themselves are safely on
+  the server. Keep a copy of the IDs somewhere if they matter to you.
+- BG Stats player name and location, animation speed, replay autosaving, and
+  the deck and scenario filter preferences.
+
+Clearing site data for the app resets these and nothing else.
+
+### Not data
+
+The mulligan scoring weights are constants in
+`game/render/mulligan_suggest.py` — source code that ships with the app, not
+something the app accumulates. There is nothing there to back up, and a
+reinstall gets the same values. What *is* yours is the per-deck advice written
+by each deck's author, and that is stored with the deck in `deck/user-decks/`.
+
 ## Progress
 
 ### Compared with upstream
