@@ -1033,3 +1033,10 @@ tbody tr:last-child td {
 .matchup-legend .swatch.won-heroic-2 { background: #cf4632; }
 .matchup-legend .swatch.won-heroic-3 { background: #a32d1d; }
 .matchup-legend .swatch.won-heroic-4 { background: #731a0f; }
+
+/* A heroic game in the history tables, matching the grid's red rather than
+   the green Expert badge -- the two views should agree about which is harder. */
+.difficulty.heroic {
+    background: rgba(207, 70, 50, 0.22);
+    color: #ffb9ae;
+}

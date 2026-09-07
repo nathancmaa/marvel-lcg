@@ -803,6 +803,24 @@ class HeroicDifficultyTests(unittest.TestCase):
         # A hand-edited replay should not stop a game being recorded.
         self.assertEqual(GameHistory.HeroicLevel(['mode_heroic_x']), 0)
 
+    def test_a_physical_game_keeps_its_heroic_level_through_an_edit(self):
+        """The level has to come back out, or editing silently clears it.
+
+        The form is repopulated from the recent-games list, so a level the
+        query does not select reads as undefined and saves back as 0 -- the
+        game would quietly drop to Standard the next time it was touched.
+        """
+        self.history.SavePhysicalGame({
+            'hero_code': 'HERO', 'hero_name': 'Spider-Man',
+            'scenario_key': 'rhino', 'villain_code': 'V',
+            'scenario_name': 'Rhino', 'expert': True, 'heroic': 3,
+            'result': 'win', 'finished_at': '2026-09-07T12:00:00Z',
+        })
+        row = self.history.GetDashboard('all')['recent_games'][0]
+        self.assertEqual(row['heroic'], 3)
+        self.assertEqual(row['expert'], 1)
+        self.assertEqual(self.history.GetMatchupCounts('all')[0]['best_beaten'], 5)
+
     def test_an_older_database_gains_the_column_and_keeps_its_games(self):
         """The migration, which runs against a database holding real games."""
         self.history.Close()

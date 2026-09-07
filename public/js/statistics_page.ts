@@ -20,6 +20,7 @@ type RecordRow = {
     villain_code?: string;
     villain_name?: string;
     expert?: number;
+    heroic?: number;
     games: number;
     wins: number;
     losses: number;
@@ -35,6 +36,7 @@ type RecentGame = {
     villain_name: string;
     scenario_key: string;
     expert: number;
+    heroic: number;
     result: 'win'|'loss'|'unknown'|'abandoned';
     rounds: number|null;
     playtime_seconds: number|null;
@@ -115,6 +117,21 @@ function escapeHtml(value: unknown): string {
     const node = document.createElement('span');
     node.textContent = String(value ?? '');
     return node.innerHTML;
+}
+
+/**
+ * How hard a recorded game was, in one badge.
+ *
+ * Heroic is named with its level and outranks Expert, matching the coverage
+ * grid: a square there shows the hardest clear, and a row here should not
+ * disagree with it about what "hardest" means.
+ */
+function difficultyLabel(row: {expert?: number; heroic?: number}): string {
+    const heroic = Number(row.heroic ?? 0);
+    if (heroic > 0) {
+        return row.expert ? `Expert · Heroic ${heroic}` : `Heroic ${heroic}`;
+    }
+    return row.expert ? 'Expert' : 'Standard';
 }
 
 function displayName(name: string|undefined, code: string|undefined): string {
@@ -260,7 +277,7 @@ function renderMatchups(rows: RecordRow[]): void {
     target.innerHTML = rows.map(row => `<tr>
         <td>${escapeHtml(displayName(row.hero_name, row.hero_code))}</td>
         <td>${escapeHtml(displayName(row.villain_name, row.villain_code))}</td>
-        <td><span class="difficulty ${row.expert ? 'expert' : ''}">${row.expert ? 'Expert' : 'Standard'}</span></td>
+        <td><span class="difficulty ${row.heroic ? 'heroic' : row.expert ? 'expert' : ''}">${escapeHtml(difficultyLabel(row))}</span></td>
         <td>${row.games}</td>
         <td>${row.wins}–${row.losses}</td>
         <td class="rate">${row.win_rate.toFixed(1)}%</td>
@@ -300,7 +317,7 @@ function renderRecent(rows: RecentGame[], unknownGames: number): void {
             <td><span class="source ${row.source}">${escapeHtml(sourceLabel(row.source))}</span></td>
             <td>${escapeHtml(displayName(row.hero_name, row.hero_code))}</td>
             <td>${escapeHtml(displayName(row.villain_name, row.villain_code))}</td>
-            <td><span class="difficulty ${row.expert ? 'expert' : ''}">${row.expert ? 'Expert' : 'Standard'}</span></td>
+            <td><span class="difficulty ${row.heroic ? 'heroic' : row.expert ? 'expert' : ''}">${escapeHtml(difficultyLabel(row))}</span></td>
             <td><span class="result ${escapeHtml(row.result)}">${escapeHtml(row.result)}</span></td>
             <td>${row.rounds ?? '—'}</td>
             <td>${duration(row.playtime_seconds)}</td>
@@ -836,6 +853,7 @@ async function openPhysicalGame(game?: RecentGame): Promise<void> {
     element<HTMLInputElement>('physical-game-id').value = game ? String(game.id) : '';
     element('physical-game-title').textContent = game ? 'Edit Physical Game' : 'Log Physical Game';
     element<HTMLSelectElement>('physical-difficulty').value = game?.expert ? 'expert' : 'standard';
+    element<HTMLSelectElement>('physical-heroic').value = String(game?.heroic ?? 0);
     element<HTMLSelectElement>('physical-result').value = game?.result === 'loss' ? 'loss' : 'win';
     element<HTMLInputElement>('physical-date').value = localDateTimeValue(game?.finished_at ?? new Date());
     element<HTMLInputElement>('physical-rounds').value = game?.rounds ? String(game.rounds) : '';
@@ -883,6 +901,7 @@ async function savePhysicalGame(): Promise<void> {
         villain_code: scenario.code,
         scenario_name: scenario.name,
         expert: element<HTMLSelectElement>('physical-difficulty').value === 'expert',
+        heroic: Number(element<HTMLSelectElement>('physical-heroic').value) || 0,
         result: element<HTMLSelectElement>('physical-result').value,
         finished_at: new Date(dateValue).toISOString(),
         rounds: rounds ? Number(rounds) : null,

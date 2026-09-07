@@ -1192,7 +1192,7 @@ class GameHistory:
             )
             recent = [dict(row) for row in connection.execute(
                 'SELECT id, finished_at, hero_code, hero_name, villain_code, scenario_key, '
-                'villain_name, expert, result, rounds, playtime_seconds, '
+                'villain_name, expert, heroic, result, rounds, playtime_seconds, '
                 'game_over_reason, replay_file, replay_analysis_status, '
                 'replay_analysis_error, source, deck_name, notes, '
                 'remaining_hit_points, minions_in_play, side_schemes_in_play, '
