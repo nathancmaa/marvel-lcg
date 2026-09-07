@@ -16,6 +16,16 @@ renumbered onto the 0.7 line. Their tags and releases carry the new numbers
 and point at the same commits; the commits that cut them still name the old
 ones.
 
+## Version 0.7.4.2 — “Cerebro” (2026-09-07)
+
+- The name plays are filed under in BG Stats is a setting rather than a prompt.
+  BG Stats matches that name to one of its own players once and remembers the
+  match, so it has to stay the same between plays — a value that matters across
+  sessions belongs somewhere it can be seen and corrected. It sits beside the
+  MarvelCDB deck IDs and saves as it is typed. The storage key is unchanged, so
+  a name already given to the prompt is already in the field, and with nothing
+  set a play is filed under "Me" rather than asking.
+
 ## Version 0.7.4.1 — “Cerebro” (2026-09-07)
 
 Start page presentation.
