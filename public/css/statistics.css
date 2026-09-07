@@ -873,6 +873,13 @@ tbody tr:last-child td {
     transform-origin: left bottom;
     white-space: nowrap;
     text-align: left;
+    /* Leaning at 60 degrees, a label reaches up by about 0.87 of its width,
+       so 10rem of text needs 8.7rem of header. Anything longer -- "The Once
+       and Future Kang" -- is cut with an ellipsis rather than allowed to run
+       out through the top of the panel. The full name is in the popover. */
+    max-width: 10rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .matchup-table .hero-label {
@@ -947,7 +954,6 @@ tbody tr:last-child td {
     border-radius: 0.5rem;
     background: rgba(6, 12, 20, 0.97);
     box-shadow: 0 0.6rem 1.6rem rgba(0, 0, 0, 0.55);
-    pointer-events: none;
 }
 
 .matchup-popover-cards {

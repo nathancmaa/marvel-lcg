@@ -87,6 +87,15 @@ export type ScenarioFiltersOptions<T extends ScenarioFilterChoice> = {
 
 export type ScenarioFilters<T extends ScenarioFilterChoice> = {
     render(choices: T[]): void;
+    /**
+     * Clear the box filter so every scenario is listed again.
+     *
+     * For arriving with a scenario already chosen: the filter is remembered
+     * between visits, so a scenario picked from the coverage grid could land
+     * on a list that was narrowed to some other box and never show the tile
+     * that is actually selected.
+     */
+    showAllProducts(): void;
 };
 
 export function createScenarioFilters<T extends ScenarioFilterChoice>(
@@ -293,6 +302,15 @@ export function createScenarioFilters<T extends ScenarioFilterChoice>(
         render(choices: T[]): void {
             source = choices;
             refreshProductOptions();
+            draw();
+        },
+        showAllProducts(): void {
+            if (!state.product) {
+                return;
+            }
+            state.product = '';
+            productSelect.value = '';
+            writeState(state);
             draw();
         },
     };

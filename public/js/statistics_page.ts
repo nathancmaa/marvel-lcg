@@ -475,9 +475,29 @@ function matchupPopover(): HTMLElement {
         panel.id = 'matchup-popover';
         panel.className = 'matchup-popover';
         panel.hidden = true;
+        // It takes pointer events rather than letting them through. Passing
+        // them through meant a click aimed at the panel landed on whichever
+        // square happened to be under it, and that square starts a game.
+        panel.addEventListener('mouseenter', () => {
+            window.clearTimeout(popoverTimer);
+        });
+        panel.addEventListener('mouseleave', hideMatchupPopover);
         document.body.appendChild(panel);
     }
     return panel;
+}
+
+/**
+ * Hiding is deferred so the pointer can cross the gap into the panel.
+ *
+ * Without it the panel closes the moment the pointer leaves the name, which
+ * is the whole width of the gap away from being usable.
+ */
+let popoverTimer = 0;
+
+function scheduleHideMatchupPopover(): void {
+    window.clearTimeout(popoverTimer);
+    popoverTimer = window.setTimeout(hideMatchupPopover, 120);
 }
 
 function showMatchupPopover(anchor: HTMLElement, entry: MatchupAxis): void {
@@ -507,6 +527,7 @@ function showMatchupPopover(anchor: HTMLElement, entry: MatchupAxis): void {
     text.append(name, box);
     panel.appendChild(text);
 
+    window.clearTimeout(popoverTimer);
     panel.hidden = false;
 
     // Placed against the anchor, then pulled back inside the window: near the
@@ -527,6 +548,7 @@ function showMatchupPopover(anchor: HTMLElement, entry: MatchupAxis): void {
 }
 
 function hideMatchupPopover(): void {
+    window.clearTimeout(popoverTimer);
     matchupPopover().hidden = true;
 }
 
@@ -534,8 +556,29 @@ function bindMatchupPopover(anchor: HTMLElement, entry: MatchupAxis): void {
     anchor.tabIndex = 0;
     anchor.addEventListener('mouseenter', () => showMatchupPopover(anchor, entry));
     anchor.addEventListener('focus', () => showMatchupPopover(anchor, entry));
-    anchor.addEventListener('mouseleave', hideMatchupPopover);
-    anchor.addEventListener('blur', hideMatchupPopover);
+    anchor.addEventListener('mouseleave', scheduleHideMatchupPopover);
+    anchor.addEventListener('blur', scheduleHideMatchupPopover);
+}
+
+/**
+ * Every other way out of the panel.
+ *
+ * A label's own mouseleave is not enough on its own: the pointer can leave the
+ * grid entirely in one movement, the grid can scroll out from under the panel,
+ * or the label can be replaced by a redraw while it is still showing -- and
+ * then the panel sits over the chart with nothing left to close it.
+ */
+function bindMatchupPopoverDismissal(): void {
+    const scroll = document.getElementById('matchup-scroll');
+    scroll?.addEventListener('scroll', hideMatchupPopover, {passive: true});
+    scroll?.addEventListener('mouseleave', scheduleHideMatchupPopover);
+    window.addEventListener('scroll', hideMatchupPopover, {passive: true});
+    window.addEventListener('resize', hideMatchupPopover);
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            hideMatchupPopover();
+        }
+    });
 }
 
 function renderMatchupGrid(): void {
@@ -909,6 +952,7 @@ function bindEvents(): void {
             }
         });
     });
+    bindMatchupPopoverDismissal();
     element<HTMLInputElement>('matchup-counts').addEventListener('change', renderMatchupGrid);
     element<HTMLInputElement>('matchup-played-only').addEventListener('change', renderMatchupGrid);
     element<HTMLInputElement>('collection-search').addEventListener('input', renderProducts);

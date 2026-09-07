@@ -643,6 +643,12 @@ async function loadHeroChoices(): Promise<HeroChoice[]> {
 }
 
 function renderScenarios(choices: ScenarioChoice[]): void {
+    if (requestedGame.scenario) {
+        // The box filter is remembered between visits, so a scenario arriving
+        // from the coverage grid could be selected while its tile sits behind
+        // a filter set to some other box.
+        scenarioFilters.showAllProducts();
+    }
     const savedId = requestedGame.scenario || localStorage.getItem(scenarioStorageKey);
     scenarioFilters.render(choices);
 
