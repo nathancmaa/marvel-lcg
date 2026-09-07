@@ -33,6 +33,7 @@ type TrackedCard = {
 
 export class DeckTracker {
     private static panel = document.getElementById('deck-tracker') as HTMLElement | null;
+    private static advice = document.getElementById('deck-tracker-advice') as HTMLElement | null;
     private static list = document.getElementById('deck-tracker-list') as HTMLElement | null;
     private static summary = document.getElementById('deck-tracker-summary') as HTMLElement | null;
 
@@ -148,10 +149,77 @@ export class DeckTracker {
         return row;
     }
 
+    /**
+     * What the deck's author said about the opening hand.
+     *
+     * Their words and their card choices, not an opinion of ours -- the cards
+     * they named while writing about the mulligan, marked according to whether
+     * each is in hand right now. About two decks in five say anything at all;
+     * the rest simply show nothing.
+     */
+    private static renderAdvice(): void {
+        const panel = DeckTracker.advice;
+        if (!panel) {
+            return;
+        }
+        const player = Game.world_descriptor?.players?.[Setting.player_id];
+        panel.replaceChildren();
+        panel.classList.add('hide');
+
+        const inHand = new Set(
+            (player?.hand_cards ?? []).map((card) => String(card.card_id ?? '')));
+        const byId = new Map<string, string>();
+        for (const area of [player?.player_deck ?? [], ...DeckTracker.ownedAreas()]) {
+            for (const card of area) {
+                const cardId = String(card.card_id ?? '');
+                if (cardId && !byId.has(cardId)) {
+                    byId.set(cardId, String(card.name ?? cardId).replace(/^\*\s*/, ''));
+                }
+            }
+        }
+
+        // Only cards this deck actually holds. An author can name a card they
+        // later cut, and a reprint carries a different id from the one they
+        // linked -- either way the card is not here to be drawn, and a chip
+        // for it would show a bare number that could never light up.
+        const wanted = (player?.mulligan_cards ?? []).filter(
+            (cardId) => byId.has(cardId));
+        if (!wanted.length) {
+            return;
+        }
+        panel.classList.remove('hide');
+
+        const heading = document.createElement('div');
+        heading.className = 'deck-tracker-advice-head';
+        heading.textContent = 'Author looks for';
+        panel.appendChild(heading);
+
+        const chips = document.createElement('div');
+        chips.className = 'deck-tracker-chips';
+        for (const cardId of wanted) {
+            const chip = document.createElement('span');
+            const held = inHand.has(cardId);
+            chip.className = held ? 'deck-tracker-chip held' : 'deck-tracker-chip';
+            chip.textContent = byId.get(cardId) as string;
+            chip.title = held ? 'In your hand' : 'Not in hand';
+            chips.appendChild(chip);
+        }
+        panel.appendChild(chips);
+
+        const note = String(player?.mulligan_note ?? '');
+        if (note) {
+            const quote = document.createElement('p');
+            quote.className = 'deck-tracker-quote';
+            quote.textContent = note;
+            panel.appendChild(quote);
+        }
+    }
+
     static render(): void {
         if (!DeckTracker.list || !DeckTracker.isOpen()) {
             return;
         }
+        DeckTracker.renderAdvice();
         const cards = DeckTracker.collect();
         DeckTracker.list.replaceChildren(...cards.map(DeckTracker.row));
 

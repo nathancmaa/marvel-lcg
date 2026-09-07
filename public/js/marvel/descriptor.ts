@@ -419,6 +419,9 @@ class PlayerDescriptor {
     environment_area        : CardDescriptor[];
     resources               : string;
     is_eliminated           : boolean;
+    /** The deck author's opening-hand advice, if the deck carried any. */
+    mulligan_cards          : string[];
+    mulligan_note           : string;
 
     constructor(obj: any, control_player: number) {
         this.area_hero                  = toPlayerCardDescriptorList(control_player, obj['area_hero'], "player-all-area-hero", {is_in_play: true});
@@ -437,6 +440,8 @@ class PlayerDescriptor {
         for (const [name, cards] of Object.entries(obj['special_decks'] ?? {})) {
             this.special_decks[name] = toPlayerCardDescriptorList(control_player, cards as any[], null);
         }
+        this.mulligan_cards             = Array.isArray(obj['mulligan_cards']) ? obj['mulligan_cards'] : [];
+        this.mulligan_note              = String(obj['mulligan_note'] ?? '');
         this.obligations_area           = toPlayerCardDescriptorList(control_player, obj['obligations_area'], "player-all-area-hero", {is_in_play: true, is_obligation: true});
         this.environment_area           = toPlayerCardDescriptorList(control_player, obj['environment_area'], "player-all-area-hero", {is_in_play: true, is_obligation: true});
         this.resources                  = obj['resources'];

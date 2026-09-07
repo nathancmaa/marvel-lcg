@@ -15,6 +15,7 @@ from engine.config import ConfigVariables
 from engine.file import FileManager
 from engine.lib import Json
 from engine.log import Log
+from engine.marvelcdb.mulligan_notes import AttachMulliganAdvice
 
 
 CATEGORY_NAME = "WEB"
@@ -318,6 +319,11 @@ class MarvelCdbDeckSync:
         kind = str(remote_deck.get('marvelcdb_kind', '')).lower()
         if kind not in cls.DECK_KINDS:
             kind = cls.DEFAULT_KIND
+        # The author's own opening-hand advice, reduced to the cards they name
+        # and the sentence naming them. The description itself is not kept: it
+        # runs to thousands of characters and this metadata travels to the
+        # table in a URL query string.
+        AttachMulliganAdvice(metadata, remote_deck.get('description_md', ''))
         metadata.update({
             'marvelcdb_id': deck_id,
             'marvelcdb_kind': kind,

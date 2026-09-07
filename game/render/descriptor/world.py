@@ -60,6 +60,10 @@ class WorldDescriptor:
 
         resources: str = field(default='')
         is_eliminated: bool = field(default=False)
+        # The deck author's opening-hand advice, when the deck came from
+        # MarvelCDB and said anything about it. Card ids and one sentence.
+        mulligan_cards: List[str] = field(default_factory=lambda: [])
+        mulligan_note: str = field(default='')
     players: List[PlayerDescriptor] = field(default_factory=lambda: [])
     # player_id: int = field(default=0)
     # Other

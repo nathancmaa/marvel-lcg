@@ -37,6 +37,21 @@ class ToDescriptor:
             
         player_descriptor.resources = player.res_pool.Get().text_legacy
         player_descriptor.is_eliminated = player.is_eliminated
+
+        # The runtime player is built from a name and a seat; the deck it was
+        # built from stays behind on the scene, which is where the metadata is.
+        # Reached rather than copied at load time so nothing about the running
+        # game has to know this field exists.
+        scene = getattr(getattr(player, 'world', None), 'scene', None)
+        scene_players = getattr(scene, 'players', None) or []
+        hero = (scene_players[player.player_id]
+                if player.player_id < len(scene_players) else None)
+        metadata = getattr(hero, 'metadata', None) or {}
+        cards = str(metadata.get('mulligan_cards', '') or '')
+        player_descriptor.mulligan_cards = [
+            card_id for card_id in cards.split(',') if card_id
+        ]
+        player_descriptor.mulligan_note = str(metadata.get('mulligan_note', '') or '')
         return player_descriptor
 
     @staticmethod
