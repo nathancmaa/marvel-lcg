@@ -10,11 +10,36 @@ import { HoverCard } from './hover.js';
 // position keeps working, and a narrow or tall window behaves exactly as
 // before. The cap stops an extreme aspect ratio from stranding the decks
 // against far edges with an ocean of felt in between.
-const BASE_SCENE_WIDTH = 1920;
-// Note this is a ceiling, not the width a wide display gets: the stage is sized
-// from the window's aspect, so 3440x1440 works out to 1080 * (3440/1440) =
-// 2580. The cap only bites past roughly 3.2:1, which is 32:9 territory.
+//
+// "The design width" is whatever the stylesheet asks for at this moment, not a
+// number known here. Three are in use -- 1920 as the base, 1600 for a desktop
+// at 3:2 or wider, 1440 for a 4:3 tablet -- and each comes with its own set of
+// furniture coordinates that place the schemes some 20 to 40 units from the
+// right edge of *that* stage. Assuming 1920 stretched the two narrower stages
+// while leaving their furniture where it was, so the schemes ended up hundreds
+// of units inboard, and the centre column -- which centres on the real width --
+// slid right into them.
 const MAX_SCENE_WIDTH = 3440;
+
+/**
+ * The stage width the stylesheet asks for, media queries included.
+ *
+ * Read with our own override lifted, since that override is the answer to this
+ * question from the last resize and would otherwise be mistaken for the
+ * stylesheet's.
+ */
+function designSceneWidth(): number {
+    const root = document.documentElement;
+    const override = root.style.getPropertyValue('--scene-width');
+    if (override) {
+        root.style.removeProperty('--scene-width');
+    }
+    const design = parseFloat(getComputedStyle(root).getPropertyValue('--scene-width'));
+    if (override) {
+        root.style.setProperty('--scene-width', override);
+    }
+    return design;
+}
 
 // Decks and scheme rows pinned to the right-hand edge. Their stylesheet --x is
 // an absolute stage coordinate that assumes the design width, so the distance
@@ -46,12 +71,15 @@ function clearRightAnchors(): void {
  * theme moves these decks inward under a `min-aspect-ratio: 3 / 2` media query,
  * so a cached offset would go stale the moment the window crossed that
  * breakpoint -- and because the override is inline, it would win over the media
- * query permanently. Clearing first also means the base width needs no
+ * query permanently. Clearing first also means the design width needs no
  * overrides at all: the stylesheet is already right there.
+ *
+ * `designWidth` is the stage those furniture coordinates were written for, and
+ * is what each one's distance from the right edge is measured against.
  *
  * Returns whether anything changed, so a relayout is only requested when needed.
  */
-function applySceneWidth(width: number): boolean {
+function applySceneWidth(width: number, designWidth: number): boolean {
     const root = document.documentElement;
     const current = parseFloat(getComputedStyle(root).getPropertyValue('--scene-width'));
     if (current === width) {
@@ -59,17 +87,21 @@ function applySceneWidth(width: number): boolean {
     }
 
     clearRightAnchors();
-    root.style.setProperty('--scene-width', width.toString());
-    if (width === BASE_SCENE_WIDTH) {
+    if (width === designWidth) {
+        // Removed rather than set to the same number, so that crossing a media
+        // query later changes the stage: an inline value equal to today's
+        // design width would outlive the breakpoint that made it right.
+        root.style.removeProperty('--scene-width');
         return true;
     }
+    root.style.setProperty('--scene-width', width.toString());
 
     // getComputedStyle after the clear reflects the stylesheet, media queries
     // included, so this reads the positions the theme actually wants right now.
     for (const element of document.querySelectorAll<HTMLElement>(RIGHT_ANCHORED_SELECTOR)) {
         const x = Number(getComputedStyle(element).getPropertyValue('--x'));
         if (Number.isFinite(x)) {
-            element.style.setProperty('--x', (width - (BASE_SCENE_WIDTH - x)).toString());
+            element.style.setProperty('--x', (width - (designWidth - x)).toString());
         }
     }
     return true;
@@ -140,10 +172,11 @@ export function adjustSceneScale() {
 
     // Match the stage to the window's aspect so a wide display fills out
     // instead of being letterboxed, within the bounds set above.
+    const designWidth = designSceneWidth();
     const widthForAspect = Math.round(sceneHeight * (viewportWidth / viewportHeight));
     const sceneWidth = Math.min(
-        MAX_SCENE_WIDTH, Math.max(BASE_SCENE_WIDTH, widthForAspect));
-    const widthChanged = applySceneWidth(sceneWidth);
+        MAX_SCENE_WIDTH, Math.max(designWidth, widthForAspect));
+    const widthChanged = applySceneWidth(sceneWidth, designWidth);
 
     // Calculate scale factors
     const scaleX = viewportWidth / sceneWidth;
