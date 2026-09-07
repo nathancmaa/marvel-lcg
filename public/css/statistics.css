@@ -860,7 +860,7 @@ tbody tr:last-child td {
 .matchup-table .scenario-label {
     position: relative;
     height: 9.5rem;
-    width: 1.4rem;
+    width: var(--matchup-cell, 1.4rem);
     padding: 0;
     overflow: visible;
 }
@@ -898,8 +898,8 @@ tbody tr:last-child td {
 
 .matchup-cell {
     display: block;
-    width: 1.4rem;
-    height: 1.4rem;
+    width: var(--matchup-cell, 1.4rem);
+    height: var(--matchup-cell, 1.4rem);
     border: 0;
     cursor: pointer;
     font-family: inherit;
@@ -1002,4 +1002,11 @@ tbody tr:last-child td {
     margin-left: auto;
     color: var(--muted);
     opacity: 0.85;
+}
+
+/* The coverage grid is 62 columns wide and wants every pixel there is, so on
+   this one tab the shell gives up its reading-width cap. Everything else on
+   the page stays at 92rem, where prose and tables are meant to sit. */
+.page-shell:has(#tab-matchups:not([hidden])) {
+    width: min(140rem, 100%);
 }

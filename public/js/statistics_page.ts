@@ -546,8 +546,11 @@ function hideMatchupPopover(): void {
     matchupPopover().hidden = true;
 }
 
+const ANCHOR_MARK = 'data-matchup-anchor';
+
 function bindMatchupPopover(anchor: HTMLElement, entry: MatchupAxis): void {
     anchor.tabIndex = 0;
+    anchor.setAttribute(ANCHOR_MARK, '');
     anchor.addEventListener('mouseenter', () => showMatchupPopover(anchor, entry));
     anchor.addEventListener('focus', () => showMatchupPopover(anchor, entry));
     anchor.addEventListener('mouseleave', scheduleHideMatchupPopover);
@@ -563,16 +566,63 @@ function bindMatchupPopover(anchor: HTMLElement, entry: MatchupAxis): void {
  * then the panel sits over the chart with nothing left to close it.
  */
 function bindMatchupPopoverDismissal(): void {
+    // The one rule that cannot get stuck: if the pointer moves and is not on a
+    // name, the panel closes. Pairing mouseenter with mouseleave was the tidier
+    // idea and it kept failing, because there are too many ways to leave -- a
+    // rotated label whose hit area reaches into the grid, an anchor replaced by
+    // a redraw while the pointer is still on it, a movement that crosses out of
+    // the window between events. This asks the pointer where it is rather than
+    // trusting that the matching leave arrived.
+    document.addEventListener('pointermove', (event) => {
+        if (matchupPopover().hidden) {
+            return;
+        }
+        const target = event.target as Element | null;
+        if (target?.closest?.(`[${ANCHOR_MARK}]`)) {
+            return;
+        }
+        hideMatchupPopover();
+    }, {passive: true});
+
     const scroll = document.getElementById('matchup-scroll');
     scroll?.addEventListener('scroll', hideMatchupPopover, {passive: true});
     scroll?.addEventListener('mouseleave', scheduleHideMatchupPopover);
     window.addEventListener('scroll', hideMatchupPopover, {passive: true});
-    window.addEventListener('resize', hideMatchupPopover);
+    let resizeTimer = 0;
+    window.addEventListener('resize', () => {
+        hideMatchupPopover();
+        // Coalesced: dragging a window edge fires this continuously and the
+        // grid is a few thousand cells.
+        window.clearTimeout(resizeTimer);
+        resizeTimer = window.setTimeout(() => {
+            if (activeTab === 'matchups' && matchupMatrix) {
+                renderMatchupGrid();
+            }
+        }, 120);
+    });
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {
             hideMatchupPopover();
         }
     });
+}
+
+let matchupResizing = false;
+const HERO_COLUMN_PX = 160;
+/** Small enough to still read as a square, big enough to hit. */
+const MIN_CELL_PX = 13;
+const MAX_CELL_PX = 34;
+
+/** The square size that fits this many columns in the width available. */
+function matchupCellSize(scenarioCount: number): number {
+    const scroll = document.getElementById('matchup-scroll');
+    const available = (scroll?.clientWidth ?? 0) - HERO_COLUMN_PX - 12;
+    if (available <= 0 || scenarioCount === 0) {
+        return 20;
+    }
+    // Two pixels of border-spacing sit between every pair of columns.
+    const fit = Math.floor(available / scenarioCount) - 2;
+    return Math.max(MIN_CELL_PX, Math.min(MAX_CELL_PX, fit));
 }
 
 function renderMatchupGrid(): void {
@@ -638,13 +688,31 @@ function renderMatchupGrid(): void {
 
     // Fixed layout takes its widths from the first row, so they are stated
     // outright rather than inferred from whatever the header happens to hold.
+    // The square is sized to the space there is: a 62-column grid on a narrow
+    // window has to scroll, but on a wide one it should use the width rather
+    // than leave half the panel empty beside a fixed little grid.
+    const cell = matchupCellSize(scenarios.length);
+    table.style.setProperty('--matchup-cell', `${cell}px`);
+    // Measured against a layout that may not have settled: opening this tab
+    // widens the shell, and the first render can run before the browser has
+    // applied that. One re-measure after the next frame catches it, guarded so
+    // it cannot chase its own tail.
+    if (!matchupResizing) {
+        matchupResizing = true;
+        requestAnimationFrame(() => {
+            matchupResizing = false;
+            if (matchupCellSize(scenarios.length) !== cell) {
+                renderMatchupGrid();
+            }
+        });
+    }
     const columns = document.createElement('colgroup');
     const heroColumn = document.createElement('col');
-    heroColumn.style.width = '10rem';
+    heroColumn.style.width = `${HERO_COLUMN_PX}px`;
     columns.appendChild(heroColumn);
     for (let index = 0; index < scenarios.length; index += 1) {
         const column = document.createElement('col');
-        column.style.width = '1.4rem';
+        column.style.width = `${cell}px`;
         columns.appendChild(column);
     }
 
@@ -743,8 +811,14 @@ function setActiveTab(tab: TabName): void {
     // Fetched when the tab is first opened rather than with the dashboard: the
     // grid walks every starter deck and scenario file, which is wasted work for
     // anyone who never looks at it.
-    if (tab === 'matchups' && matchupMatrix === null) {
-        void loadMatchupGrid();
+    if (tab === 'matchups') {
+        if (matchupMatrix === null) {
+            void loadMatchupGrid();
+        } else {
+            // The shell widens for this tab, so the squares are re-sized to the
+            // width that opening it just made available.
+            renderMatchupGrid();
+        }
     }
 }
 
@@ -985,7 +1059,10 @@ async function initialize(): Promise<void> {
         await loadDashboard();
         bindEvents();
         const requestedTab = location.hash.slice(1) as TabName;
-        setActiveTab(['collection', 'history', 'achievements'].includes(requestedTab) ? requestedTab : 'collection');
+        setActiveTab(
+            ['collection', 'history', 'matchups', 'achievements'].includes(requestedTab)
+                ? requestedTab
+                : 'collection');
         loading.hidden = true;
         dashboardElement.hidden = false;
     } catch (reason) {
