@@ -817,7 +817,8 @@ tbody tr:last-child td {
     margin-right: 0.15rem;
 }
 
-.matchup-legend .swatch.won { background: #2f8f6b; }
+.matchup-legend .swatch.won { background: #4fc98f; }
+.matchup-legend .swatch.won-expert { background: #17603f; }
 .matchup-legend .swatch.lost { background: rgba(255, 143, 143, 0.45); }
 .matchup-legend .swatch.none { background: rgba(143, 190, 224, 0.12); }
 
@@ -833,8 +834,13 @@ tbody tr:last-child td {
 
 .matchup-table {
     /* Fixed, so 62 columns keep the width they are given instead of being
-       widened by the rotated labels sitting above them. */
+       widened by the rotated labels sitting above them. And sized to its own
+       columns rather than to the panel: a global `table { width: 100% }`
+       otherwise stretched it, and with "played only" narrowing the grid to a
+       handful of columns all that slack landed in the hero name column. */
     table-layout: fixed;
+    width: max-content;
+    min-width: 0;
     border-collapse: separate;
     border-spacing: 2px;
     font-size: 0.75rem;
@@ -850,49 +856,10 @@ tbody tr:last-child td {
     white-space: nowrap;
 }
 
-.matchup-table .box-label {
-    /* Clipped rather than allowed to collide: a narrow box of one or two
-       scenarios cannot hold its own name at this scale. */
-    overflow: hidden;
-    font-size: 0.68rem;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--blue);
-    text-align: center;
-    padding: 0.3rem 0.4rem;
-    border-bottom: 1px solid var(--line);
-}
-
-/* Both axis bands take their labels out of flow, so a long box name cannot
-   stretch a short group's rows and a long scenario name cannot widen its
-   column. Each clips instead; the full text stays in the cell title. */
-.matchup-table .box-label.row {
-    position: relative;
-    width: 1.5rem;
-    padding: 0;
-    border-bottom: none;
-    border-right: 1px solid var(--line);
-    overflow: hidden;
-}
-
-.matchup-table .box-label.row span {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    /* Reads bottom-to-top down the left edge, the way the column band reads
-       left-to-right along the top. */
-    writing-mode: vertical-rl;
-    transform: rotate(180deg);
-    white-space: nowrap;
-    overflow: hidden;
-}
-
 /* Scenario names are long and the columns are one cell wide, so they lean. */
 .matchup-table .scenario-label {
     position: relative;
-    height: 9rem;
+    height: 9.5rem;
     width: 1.4rem;
     padding: 0;
     overflow: visible;
@@ -923,8 +890,12 @@ tbody tr:last-child td {
 }
 
 .matchup-cell {
+    display: block;
     width: 1.4rem;
     height: 1.4rem;
+    border: 0;
+    cursor: pointer;
+    font-family: inherit;
     padding: 0;
     text-align: center;
     border-radius: 0.15rem;
@@ -935,13 +906,86 @@ tbody tr:last-child td {
     font-variant-numeric: tabular-nums;
 }
 
-.matchup-cell.won { background: #2f8f6b; }
+/* Two greens, the way MCT reads: the lighter one is a win, the darker one a
+   win on expert. */
+.matchup-cell.won { background: #4fc98f; }
+.matchup-cell.won-expert { background: #17603f; color: #d8f5e6; }
 .matchup-cell.lost { background: rgba(255, 143, 143, 0.4); color: #ffe8e8; }
 .matchup-cell.none { background: rgba(143, 190, 224, 0.08); }
+
+.matchup-cell:hover,
+.matchup-cell:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: -1px;
+}
+
+.matchup-table td {
+    padding: 0;
+}
+
+.matchup-table .hero-label span,
+.matchup-table .scenario-label span {
+    cursor: help;
+}
+
+.matchup-table .hero-label span:focus-visible,
+.matchup-table .scenario-label span:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 2px;
+}
+
+/* The card panel. Fixed, so it is not clipped by the grid's own scroll box. */
+.matchup-popover {
+    position: fixed;
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    padding: 0.6rem;
+    max-width: 22rem;
+    border: 1px solid var(--line);
+    border-radius: 0.5rem;
+    background: rgba(6, 12, 20, 0.97);
+    box-shadow: 0 0.6rem 1.6rem rgba(0, 0, 0, 0.55);
+    pointer-events: none;
+}
+
+.matchup-popover-cards {
+    display: flex;
+    gap: 0.4rem;
+}
+
+.matchup-popover-cards img {
+    width: 9.5rem;
+    border-radius: 0.35rem;
+    background: rgba(143, 190, 224, 0.1);
+}
+
+.matchup-popover-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.matchup-popover-text strong {
+    color: #e6eef6;
+    font-size: 0.95rem;
+}
+
+.matchup-popover-box {
+    color: var(--muted);
+    font-size: 0.78rem;
+}
 
 .matchup-empty {
     caption-side: bottom;
     padding: 1.5rem;
     color: var(--muted);
     text-align: center;
+}
+
+.matchup-legend .matchup-hint {
+    margin-left: auto;
+    color: var(--muted);
+    opacity: 0.85;
 }

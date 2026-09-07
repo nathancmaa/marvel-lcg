@@ -260,6 +260,14 @@ export type DeckFiltersOptions<T extends DeckFilterChoice> = {
 export type DeckFilters<T extends DeckFilterChoice> = {
     /** Replace the deck list and redraw. */
     render(choices: T[]): void;
+    /**
+     * Narrow the list to one hero identity, as if the dropdown were used.
+     *
+     * For arriving from somewhere that already knows which hero is wanted --
+     * the coverage grid sends both hero and scenario -- so the picker opens on
+     * that hero's decks instead of all several hundred.
+     */
+    filterToHero(heroKey: string): void;
 };
 
 export function createDeckFilters<T extends DeckFilterChoice>(
@@ -545,6 +553,15 @@ export function createDeckFilters<T extends DeckFilterChoice>(
         render(choices: T[]): void {
             source = choices;
             refreshHeroOptions();
+            void ensureAspectsThenDraw();
+        },
+        filterToHero(heroKey: string): void {
+            if (![...heroSelect.options].some(option => option.value === heroKey)) {
+                return;
+            }
+            heroSelect.value = heroKey;
+            state.heroId = heroKey;
+            persist();
             void ensureAspectsThenDraw();
         },
     };

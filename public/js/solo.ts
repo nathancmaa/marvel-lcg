@@ -86,6 +86,21 @@ const heroStorageKey = 'marvel_lcg_solo_hero';
 const underlingStorageKey = 'marvel_lcg_solo_underling';
 const standardSetStorageKey = 'marvel_lcg_solo_standard_set';
 const aspectHeroStorageKey = 'marvel_lcg_solo_aspect_hero';
+
+/**
+ * A hero and scenario named in the URL, from the coverage grid.
+ *
+ * Read once at load. These win over the remembered choices for this visit
+ * only and are not written back, so arriving from a square does not quietly
+ * rewrite what the picker opens on next time.
+ */
+const requestedGame = (() => {
+    const query = new URLSearchParams(window.location.search);
+    return {
+        hero: query.get('hero') ?? '',
+        scenario: query.get('scenario') ?? '',
+    };
+})();
 const newScenarioIds = new Set(['kingpin', 'protection_racket', 'the_raft_breakout', 'art_museum_heist', 'the_getaway', 'stop_the_presses']);
 const newUnderlingIds = new Set(['bullseye', 'electro', 'hammerhead', 'purple_man', 'typhoid_mary']);
 const newHeroIds = new Set(['echo', 'daredevil', 'jessica_jones']);
@@ -628,7 +643,7 @@ async function loadHeroChoices(): Promise<HeroChoice[]> {
 }
 
 function renderScenarios(choices: ScenarioChoice[]): void {
-    const savedId = localStorage.getItem(scenarioStorageKey);
+    const savedId = requestedGame.scenario || localStorage.getItem(scenarioStorageKey);
     scenarioFilters.render(choices);
 
     const savedChoice = choices.find((choice) => choice.id === savedId);
@@ -643,13 +658,27 @@ function renderHeroes(choices: HeroChoice[]): void {
     heroChoices = choices;
     deckFilters.render(choices);
 
-    const savedChoice = choices.find((choice) => choice.id === savedId);
+    // A hero asked for by id is a precon; if it is missing, fall back rather
+    // than leaving nothing selected.
+    const requested = requestedGame.hero
+        ? choices.find((choice) => choice.id === requestedGame.hero)
+        : undefined;
+    const savedChoice = requested ?? choices.find((choice) => choice.id === savedId);
     if (savedChoice) {
         selectHero(savedChoice);
+    }
+    if (requested) {
+        // Several hundred decks are unhelpful when the answer is already known,
+        // so the picker opens on this hero's own.
+        deckFilters.filterToHero(heroKeyOf(requested));
     }
     // The decks arrive after the picker is wired, so a page that came back in
     // aspect mode gets its dropdown filled and applied here rather than never.
     populateAspectHeroes();
+    if (requested) {
+        // Whichever source the player switches to, it opens on the same hero.
+        aspectHero.value = requested.id;
+    }
     if (deckSourceController?.getSource() === 'aspect') {
         applyAspectHero();
     }

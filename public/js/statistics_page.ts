@@ -1,3 +1,5 @@
+import { withCardImageRevision } from './card_image_url.js';
+
 type SourceFilter = 'all'|'digital'|'physical'|'replay_import';
 type TabName = 'collection'|'history'|'matchups'|'achievements';
 
@@ -435,6 +437,7 @@ async function loadDashboard(): Promise<void> {
 type MatchupAxis = {
     id: string;
     code?: string;
+    faces: string[];
     name: string;
     box: string;
     box_order: number;
@@ -457,24 +460,89 @@ type MatchupMatrix = {
 
 let matchupMatrix: MatchupMatrix | null = null;
 
-/** Runs of equal box labels down an axis, for the grouping rules. */
-function boxRuns(axis: MatchupAxis[]): {box: string; start: number; length: number}[] {
-    const runs: {box: string; start: number; length: number}[] = [];
-    axis.forEach((entry, index) => {
-        const last = runs[runs.length - 1];
-        if (last && last.box === entry.box) {
-            last.length += 1;
-        } else {
-            runs.push({box: entry.box, start: index, length: 1});
-        }
-    });
-    return runs;
+/**
+ * The floating card panel for one hero or scenario.
+ *
+ * The box each came from used to be a band down each axis, but a box holding
+ * one hero cannot hold its own name at this scale: the labels ran into each
+ * other and into the header. The box is a detail about one entry rather than a
+ * structure of the grid, so it belongs here beside the card it describes.
+ */
+function matchupPopover(): HTMLElement {
+    let panel = document.getElementById('matchup-popover');
+    if (!panel) {
+        panel = document.createElement('div');
+        panel.id = 'matchup-popover';
+        panel.className = 'matchup-popover';
+        panel.hidden = true;
+        document.body.appendChild(panel);
+    }
+    return panel;
+}
+
+function showMatchupPopover(anchor: HTMLElement, entry: MatchupAxis): void {
+    const panel = matchupPopover();
+    panel.replaceChildren();
+
+    const cards = document.createElement('div');
+    cards.className = 'matchup-popover-cards';
+    for (const face of entry.faces.slice(0, 2)) {
+        const image = document.createElement('img');
+        image.loading = 'lazy';
+        image.alt = '';
+        image.src = withCardImageRevision('/' + face);
+        cards.appendChild(image);
+    }
+    if (cards.childElementCount) {
+        panel.appendChild(cards);
+    }
+
+    const name = document.createElement('strong');
+    name.textContent = entry.name;
+    const box = document.createElement('span');
+    box.className = 'matchup-popover-box';
+    box.textContent = entry.box;
+    const text = document.createElement('div');
+    text.className = 'matchup-popover-text';
+    text.append(name, box);
+    panel.appendChild(text);
+
+    panel.hidden = false;
+
+    // Placed against the anchor, then pulled back inside the window: near the
+    // right edge of a 62-column grid there is nothing to the right to open on.
+    const rect = anchor.getBoundingClientRect();
+    const size = panel.getBoundingClientRect();
+    const margin = 8;
+    let left = rect.right + margin;
+    if (left + size.width > window.innerWidth - margin) {
+        left = Math.max(margin, rect.left - size.width - margin);
+    }
+    let top = rect.top;
+    if (top + size.height > window.innerHeight - margin) {
+        top = Math.max(margin, window.innerHeight - size.height - margin);
+    }
+    panel.style.left = Math.round(left) + 'px';
+    panel.style.top = Math.round(top) + 'px';
+}
+
+function hideMatchupPopover(): void {
+    matchupPopover().hidden = true;
+}
+
+function bindMatchupPopover(anchor: HTMLElement, entry: MatchupAxis): void {
+    anchor.tabIndex = 0;
+    anchor.addEventListener('mouseenter', () => showMatchupPopover(anchor, entry));
+    anchor.addEventListener('focus', () => showMatchupPopover(anchor, entry));
+    anchor.addEventListener('mouseleave', hideMatchupPopover);
+    anchor.addEventListener('blur', hideMatchupPopover);
 }
 
 function renderMatchupGrid(): void {
     const table = element<HTMLTableElement>('matchup-table');
     const summary = element<HTMLElement>('matchup-summary');
     const matrix = matchupMatrix;
+    hideMatchupPopover();
     if (!matrix || !matrix.available) {
         table.replaceChildren();
         summary.textContent = matrix?.error
@@ -485,7 +553,7 @@ function renderMatchupGrid(): void {
     const showCounts = element<HTMLInputElement>('matchup-counts').checked;
     const playedOnly = element<HTMLInputElement>('matchup-played-only').checked;
     const cellFor = (hero: MatchupAxis, scenario: MatchupAxis): MatchupCell | undefined =>
-        matrix.cells[`${hero.code}|${scenario.id}`];
+        matrix.cells[hero.code + '|' + scenario.id];
 
     let heroes = matrix.heroes;
     let scenarios = matrix.scenarios;
@@ -494,10 +562,11 @@ function renderMatchupGrid(): void {
         scenarios = scenarios.filter(s => heroes.some(h => cellFor(h, s)));
     }
 
-    // The counts are over the full grid whatever is on screen: coverage of what
-    // you have filtered down to is not the number anybody wants.
+    // Counted over the full grid whatever is on screen: coverage of what you
+    // have filtered down to is not the number anybody wants.
     let played = 0;
     let won = 0;
+    let expertWon = 0;
     for (const hero of matrix.heroes) {
         for (const scenario of matrix.scenarios) {
             const cell = cellFor(hero, scenario);
@@ -508,53 +577,42 @@ function renderMatchupGrid(): void {
             if (cell.wins > 0) {
                 won += 1;
             }
+            if (cell.expert_wins > 0) {
+                expertWon += 1;
+            }
         }
     }
     const possible = matrix.heroes.length * matrix.scenarios.length;
     summary.textContent = possible === 0
         ? 'No heroes or scenarios were found.'
-        : `${won} of ${possible} matchups won · ${played} played · `
-            + `${matrix.heroes.length} heroes × ${matrix.scenarios.length} scenarios`;
+        : `${won} of ${possible} matchups won · ${expertWon} on expert · `
+            + `${played} played · ${matrix.heroes.length} heroes × `
+            + `${matrix.scenarios.length} scenarios`;
 
     if (!heroes.length || !scenarios.length) {
         table.replaceChildren();
-        table.insertAdjacentHTML('beforeend',
-            '<caption class="matchup-empty">No games recorded yet. '
-            + 'Finish a game and it will appear here.</caption>');
+        const caption = document.createElement('caption');
+        caption.className = 'matchup-empty';
+        caption.textContent =
+            'No games recorded yet. Finish a game and it will appear here.';
+        table.appendChild(caption);
         return;
     }
 
-    // Fixed layout takes its widths from the first row, and the first row is
-    // the box band with its colspans -- which left the hero names a single
-    // letter wide. A colgroup states the widths outright instead.
+    // Fixed layout takes its widths from the first row, so they are stated
+    // outright rather than inferred from whatever the header happens to hold.
     const columns = document.createElement('colgroup');
-    for (const width of ['1.5rem', '9.5rem']) {
-        const col = document.createElement('col');
-        col.style.width = width;
-        columns.appendChild(col);
-    }
+    const heroColumn = document.createElement('col');
+    heroColumn.style.width = '10rem';
+    columns.appendChild(heroColumn);
     for (let index = 0; index < scenarios.length; index += 1) {
-        const col = document.createElement('col');
-        col.style.width = '1.4rem';
-        columns.appendChild(col);
+        const column = document.createElement('col');
+        column.style.width = '1.4rem';
+        columns.appendChild(column);
     }
 
     const head = document.createElement('thead');
-    const boxRow = document.createElement('tr');
-    boxRow.appendChild(document.createElement('td'));
-    boxRow.appendChild(document.createElement('td'));
-    for (const run of boxRuns(scenarios)) {
-        const cell = document.createElement('th');
-        cell.className = 'box-label';
-        cell.colSpan = run.length;
-        cell.scope = 'colgroup';
-        cell.textContent = run.box;
-        boxRow.appendChild(cell);
-    }
-    head.appendChild(boxRow);
-
     const nameRow = document.createElement('tr');
-    nameRow.appendChild(document.createElement('td'));
     nameRow.appendChild(document.createElement('td'));
     for (const scenario of scenarios) {
         const cell = document.createElement('th');
@@ -563,54 +621,60 @@ function renderMatchupGrid(): void {
         const span = document.createElement('span');
         span.textContent = scenario.name;
         cell.appendChild(span);
+        bindMatchupPopover(span, scenario);
         nameRow.appendChild(cell);
     }
     head.appendChild(nameRow);
     table.replaceChildren(columns, head);
 
     const body = document.createElement('tbody');
-    const runsByStart = new Map(boxRuns(heroes).map(run => [run.start, run]));
-    heroes.forEach((hero, index) => {
+    for (const hero of heroes) {
         const row = document.createElement('tr');
-        const run = runsByStart.get(index);
-        if (run) {
-            const label = document.createElement('th');
-            label.className = 'box-label row';
-            label.rowSpan = run.length;
-            label.scope = 'rowgroup';
-            // Inside a span so it can be taken out of flow: a rotated label is
-            // as tall as its text is long, and a one-hero box would otherwise
-            // stretch its row to the height of the whole box name.
-            const labelText = document.createElement('span');
-            labelText.textContent = run.box;
-            label.appendChild(labelText);
-            row.appendChild(label);
-        }
         const heroCell = document.createElement('th');
         heroCell.className = 'hero-label';
         heroCell.scope = 'row';
-        heroCell.textContent = hero.name;
+        const heroName = document.createElement('span');
+        heroName.textContent = hero.name;
+        heroCell.appendChild(heroName);
+        bindMatchupPopover(heroName, hero);
         row.appendChild(heroCell);
 
         for (const scenario of scenarios) {
             const cell = document.createElement('td');
             const data = cellFor(hero, scenario);
-            const state = !data ? 'none' : data.wins > 0 ? 'won' : 'lost';
-            cell.className = `matchup-cell ${state}`;
-            if (data) {
-                const record = `${data.wins}W ${data.games - data.wins}L`;
-                cell.title = `${hero.name} vs ${scenario.name} — ${record}`
-                    + (data.expert_games ? ` (${data.expert_wins}W expert)` : '');
-                if (showCounts) {
-                    cell.textContent = String(data.games);
-                }
-            } else {
-                cell.title = `${hero.name} vs ${scenario.name} — never played`;
+            // An expert win sits on top of a standard one rather than beside
+            // it: beating a scenario on expert is the harder claim, so it is
+            // the one the square makes.
+            const state = !data
+                ? 'none'
+                : data.expert_wins > 0 ? 'won-expert'
+                : data.wins > 0 ? 'won'
+                : 'lost';
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'matchup-cell ' + state;
+            const record = data
+                ? `${data.wins}W ${data.games - data.wins}L`
+                    + (data.expert_games ? `, ${data.expert_wins}W expert` : '')
+                : 'never played';
+            button.title = `${hero.name} vs ${scenario.name} — ${record}`
+                + '\nClick to set this game up';
+            button.setAttribute(
+                'aria-label',
+                `${hero.name} versus ${scenario.name}, ${record}. Set this game up.`);
+            if (data && showCounts) {
+                button.textContent = String(data.games);
             }
+            button.addEventListener('click', () => {
+                window.location.assign(
+                    '/solo?hero=' + encodeURIComponent(hero.id)
+                    + '&scenario=' + encodeURIComponent(scenario.id));
+            });
+            cell.appendChild(button);
             row.appendChild(cell);
         }
         body.appendChild(row);
-    });
+    }
     table.appendChild(body);
 }
 

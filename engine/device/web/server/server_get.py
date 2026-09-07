@@ -193,12 +193,19 @@ class GameServerGet(GameServerBase):
                     data = Json.Load(path)
                 except Exception:
                     continue
-                code = str((data.get('hero') or [''])[0]).split(',')[0].strip().lower()
-                if not code:
+                faces = [
+                    face.strip().lower()
+                    for face in str((data.get('hero') or [''])[0]).split(',')
+                    if face.strip()
+                ]
+                if not faces:
                     continue
                 heroes.append({
                     'id': hero_id,
-                    'code': code,
+                    'code': faces[0],
+                    # Both sides: the popover shows the identity front and back,
+                    # which is where the hero's own details actually live.
+                    'faces': faces,
                     'name': data.get('name') or hero_id,
                     'box': box,
                     'box_order': order,
@@ -215,10 +222,17 @@ class GameServerGet(GameServerBase):
                 keys = list(dict.fromkeys([
                     self._matchup_slug(name), scenario_id,
                 ]))
+                image_source = (
+                    data.get('schemes')
+                    if data.get('underling_sets')
+                    else data.get('villain') or data.get('schemes')
+                ) or []
+                face = str(image_source[0]).split(',')[0].strip().lower() if image_source else ''
                 scenarios.append({
                     'id': scenario_id,
                     'keys': keys,
                     'name': name,
+                    'faces': [face] if face else [],
                     'box': box,
                     'box_order': order,
                 })
