@@ -736,6 +736,15 @@ class MarvelCdbDeckSync:
                 Log.Warn(CATEGORY_NAME, f'MarvelCDB periodic sync failed: {exc}')
 
     def Start(self) -> None:
+        # Where the decks actually are, absolute. Everything about a volume
+        # that failed to mount looks normal from inside the container: decks
+        # sync, they appear in the picker, and they are silently written to
+        # the image instead of the disk, to be replaced by the next rebuild.
+        # The one thing that gives it away is the path.
+        Log.Info(
+            CATEGORY_NAME,
+            f'MarvelCDB decks: {os.path.abspath(self.user_deck_folder)}',
+        )
         with self._condition:
             if self._thread and self._thread.is_alive():
                 return

@@ -70,7 +70,12 @@ class GameHistory:
             )
             Log.Info(
                 CATEGORY_NAME,
-                f'Game history ready: {self.file_path} ({imported} replay(s) imported)',
+                # Absolute, deliberately. A relative './statistics.sqlite3'
+                # reads the same whether or not the volume it is supposed to
+                # live on is mounted, and a missing mount looks exactly like
+                # data loss on the next rebuild.
+                f'Game history ready: {os.path.abspath(self.file_path)} '
+                f'({imported} replay(s) imported)',
             )
         except Exception as exc:
             self.available = False
