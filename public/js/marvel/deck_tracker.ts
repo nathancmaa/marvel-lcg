@@ -36,6 +36,16 @@ export class DeckTracker {
     private static advice = document.getElementById('deck-tracker-advice') as HTMLElement | null;
     private static list = document.getElementById('deck-tracker-list') as HTMLElement | null;
     private static summary = document.getElementById('deck-tracker-summary') as HTMLElement | null;
+    /**
+     * Whether the preview currently on screen is one of ours.
+     *
+     * The panel rebuilds its rows on every world update, and replaceChildren
+     * removes whatever the pointer was over -- a removed node never fires
+     * mouseleave, so the card it opened would stay up with nothing left to
+     * dismiss it. Only previews this panel opened are cleared, because the
+     * board opens the same one and closing that would be worse than the bug.
+     */
+    private static owns_preview = false;
 
     static toggle(): void {
         DeckTracker.panel?.classList.toggle('hide');
@@ -44,6 +54,7 @@ export class DeckTracker {
 
     static close(): void {
         DeckTracker.panel?.classList.add('hide');
+        DeckTracker.hidePreview();
     }
 
     static isOpen(): boolean {
@@ -122,6 +133,20 @@ export class DeckTracker {
             left.cost - right.cost || left.name.localeCompare(right.name));
     }
 
+    private static showPreview(cardId: string, name: string): void {
+        DeckTracker.owns_preview = true;
+        HoverCard.show(`url("${withCardImageRevision('/' + cardId)}")`,
+            name, '', '', '', '', false);
+    }
+
+    private static hidePreview(): void {
+        if (!DeckTracker.owns_preview) {
+            return;
+        }
+        DeckTracker.owns_preview = false;
+        HoverCard.hide();
+    }
+
     private static row(card: TrackedCard): HTMLElement {
         const row = document.createElement('li');
         row.className = card.remaining > 0 ? 'deck-tracker-row' : 'deck-tracker-row drawn';
@@ -145,11 +170,9 @@ export class DeckTracker {
             ? `${card.name} — all ${card.total} still in the deck`
             : `${card.name} — ${card.remaining} of ${card.total} left`;
 
-        const preview = () => HoverCard.show(
-            `url("${withCardImageRevision('/' + card.cardId)}")`,
-            card.name, '', '', '', '', false);
-        row.addEventListener('mouseenter', preview);
-        row.addEventListener('mouseleave', () => HoverCard.hide());
+        row.addEventListener('mouseenter',
+            () => DeckTracker.showPreview(card.cardId, card.name));
+        row.addEventListener('mouseleave', () => DeckTracker.hidePreview());
         return row;
     }
 
@@ -220,10 +243,9 @@ export class DeckTracker {
             // The same preview the rows below use, so a card you are being
             // told to look for can be read without hunting for it in the list.
             const name = byId.get(cardId) as string;
-            chip.addEventListener('mouseenter', () => HoverCard.show(
-                `url("${withCardImageRevision('/' + cardId)}")`,
-                name, '', '', '', '', false));
-            chip.addEventListener('mouseleave', () => HoverCard.hide());
+            chip.addEventListener('mouseenter',
+                () => DeckTracker.showPreview(cardId, name));
+            chip.addEventListener('mouseleave', () => DeckTracker.hidePreview());
             chips.appendChild(chip);
         }
         panel.appendChild(chips);
@@ -264,6 +286,8 @@ export class DeckTracker {
         if (!DeckTracker.list || !DeckTracker.isOpen()) {
             return;
         }
+        // The rows about to be replaced may include the one under the pointer.
+        DeckTracker.hidePreview();
         DeckTracker.renderAdvice();
         const cards = DeckTracker.collect();
         DeckTracker.list.replaceChildren(...cards.map(DeckTracker.row));

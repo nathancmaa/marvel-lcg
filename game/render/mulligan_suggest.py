@@ -62,8 +62,16 @@ SUGGESTION_COUNT = 5
 
 # Decks are fixed for a game, so this is computed once and kept. Bounded
 # because a long-running server sees many.
-_CACHE: Dict[Tuple[str, ...], List[str]] = {}
+#
+# Keyed on the two lists separately, not on the cards combined: whether a card
+# is part of the hero's own kit changes its score, so two decks holding the same
+# forty cards split differently are different questions with different answers.
+_CACHE: Dict[Tuple[Tuple[str, ...], Tuple[str, ...]], List[str]] = {}
 _CACHE_LIMIT = 64
+
+# A deck is forty cards and change. This is not a deck size limit -- it is a
+# ceiling on what an HTTP body can make the server look up and then remember.
+MAX_DECK_CARDS = 500
 
 
 def _score(paper: Any, copies: int, is_signature: bool) -> float:
@@ -85,10 +93,12 @@ def _score(paper: Any, copies: int, is_signature: bool) -> float:
     if copies >= 3:
         score += THREE_COPIES
 
+    # Counted once however many of the words appear. It was measured as a
+    # single yes/no feature, and paying per word let a card that happens to say
+    # all three outweigh being an Upgrade -- a weight nothing measured.
     text = str(getattr(paper, 'text', '') or '').lower()
-    for hint in TEXT_HINTS:
-        if hint in text:
-            score += TEXT_HINT
+    if any(hint in text for hint in TEXT_HINTS):
+        score += TEXT_HINT
     return score
 
 
@@ -129,16 +139,18 @@ def SuggestMulliganCards(
     if not CardsDB.papers:
         return []
 
-    all_cards = list(player_deck) + list(hero_deck)
+    player_cards = list(player_deck)[:MAX_DECK_CARDS]
+    hero_cards = list(hero_deck)[:MAX_DECK_CARDS]
+    all_cards = player_cards + hero_cards
     if not all_cards:
         return []
 
-    key = tuple(sorted(all_cards))
+    key = (tuple(sorted(player_cards)), tuple(sorted(hero_cards)))
     cached = _CACHE.get(key)
     if cached is not None:
         return list(cached)
 
-    signature = set(hero_deck)
+    signature = set(hero_cards)
     counts = Counter(all_cards)
     scored: List[Tuple[float, str, str]] = []
     for card_id, copies in counts.items():
