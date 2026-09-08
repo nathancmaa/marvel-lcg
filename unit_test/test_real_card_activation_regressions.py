@@ -68,6 +68,64 @@ class RealCardActivationRegressionTests(unittest.TestCase):
         world.current_player = world.players[0]
         return world, world.players[0], identity
 
+    def TeleportDropIsOffered(self, *, with_bamf: bool) -> bool:
+        """Ask the game whether Teleport Drop can be played, as the UI does."""
+        world, player, identity = self.MakeWorld(
+            hero_name="Nightcrawler",
+            identity_card_id="48001a,48001b",
+        )
+        rhino = CardFactory.GenerateCard(
+            "01094",
+            world.GetScenario().area_villain,
+            world,
+            ui_render=False,
+        ).face
+        rhino.ResetHealth(GameRule(rhino))
+        if with_bamf:
+            CardFactory.GenerateCard(
+                "48006",
+                rhino.GetInventoryDeck(),
+                world,
+                ui_render=False,
+            )
+
+        teleport_drop = CardFactory.GenerateCard(
+            "48008",
+            player.hand_cards,
+            world,
+            ui_render=False,
+        ).face
+        effects = [
+            candidate for candidate in teleport_drop.effect.global_effects
+            if candidate.ability.flags.is_action
+        ]
+        self.assertEqual(len(effects), 1)
+        available = EventManager.FilterAvailableEffects(
+            Message.WhenPlayerInTurn(player, 1),
+            effects,
+            player,
+            world,
+            None,
+        )
+        return bool(available)
+
+    def test_teleport_drop_is_playable_with_a_bamf_attached_to_an_enemy(self):
+        """The cost is asked before a target is picked, and must still answer.
+
+        Availability is decided before the player chooses which enemy to hit,
+        so the discard cost was reading effect.targets[0] on an empty list,
+        finding no Bamf, and reporting a (1, 1) discard it could not pay --
+        leaving the card unplayable with a Bamf sitting on the villain.
+
+        The existing contract test passes a hand-built effect that already has
+        its targets, so it never sees this. This one asks the game.
+        """
+        self.assertTrue(self.TeleportDropIsOffered(with_bamf=True))
+
+    def test_teleport_drop_is_not_playable_without_a_bamf(self):
+        """The other half: the fix must not make it always playable."""
+        self.assertFalse(self.TeleportDropIsOffered(with_bamf=False))
+
     def test_helicarrier_resolves_through_real_world_and_cannot_repeat_exhausted(self):
         world, player, identity = self.MakeWorld()
         helicarrier = CardFactory.GenerateCard(

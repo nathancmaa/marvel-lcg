@@ -757,6 +757,11 @@ function renderHeroes(choices: HeroChoice[]): void {
     const savedChoice = requested ?? choices.find((choice) => choice.id === savedId);
     if (savedChoice) {
         selectHero(savedChoice);
+        // Whatever ends up selected has to be on screen. A precon arriving
+        // from the coverage grid is hidden by "Hide precons", and a deck
+        // remembered from last visit can be behind a hero filter set since --
+        // both leave a hero named as chosen with no lit tile to show for it.
+        deckFilters.revealChoice(savedChoice.id);
     }
     if (requested) {
         // Several hundred decks are unhelpful when the answer is already known,

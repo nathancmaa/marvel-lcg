@@ -580,6 +580,9 @@ function renderHeroes(choices: HeroChoice[]): void {
     const savedHero = choices.find((choice) => choice.id === savedHeroId);
     if (savedHero) {
         selectHero(savedHero);
+        // Same reason as Quick Game: a remembered deck must not be selected
+        // behind a filter that hides it.
+        deckFilters.revealChoice(savedHero.id);
     }
     populateAspectHeroes();
     if (deckSourceController?.getSource() === 'aspect') {

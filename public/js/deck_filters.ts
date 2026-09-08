@@ -275,6 +275,19 @@ export type DeckFilters<T extends DeckFilterChoice> = {
      * that hero's decks instead of all several hundred.
      */
     filterToHero(heroKey: string): void;
+    /**
+     * Relax whatever is hiding this deck, so a selection is always visible.
+     *
+     * The picker can select a deck the bar is filtering out -- arriving from
+     * the coverage grid selects a precon, which "Hide precons" then removes
+     * from the list, and a deck remembered from last visit can be behind a
+     * hero filter set since. Either way the page shows a hero as chosen with
+     * no lit tile anywhere, which reads as a bug in the picker.
+     *
+     * Only the filters actually concealing it are touched: a deck already on
+     * screen leaves the bar exactly as the player set it.
+     */
+    revealChoice(id: string): void;
 };
 
 export function createDeckFilters<T extends DeckFilterChoice>(
@@ -571,6 +584,36 @@ export function createDeckFilters<T extends DeckFilterChoice>(
             state.heroId = heroKey;
             persist();
             void ensureAspectsThenDraw();
+        },
+        revealChoice(id: string): void {
+            const choice = source.find((item) => item.id === id);
+            if (!choice) {
+                return;
+            }
+            let changed = false;
+
+            if (state.hidePrecons && !choice.isUserDeck) {
+                state.hidePrecons = false;
+                setPressed(preconToggle, state.hidePrecons);
+                changed = true;
+            }
+
+            // Narrowed to some other hero. Moved to this one rather than
+            // cleared: the list stays as short as the player had it, and the
+            // deck they are looking at is in it.
+            const heroKey = heroKeyOf(choice);
+            if (state.heroId
+                && state.heroId !== heroKey
+                && [...heroSelect.options].some((option) => option.value === heroKey)) {
+                heroSelect.value = heroKey;
+                state.heroId = heroKey;
+                changed = true;
+            }
+
+            if (changed) {
+                persist();
+                void ensureAspectsThenDraw();
+            }
         },
     };
 }
