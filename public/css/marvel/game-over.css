@@ -248,11 +248,6 @@ body:not(.game-over) #game-over-close {
     background: linear-gradient(0deg, #996515 0%, #c6922a 100%);
 }
 
-#game-over-buttons button.share-replay {
-    border-color: #79d39a;
-    background: linear-gradient(0deg, #126332 0%, #198645 100%);
-}
-
 #game-over-buttons button.try-again {
     border-color: #7dd3fc;
     background: linear-gradient(0deg, #007fca 0%, #029eef 100%);

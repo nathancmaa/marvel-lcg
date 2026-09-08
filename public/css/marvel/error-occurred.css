@@ -51,16 +51,8 @@
     background-color: #28a745;
 }
 
-#error-report {
-    background-color: #dc3545;
-}
-
 #error-ignore:hover {
     background-color: #218838;
-}
-
-#error-report:hover {
-    background-color: #c82333;
 }
 
 .report-bug {

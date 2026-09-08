@@ -263,10 +263,6 @@ export class Effect {
             }
         }
 
-        if( Command.setLastClickCard(card_div) ) {
-            return
-        }
-
         if( Game.is_lost_connect ) {
             return
         }

@@ -1,5 +1,4 @@
 import { Setting } from "./settings.js";
-import { Command } from "./command.js";
 
 export class ErrorDialog {
     private static error_occurred_div: HTMLElement
@@ -39,24 +38,17 @@ export class ErrorDialog {
         // Create the message div
         const messageDiv = document.createElement('div');
         messageDiv.style.flex = 'auto';
-        // messageDiv.textContent = 'We apologize for the error. Please report this issue to help us improve the game!';
         footerDiv.appendChild(messageDiv);
 
         // Create the ignore button
         const ignoreButton = document.createElement('button');
         ignoreButton.type = 'button';
         ignoreButton.id = 'error-ignore';
-        ignoreButton.textContent = 'Ignore';
+        // "Ignore" made sense beside a Report button. It is the only thing you
+        // can do now, and a sole button should say what it does.
+        ignoreButton.textContent = 'Close';
         ignoreButton.onclick = () => ErrorDialog.hideError();
         footerDiv.appendChild(ignoreButton);
-
-        // Create the report button
-        const reportButton = document.createElement('button');
-        reportButton.type = 'button';
-        reportButton.id = 'error-report';
-        reportButton.textContent = 'Report';
-        reportButton.onclick = () => ErrorDialog.reportError();
-        footerDiv.appendChild(reportButton);
 
         // Append the footer to the main div
         errorDiv.appendChild(footerDiv);
@@ -88,9 +80,5 @@ Please check these before reporting a bug:
         ErrorDialog.error_occurred_div.classList.add('hide');
     }
 
-    static reportError() {
-        ErrorDialog.hideError()
-        Command.uploadSave("Crash", ErrorDialog.error_occurred_body_div!.innerText)
-    }
 }
 

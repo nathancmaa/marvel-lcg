@@ -135,13 +135,6 @@ export class Message {
             }
         });
 
-        const buttonShare = document.createElement('button');
-        buttonShare.innerHTML = '<i class="fa fa-cloud-upload" aria-hidden="true"></i> Share replay';
-        buttonShare.classList.add('share-replay')
-        buttonShare.addEventListener('click', function() {
-            Command.uploadSave("Share")
-        });
-
         Message.retryButton = document.createElement('button');
         Message.retryButton.innerHTML = '<i class="fa fa-repeat" aria-hidden="true"></i> Try again';
         Message.retryButton.classList.add('try-again');
@@ -172,7 +165,6 @@ export class Message {
 
         game_over_buttons.appendChild(Message.retryButton);
         game_over_buttons.appendChild(buttonMainMenu);
-        game_over_buttons.appendChild(buttonShare);
         game_over_buttons.appendChild(Message.saveReplayButton);
     }
 
