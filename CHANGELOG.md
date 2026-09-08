@@ -16,6 +16,43 @@ renumbered onto the 0.7 line. Their tags and releases carry the new numbers
 and point at the same commits; the commits that cut them still name the old
 ones.
 
+## Version 0.7.6.1 (2026-09-07)
+
+Two bugs found in play, both older than this fork, and four things that make
+the coverage grid and Quick Game easier to use.
+
+- **A solo Kang game no longer crashes when an aspect is defeated.** Kang
+  gathers the players out of the defeated aspect's game area into the first
+  one, which in a solo game is frequently the area the player is already
+  standing in -- and moving a player into their own area walked every card they
+  own into an assertion that a card is not already where it is being put.
+  Upstream: game_area.py and every Kang card have only ever been touched by
+  irefrixs.
+- **Teleport Drop is playable again** when a Bamf is attached to an enemy.
+  Availability is decided before the target is chosen, and the discard cost was
+  reading the target list while it was still empty -- so it reported a cost it
+  could not pay and the card sat dead in hand. A z00lus regression from moving
+  the cost from payment time to validation time; the test that shipped with it
+  hands the cost an effect that already has its targets, so it passed
+  throughout.
+- **The coverage grid sorts**, by box, name, or how far through each hero you
+  are, with that percentage beside each hero's name. Headers also carry a thin
+  stripe in the colour of the hardest difficulty beaten along that row or
+  column.
+- **Clicking a coverage square plays your deck**, not the precon. The grid is
+  built from starter decks so a square only has a precon id to send; it now
+  locates the hero and hands over to one of your own decks for them.
+- **Quick Game says what is about to start** -- hero, the deck actually going to
+  the table, villain and difficulty, beside the Play button. The three choices
+  live in three sections up the page, and after a browser back or a refresh
+  they are restored rather than chosen, which is when it is worth checking.
+- **The bug report window is gone.** Its Upload button answered "Upload is
+  disable in Open Source version" and did nothing; it was the closed-source
+  product's telemetry path, still promising to collect your operating system
+  and browser. Share replay went the same way -- it called the same dead
+  upload. Save replay is a different path and still works. The error dialog and
+  its traceback stay: that text is how a crash gets read.
+
 ## Version 0.7.6 (2026-09-07)
 
 The fork has one name now. It is **Marvel Champions Digital: Cerebro**, and

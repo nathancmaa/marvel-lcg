@@ -15,7 +15,7 @@ class Build:
     MAJOR = 0
     MINOR = 7
     PATCH = 6
-    BUILD = 0
+    BUILD = 1
 
     RELEASE_VERSION = f"{MAJOR}.{MINOR}.{PATCH}"
     RELEASE_LABEL = f'Version {RELEASE_VERSION}'
