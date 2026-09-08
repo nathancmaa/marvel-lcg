@@ -1040,3 +1040,33 @@ tbody tr:last-child td {
     background: rgba(207, 70, 50, 0.22);
     color: #ffb9ae;
 }
+
+/* How far you have got with a hero or a scenario, on its header.
+   
+   A thin edge stripe rather than a filled cell: sixty-odd headers all washed
+   in colour would read as a rainbow and drown the grid, which is the part
+   carrying the detail. The stripe uses the same ladder as the squares -- green
+   for Standard, deep green for Expert, red deepening by Heroic level -- so one
+   legend covers both, and a header with nothing beaten shows no stripe at all
+   rather than a grey one competing with the rest. */
+.matchup-table .hero-label.beaten {
+    box-shadow: inset -0.2rem 0 0 var(--beaten-colour);
+}
+
+.matchup-table .scenario-label.beaten::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0.1rem;
+    right: 0.1rem;
+    height: 0.2rem;
+    border-radius: 0.1rem;
+    background: var(--beaten-colour);
+}
+
+.matchup-table .beaten-standard    { --beaten-colour: #4fc98f; }
+.matchup-table .beaten-expert      { --beaten-colour: #17603f; }
+.matchup-table .beaten-heroic-1    { --beaten-colour: #e8705f; }
+.matchup-table .beaten-heroic-2    { --beaten-colour: #cf4632; }
+.matchup-table .beaten-heroic-3    { --beaten-colour: #a32d1d; }
+.matchup-table .beaten-heroic-4    { --beaten-colour: #731a0f; }

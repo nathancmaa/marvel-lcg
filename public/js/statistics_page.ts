@@ -641,6 +641,32 @@ function renderMatchupGrid(): void {
         columns.appendChild(column);
     }
 
+    /**
+     * The hardest clear anywhere along a hero's row or a scenario's column.
+     *
+     * A header answers "how far have I got with this one" without reading the
+     * whole line -- so it takes the best of what is already in the grid rather
+     * than counting anything new.
+     */
+    const bestAcross = (
+        pairs: Array<{hero: typeof heroes[number]; scenario: typeof scenarios[number]}>,
+    ): number => pairs.reduce(
+        (best, {hero, scenario}) => Math.max(best, cellFor(hero, scenario)?.best_beaten ?? 0),
+        0);
+
+    /** 0 shows nothing at all, so an untouched header stays quiet. */
+    const beatenClass = (beaten: number): string =>
+        beaten >= 3 ? `beaten-heroic-${Math.min(beaten - 2, 4)}`
+        : beaten === 2 ? 'beaten-expert'
+        : beaten === 1 ? 'beaten-standard'
+        : '';
+
+    const beatenLabel = (beaten: number): string =>
+        beaten >= 3 ? `best clear: Heroic ${beaten - 2}`
+        : beaten === 2 ? 'best clear: Expert'
+        : beaten === 1 ? 'best clear: Standard'
+        : 'not beaten yet';
+
     const head = document.createElement('thead');
     const nameRow = document.createElement('tr');
     nameRow.appendChild(document.createElement('td'));
@@ -653,7 +679,12 @@ function renderMatchupGrid(): void {
         // The full name and its box, through the browser's own tooltip. A
         // hand-built panel kept getting stuck open over the grid; this one the
         // browser opens and closes itself, so it cannot.
-        cell.title = `${scenario.name} — ${scenario.box}`;
+        const bestHere = bestAcross(heroes.map((hero) => ({hero, scenario})));
+        if (beatenClass(bestHere)) {
+            cell.classList.add('beaten', beatenClass(bestHere));
+        }
+        cell.title = `${scenario.name} — ${scenario.box}
+${beatenLabel(bestHere)}`;
         cell.appendChild(span);
         nameRow.appendChild(cell);
     }
@@ -668,7 +699,12 @@ function renderMatchupGrid(): void {
         heroCell.scope = 'row';
         const heroName = document.createElement('span');
         heroName.textContent = hero.name;
-        heroCell.title = `${hero.name} — ${hero.box}`;
+        const bestHere = bestAcross(scenarios.map((scenario) => ({hero, scenario})));
+        if (beatenClass(bestHere)) {
+            heroCell.classList.add('beaten', beatenClass(bestHere));
+        }
+        heroCell.title = `${hero.name} — ${hero.box}
+${beatenLabel(bestHere)}`;
         heroCell.appendChild(heroName);
         row.appendChild(heroCell);
 
