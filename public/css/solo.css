@@ -979,3 +979,58 @@ input {
     font-size: 0.72rem;
     color: #8fa0ad;
 }
+
+/* What you are about to play, beside the button that starts it. Quiet: it
+   confirms a decision rather than asking for one, so it reads as a receipt
+   and never competes with Play. */
+.matchup-summary {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    width: min(36rem, 100%);
+    margin: 0 auto 0.9rem;
+    padding: 0.7rem 0.9rem;
+    border: 1px solid rgba(143, 190, 224, 0.28);
+    border-radius: 0.65rem;
+    background: rgba(10, 18, 28, 0.55);
+    text-align: left;
+}
+
+.summary-hero-image {
+    width: 3.2rem;
+    flex: none;
+    border-radius: 0.3rem;
+}
+
+.summary-hero-image[hidden] {
+    display: none;
+}
+
+/* Label and value on one line each, labels aligned so the values form a
+   column that can be read straight down. */
+.summary-lines {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.15rem 0.7rem;
+    margin: 0;
+    flex: 1;
+    min-width: 0;
+}
+
+.summary-lines dt {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #8fa0ad;
+    align-self: baseline;
+}
+
+.summary-lines dd {
+    margin: 0;
+    font-size: 0.82rem;
+    color: #e6eef6;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

@@ -113,6 +113,11 @@ const heroStatus = document.querySelector<HTMLElement>('#hero-status')!;
 const scenarioSelection = document.querySelector<HTMLElement>('#scenario-selection')!;
 const heroSelection = document.querySelector<HTMLElement>('#hero-selection')!;
 const playButton = document.querySelector<HTMLButtonElement>('#play-button')!;
+const summaryHeroImage = document.querySelector<HTMLImageElement>('#summary-hero-image')!;
+const summaryHero = document.querySelector<HTMLElement>('#summary-hero')!;
+const summaryDeck = document.querySelector<HTMLElement>('#summary-deck')!;
+const summaryScenario = document.querySelector<HTMLElement>('#summary-scenario')!;
+const summaryDifficulty = document.querySelector<HTMLElement>('#summary-difficulty')!;
 const errorMessage = document.querySelector<HTMLElement>('#error-message')!;
 const expertMode = document.querySelector<HTMLInputElement>('#expert-mode')!;
 const expertModeDescription = document.querySelector<HTMLElement>('#expert-mode-description')!;
@@ -214,7 +219,48 @@ async function fetchJson<T>(url: string): Promise<T> {
     return await response.json() as T;
 }
 
+/**
+ * What you are about to play, beside the button that starts it.
+ *
+ * The three choices sit in three sections up the page, so confirming them
+ * meant scrolling back through the deck grid -- and after a browser back, a
+ * refresh, or arriving from the coverage grid, what is selected is restored
+ * rather than chosen, which is exactly when it is worth checking. This says
+ * it in one place, at the point of no return.
+ */
+function updateMatchupSummary(): void {
+    const hero = selectedHero;
+    const source = deckSourceController?.getSource();
+    const aspectDeck = source === 'aspect' ? aspectDeckPicker?.getDeck() ?? null : null;
+    const resolved = source === 'marvelcdb' ? deckSourceController?.getDeck() ?? null : null;
+
+    summaryHero.textContent = hero ? hero.data.name : 'Not selected';
+    if (hero) {
+        summaryHeroImage.src = withCardImageRevision(`/${hero.imageId}`);
+        summaryHeroImage.alt = hero.data.name;
+    }
+    summaryHeroImage.hidden = !hero;
+
+    // Which deck is actually going to the table, which is not always the tile
+    // that looks selected -- an aspect deck or a loaded netdeck replaces it.
+    summaryDeck.textContent = !hero
+        ? '—'
+        : aspectDeck
+            ? `${aspectDeck.name} (aspect deck)`
+            : resolved
+                ? String(resolved.deck_name ?? resolved.name ?? 'MarvelCDB deck')
+                : hero.isUserDeck
+                    ? hero.name
+                    : `${hero.name} (precon)`;
+
+    summaryScenario.textContent = selectedScenario
+        ? selectedScenario.name + (selectedUnderling ? ` · ${selectedUnderling.name}` : '')
+        : 'Not selected';
+    summaryDifficulty.textContent = difficultySelection.textContent || 'Standard';
+}
+
 function updatePlayButton(): void {
+    updateMatchupSummary();
     const source = deckSourceController?.getSource();
     const awaitingDeck = (source === 'marvelcdb' && !deckSourceController?.getDeck())
         || (source === 'aspect' && !aspectDeckPicker?.getDeck());
@@ -329,6 +375,9 @@ function updateDifficulty(): void {
         ? (dealt ? `Expert · ${setName}` : 'Expert')
         : setName;
     difficultySelection.textContent = `${base}${heroic}`;
+    // The summary reads this line, and difficulty changes do not otherwise
+    // touch the play button, so it would go stale without this.
+    updateMatchupSummary();
 }
 
 function selectScenario(choice: ScenarioChoice): void {
@@ -749,11 +798,27 @@ function renderHeroes(choices: HeroChoice[]): void {
     heroChoices = choices;
     deckFilters.render(choices);
 
-    // A hero asked for by id is a precon; if it is missing, fall back rather
-    // than leaving nothing selected.
-    const requested = requestedGame.hero
+    // A hero asked for by id is always a precon -- the coverage grid is built
+    // from the starter decks, so that is the only id it has to send. Landing on
+    // the precon when you have decks of your own for that hero is not what the
+    // square meant: it meant "play this hero against this villain". So the
+    // precon locates the hero and then hands over to one of your decks for
+    // them, preferring the one you last had selected if it is theirs.
+    const requestedPrecon = requestedGame.hero
         ? choices.find((choice) => choice.id === requestedGame.hero)
         : undefined;
+    const requested = (() => {
+        if (!requestedPrecon) {
+            return undefined;
+        }
+        const key = heroKeyOf(requestedPrecon);
+        const mine = choices.filter(
+            (choice) => choice.isUserDeck && heroKeyOf(choice) === key);
+        if (!mine.length) {
+            return requestedPrecon;
+        }
+        return mine.find((choice) => choice.id === savedId) ?? mine[0];
+    })();
     const savedChoice = requested ?? choices.find((choice) => choice.id === savedId);
     if (savedChoice) {
         selectHero(savedChoice);
@@ -771,9 +836,10 @@ function renderHeroes(choices: HeroChoice[]): void {
     // The decks arrive after the picker is wired, so a page that came back in
     // aspect mode gets its dropdown filled and applied here rather than never.
     populateAspectHeroes();
-    if (requested) {
-        // Whichever source the player switches to, it opens on the same hero.
-        aspectHero.value = requested.id;
+    if (requestedPrecon) {
+        // The aspect dropdown lists precons, so it takes the precon rather than
+        // whichever of your decks was chosen above -- same hero either way.
+        aspectHero.value = requestedPrecon.id;
     }
     if (deckSourceController?.getSource() === 'aspect') {
         applyAspectHero();
