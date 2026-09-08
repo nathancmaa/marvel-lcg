@@ -916,6 +916,13 @@ tbody tr:last-child td {
     text-overflow: ellipsis;
     text-align: right;
     padding: 0 0.55rem 0 0.35rem;
+    /* Name and percentage share the fixed width, and the name is the half that
+       gives: a truncated hero is still recognisable, a truncated percentage is
+       just wrong. */
+    display: flex;
+    align-items: baseline;
+    justify-content: flex-end;
+    gap: 0.1rem;
     position: sticky;
     left: 0;
     background: #0a1220;
@@ -1070,3 +1077,39 @@ tbody tr:last-child td {
 .matchup-table .beaten-heroic-2    { --beaten-colour: #cf4632; }
 .matchup-table .beaten-heroic-3    { --beaten-colour: #a32d1d; }
 .matchup-table .beaten-heroic-4    { --beaten-colour: #731a0f; }
+
+/* How much of a hero's row is beaten, beside their name. Dimmer and smaller
+   than the name: it is a number you scan down the column, not something to
+   read on every row. Tabular figures so the percentages line up. */
+.matchup-table .hero-label > span:first-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.matchup-table .hero-label .coverage-percent {
+    flex: none;
+    margin-left: 0.35rem;
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: #8fa0ad;
+    font-variant-numeric: tabular-nums;
+}
+
+.matchup-sort {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.75rem;
+    color: #8fa0ad;
+}
+
+.matchup-sort select {
+    font-family: inherit;
+    font-size: 0.75rem;
+    padding: 0.15rem 0.3rem;
+    border-radius: 0.25rem;
+    border: 1px solid rgba(143, 190, 224, 0.35);
+    background: rgba(10, 18, 28, 0.9);
+    color: #e6eef6;
+}

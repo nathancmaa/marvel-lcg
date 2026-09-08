@@ -562,6 +562,8 @@ function renderMatchupGrid(): void {
         return;
     }
 
+    const sortHeroes = element<HTMLSelectElement>('matchup-sort-heroes').value;
+    const sortScenarios = element<HTMLSelectElement>('matchup-sort-scenarios').value;
     const showCounts = element<HTMLInputElement>('matchup-counts').checked;
     const playedOnly = element<HTMLInputElement>('matchup-played-only').checked;
     const cellFor = (hero: MatchupAxis, scenario: MatchupAxis): MatchupCell | undefined =>
@@ -573,6 +575,64 @@ function renderMatchupGrid(): void {
         heroes = heroes.filter(h => scenarios.some(s => cellFor(h, s)));
         scenarios = scenarios.filter(s => heroes.some(h => cellFor(h, s)));
     }
+
+    /**
+     * How much of a hero's row, or a scenario's column, has been beaten.
+     *
+     * Beaten at any difficulty counts once: this answers "how much of the box
+     * have I got through", which the header stripe does not -- that one says
+     * how hard the best clear was, and the two are different questions about
+     * the same line.
+     *
+     * Measured against the whole grid rather than what is filtered on screen,
+     * so hiding rows cannot inflate a percentage.
+     */
+    const completionOf = (
+        pairs: Array<{hero: MatchupAxis; scenario: MatchupAxis}>,
+    ): number => {
+        if (!pairs.length) {
+            return 0;
+        }
+        const beaten = pairs.filter(
+            ({hero, scenario}) => (cellFor(hero, scenario)?.best_beaten ?? 0) > 0).length;
+        return beaten / pairs.length;
+    };
+
+    const heroCompletion = new Map(matrix.heroes.map((hero) => [
+        hero.id,
+        completionOf(matrix.scenarios.map((scenario) => ({hero, scenario}))),
+    ]));
+    const scenarioCompletion = new Map(matrix.scenarios.map((scenario) => [
+        scenario.id,
+        completionOf(matrix.heroes.map((hero) => ({hero, scenario}))),
+    ]));
+
+    // Re-sorted rather than animated: the grid is a few thousand squares, and
+    // moving them would cost more than redrawing them.
+    const byName = (left: MatchupAxis, right: MatchupAxis) =>
+        left.name.localeCompare(right.name, undefined, {sensitivity: 'base'});
+    const sortAxis = (
+        axis: MatchupAxis[],
+        mode: string,
+        completion: Map<string, number>,
+    ): MatchupAxis[] => {
+        if (mode === 'name') {
+            return [...axis].sort(byName);
+        }
+        if (mode === 'completion') {
+            // Most complete first, and alphabetical within a tie so the
+            // untouched majority does not shuffle between renders.
+            return [...axis].sort((left, right) =>
+                (completion.get(right.id) ?? 0) - (completion.get(left.id) ?? 0)
+                || byName(left, right));
+        }
+        return axis;
+    };
+
+    heroes = sortAxis(heroes, sortHeroes, heroCompletion);
+    scenarios = sortAxis(scenarios, sortScenarios, scenarioCompletion);
+
+    const percent = (value: number): string => `${Math.round(value * 100)}%`;
 
     // Counted over the full grid whatever is on screen: coverage of what you
     // have filtered down to is not the number anybody wants.
@@ -683,8 +743,12 @@ function renderMatchupGrid(): void {
         if (beatenClass(bestHere)) {
             cell.classList.add('beaten', beatenClass(bestHere));
         }
+        // The column figure stays in the tooltip: these labels are rotated and
+        // already truncate, so a suffix would be the first thing cut.
         cell.title = `${scenario.name} — ${scenario.box}
-${beatenLabel(bestHere)}`;
+${beatenLabel(bestHere)}`
+            + `
+${percent(scenarioCompletion.get(scenario.id) ?? 0)} of heroes have beaten it`;
         cell.appendChild(span);
         nameRow.appendChild(cell);
     }
@@ -699,13 +763,20 @@ ${beatenLabel(bestHere)}`;
         heroCell.scope = 'row';
         const heroName = document.createElement('span');
         heroName.textContent = hero.name;
+        const heroPercent = document.createElement('span');
+        heroPercent.className = 'coverage-percent';
+        heroPercent.textContent = percent(heroCompletion.get(hero.id) ?? 0);
         const bestHere = bestAcross(scenarios.map((scenario) => ({hero, scenario})));
         if (beatenClass(bestHere)) {
             heroCell.classList.add('beaten', beatenClass(bestHere));
         }
+        const heroDone = heroCompletion.get(hero.id) ?? 0;
         heroCell.title = `${hero.name} — ${hero.box}
-${beatenLabel(bestHere)}`;
+${beatenLabel(bestHere)}`
+            + `
+${percent(heroDone)} of scenarios beaten`;
         heroCell.appendChild(heroName);
+        heroCell.appendChild(heroPercent);
         row.appendChild(heroCell);
 
         for (const scenario of scenarios) {
@@ -1076,6 +1147,8 @@ function bindEvents(): void {
     bindMatchupResize();
     element<HTMLButtonElement>('tracker-import')
         .addEventListener('click', () => void importTrackerExport());
+    element<HTMLSelectElement>('matchup-sort-heroes').addEventListener('change', renderMatchupGrid);
+    element<HTMLSelectElement>('matchup-sort-scenarios').addEventListener('change', renderMatchupGrid);
     element<HTMLInputElement>('matchup-counts').addEventListener('change', renderMatchupGrid);
     element<HTMLInputElement>('matchup-played-only').addEventListener('change', renderMatchupGrid);
     element<HTMLInputElement>('collection-search').addEventListener('input', renderProducts);
