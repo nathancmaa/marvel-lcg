@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -7,7 +8,7 @@ import os
 import re
 import sqlite3
 import threading
-from typing import Any, Dict, List, TYPE_CHECKING
+from typing import Any, Dict, Iterator, List, TYPE_CHECKING
 import uuid
 
 from core.lib import Time
@@ -42,12 +43,30 @@ class GameHistory:
         self.available = False
         self._lock = threading.RLock()
 
-    def _connect(self) -> sqlite3.Connection:
+    @contextmanager
+    def _connect(self) -> Iterator[sqlite3.Connection]:
+        """A connection for one operation, committed and then closed.
+
+        `with sqlite3.connect(...) as connection` does not close anything --
+        it commits on success and rolls back on an exception, and leaves the
+        connection open. Every call site here is a `with`, so for as long as
+        this returned a bare connection each operation leaked one: a container
+        left running accumulated open handles on the database, and on Windows
+        nothing could delete the file afterwards, which is what made eighteen
+        tests fail in teardown on that platform and nowhere else.
+
+        Wrapping the transaction in a try/finally keeps the commit-or-rollback
+        the call sites already rely on and adds the close they assumed.
+        """
         connection = sqlite3.connect(self.file_path, timeout=20)
         connection.row_factory = sqlite3.Row
         connection.execute('PRAGMA foreign_keys = ON')
         connection.execute('PRAGMA busy_timeout = 20000')
-        return connection
+        try:
+            with connection:
+                yield connection
+        finally:
+            connection.close()
 
     def Initialize(
         self,
@@ -82,7 +101,10 @@ class GameHistory:
             Log.FailedTrace(CATEGORY_NAME, exc, no_take_as_error=True)
 
     def Close(self) -> None:
-        # Connections are deliberately short-lived and closed per operation.
+        # Nothing to close: _connect opens a connection per operation and
+        # closes it again on the way out. Kept because callers say so at
+        # shutdown, and because a history that later holds something open
+        # should have somewhere to release it.
         pass
 
     def _migrate(self, connection: sqlite3.Connection) -> None:

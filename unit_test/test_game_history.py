@@ -1,3 +1,4 @@
+from contextlib import closing
 import json
 from pathlib import Path
 import sqlite3
@@ -75,7 +76,7 @@ class GameHistoryTests(unittest.TestCase):
 
     def test_schema_v1_adds_replay_analysis_columns_without_losing_games(self):
         database_path = self.root / 'schema-v1.sqlite3'
-        with sqlite3.connect(database_path) as connection:
+        with closing(sqlite3.connect(database_path)) as connection, connection:
             connection.execute(
                 'CREATE TABLE games (id INTEGER PRIMARY KEY, result TEXT)'
             )
@@ -824,7 +825,7 @@ class HeroicDifficultyTests(unittest.TestCase):
     def test_an_older_database_gains_the_column_and_keeps_its_games(self):
         """The migration, which runs against a database holding real games."""
         self.history.Close()
-        with sqlite3.connect(self.path) as connection:
+        with closing(sqlite3.connect(self.path)) as connection, connection:
             connection.execute('ALTER TABLE games DROP COLUMN heroic')
             connection.execute('PRAGMA user_version = 5')
             connection.execute(
@@ -836,7 +837,7 @@ class HeroicDifficultyTests(unittest.TestCase):
         migrated.enabled = True
         migrated.Initialize()
         try:
-            with sqlite3.connect(self.path) as connection:
+            with closing(sqlite3.connect(self.path)) as connection, connection:
                 version = connection.execute('PRAGMA user_version').fetchone()[0]
                 columns = {
                     row[1] for row in connection.execute('PRAGMA table_info(games)')

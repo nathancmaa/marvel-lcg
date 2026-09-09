@@ -7,7 +7,6 @@ anything a deck id is not.
 """
 
 from pathlib import Path
-import shutil
 import tempfile
 import unittest
 
@@ -26,12 +25,7 @@ class FavoriteDeckTests(unittest.TestCase):
 
     def tearDown(self):
         self.history.Close()
-        # Close() is a no-op -- GameHistory opens a connection per operation
-        # and `with sqlite3.connect(...)` commits without closing -- so on
-        # Windows the file is still held and cleanup would raise. Ignoring it
-        # leaves a temp file behind on one platform, which is better than a
-        # teardown error on every test in the module.
-        shutil.rmtree(self.temp_dir.name, ignore_errors=True)
+        self.temp_dir.cleanup()
 
     def open_history(self):
         history = GameHistory(
