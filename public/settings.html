@@ -145,6 +145,63 @@
             margin-bottom: 0;
         }
 
+        /* One row per configured deck, including the ones that did not come
+           down: a deck missing from a list of successes is exactly what this
+           table is here to make visible. */
+        .synced-decks-wrap {
+            overflow-x: auto;
+            margin-top: 0.7rem;
+        }
+
+        .synced-decks {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .synced-decks[hidden] {
+            display: none;
+        }
+
+        .synced-decks-caption {
+            margin-bottom: 0.45rem;
+            color: #9db3c4;
+            font-size: 0.82rem;
+            text-align: left;
+        }
+
+        .synced-decks th {
+            padding: 0.35rem 0.6rem 0.35rem 0;
+            border-bottom: 1px solid #3a5568;
+            color: #9db3c4;
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-align: left;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .synced-decks td {
+            padding: 0.45rem 0.6rem 0.45rem 0;
+            border-bottom: 1px solid rgba(58, 85, 104, 0.5);
+            vertical-align: top;
+        }
+
+        .synced-deck-name {
+            font-weight: 600;
+        }
+
+        .synced-deck-link {
+            color: #78d2ff;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .synced-deck-ok      { color: #7fd6a4; }
+        .synced-deck-warned  { color: #e8bd62; }
+        .synced-deck-failed  { color: #f08d82; }
+        .synced-deck-pending { color: #9db3c4; }
+
         footer {
             display: flex;
             justify-content: flex-end;
@@ -216,6 +273,20 @@
                 <button type="button" id="marvelcdb-sync">Sync</button>
             </div>
             <p id="marvelcdb-status" role="status" aria-live="polite"></p>
+            <div class="synced-decks-wrap">
+                <table id="marvelcdb-decks" class="synced-decks" hidden>
+                    <caption class="synced-decks-caption">Decks kept in step with MarvelCDB</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">Deck</th>
+                            <th scope="col">Hero</th>
+                            <th scope="col">Deck ID</th>
+                            <th scope="col">Last sync</th>
+                        </tr>
+                    </thead>
+                    <tbody id="marvelcdb-decks-body"></tbody>
+                </table>
+            </div>
         </section>
 
         <footer>

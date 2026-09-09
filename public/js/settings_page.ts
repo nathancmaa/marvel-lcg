@@ -11,10 +11,23 @@ const bgStatsLocation = document.getElementById('bgstats-location') as HTMLInput
 const marvelCdbDeckIds = document.getElementById('marvelcdb-deck-ids') as HTMLInputElement
 const marvelCdbSync = document.getElementById('marvelcdb-sync') as HTMLButtonElement
 const marvelCdbStatus = document.getElementById('marvelcdb-status') as HTMLElement
+const marvelCdbDecks = document.getElementById('marvelcdb-decks') as HTMLTableElement
+const marvelCdbDecksBody = document.getElementById('marvelcdb-decks-body') as HTMLElement
+
+type SyncedDeck = {
+    id: string;
+    name: string;
+    hero: string;
+    // Both added later: state written by an older build has neither, and the
+    // table falls back to a decklist link, which is what a bare ID resolves
+    // to first anyway.
+    kind?: string;
+    url?: string;
+};
 
 type MarvelCdbSyncResult = {
     ok: boolean;
-    synced: Array<{id: string; name: string; hero: string}>;
+    synced: SyncedDeck[];
     errors: Array<{id: string; error: string}>;
     // Decks that synced but name cards this installation cannot play.
     // Older sync state predates this field.
@@ -71,23 +84,104 @@ function updateMarvelCdbControls(showHint=true): string[] {
     }
 }
 
-function formatSyncResult(result: MarvelCdbSyncResult): string {
-    const syncedNames = result.synced.map(deck => deck.name)
-    const parts: string[] = []
-    if( syncedNames.length ) {
-        parts.push(`Synced: ${syncedNames.join(', ')}.`)
+function describeLastSync(syncedAt: string): string {
+    if( !syncedAt ) {
+        return 'Decks have not been synchronized yet.'
     }
-    if( result.errors.length ) {
-        parts.push(result.errors.map(error => `${error.id}: ${error.error}`).join(' '))
+    const at = new Date(syncedAt)
+    if( Number.isNaN(at.getTime()) ) {
+        return 'Decks were synchronized.'
     }
-    for( const warning of result.warnings ?? [] ) {
-        const cards = warning.cards.join(', ')
-        parts.push(
-            `${warning.name}: ${warning.cards.length} card(s) are not `
-            + `implemented here and will be missing in play (${cards}).`,
+    return `Last synchronized ${at.toLocaleString()}.`
+}
+
+/** The MarvelCDB page for a deck, from what the sync recorded or from its ID. */
+function deckPageUrl(deck: SyncedDeck): string {
+    if( deck.url ) {
+        return deck.url
+    }
+    // `decklist` first, matching the order the sync itself probes a bare ID in.
+    const kind = deck.kind === 'deck' ? 'deck' : 'decklist'
+    return `https://marvelcdb.com/${kind}/view/${encodeURIComponent(deck.id)}`
+}
+
+function cell(text: string, className?: string): HTMLTableCellElement {
+    const td = document.createElement('td')
+    td.textContent = text
+    if( className ) {
+        td.className = className
+    }
+    return td
+}
+
+/**
+ * What is actually being kept in step, one row per deck.
+ *
+ * Driven by the configured IDs rather than by the last result, so a deck that
+ * failed to sync still has a row saying so -- a deck silently missing from a
+ * list of successes is the case this table exists to make visible. IDs with
+ * no record yet show as pending until the first sync reports on them.
+ */
+function renderSyncedDecks(status: MarvelCdbSyncStatus): void {
+    const result = status.last_result
+    const byId = new Map<string, SyncedDeck>()
+    for( const deck of result?.synced ?? [] ) {
+        byId.set(deck.id, deck)
+    }
+    const errorsById = new Map<string, string>()
+    for( const error of result?.errors ?? [] ) {
+        errorsById.set(error.id, error.error)
+    }
+    const warningsById = new Map<string, number>()
+    for( const warning of result?.warnings ?? [] ) {
+        warningsById.set(warning.id, warning.cards.length)
+    }
+
+    const rows: HTMLTableRowElement[] = []
+    for( const ref of status.deck_ids ?? [] ) {
+        // A reference is `123`, `deck/123` or `decklist/123`.
+        const parts = String(ref).split('/')
+        const id = parts[parts.length - 1] ?? ''
+        const kind = parts.length > 1 ? parts[0] : undefined
+        const synced = byId.get(id) ?? {id, name: '', hero: '', kind}
+        const error = errorsById.get(id)
+        const missingCards = warningsById.get(id)
+
+        const row = document.createElement('tr')
+        row.append(
+            cell(synced.name || '—', 'synced-deck-name'),
+            cell(synced.hero || '—'),
         )
+
+        const idCell = document.createElement('td')
+        const link = document.createElement('a')
+        link.href = deckPageUrl(synced)
+        link.textContent = id
+        link.target = '_blank'
+        link.rel = 'noopener noreferrer'
+        link.className = 'synced-deck-link'
+        idCell.appendChild(link)
+        row.appendChild(idCell)
+
+        const state = document.createElement('td')
+        if( error ) {
+            state.textContent = error
+            state.className = 'synced-deck-failed'
+        } else if( byId.has(id) ) {
+            state.textContent = missingCards
+                ? `Synced · ${missingCards} card${missingCards === 1 ? '' : 's'} not implemented`
+                : 'Synced'
+            state.className = missingCards ? 'synced-deck-warned' : 'synced-deck-ok'
+        } else {
+            state.textContent = 'Not synced yet'
+            state.className = 'synced-deck-pending'
+        }
+        row.appendChild(state)
+        rows.push(row)
     }
-    return parts.join(' ') || 'No decks were synchronized.'
+
+    marvelCdbDecksBody.replaceChildren(...rows)
+    marvelCdbDecks.hidden = rows.length === 0
 }
 
 async function loadMarvelCdbStatus(): Promise<void> {
@@ -103,8 +197,9 @@ async function loadMarvelCdbStatus(): Promise<void> {
         }
         updateMarvelCdbControls(false)
         marvelCdbStatus.textContent = status.last_result
-            ? formatSyncResult(status.last_result)
+            ? describeLastSync(status.last_sync)
             : 'Decks have not been synchronized yet.'
+        renderSyncedDecks(status)
     } catch( error ) {
         console.error(error)
         updateMarvelCdbControls(false)
@@ -152,7 +247,12 @@ marvelCdbSync.addEventListener('click', async () => {
         if( !response.ok ) {
             throw new Error(result.error || `${response.status} ${response.statusText}`)
         }
-        marvelCdbStatus.textContent = formatSyncResult(result)
+        marvelCdbStatus.textContent = describeLastSync(result.synced_at)
+        renderSyncedDecks({
+            deck_ids: deckIds,
+            last_sync: result.synced_at,
+            last_result: result,
+        })
     } catch( error ) {
         console.error(error)
         marvelCdbStatus.textContent = error instanceof Error

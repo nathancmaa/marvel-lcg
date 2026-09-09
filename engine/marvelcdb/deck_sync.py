@@ -661,6 +661,13 @@ class MarvelCdbDeckSync:
                         'name': converted['deck_name'],
                         'hero': converted['name'],
                         'file': output_path,
+                        # The kind that was actually fetched, and the page it
+                        # came from. `deck/123` and `decklist/123` are
+                        # different records, so a link built from the id alone
+                        # can point at the wrong one.
+                        'kind': resolved_kind,
+                        'url': self.WEB_URL.format(
+                            kind=resolved_kind, deck_id=deck_id),
                     })
                 except Exception as exc:
                     errors.append({'id': deck_id, 'error': str(exc)})
