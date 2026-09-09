@@ -291,8 +291,14 @@ export type DeckFilters<T extends DeckFilterChoice> = {
      *
      * Only the filters actually concealing it are touched: a deck already on
      * screen leaves the bar exactly as the player set it.
+     *
+     * `requested` says the deck was named from outside -- a coverage square
+     * asking for a hero -- rather than restored from last visit. It decides
+     * whether "Favorites only" is relaxed: a restore must not touch it, or the
+     * filter switches itself off during page load whenever the remembered deck
+     * is not starred, which is most of them, and so never survives a refresh.
      */
-    revealChoice(id: string): void;
+    revealChoice(id: string, options?: {requested?: boolean}): void;
     /**
      * Redraw with the current list and options.
      *
@@ -612,7 +618,7 @@ export function createDeckFilters<T extends DeckFilterChoice>(
             persist();
             void ensureAspectsThenDraw();
         },
-        revealChoice(id: string): void {
+        revealChoice(id: string, options?: {requested?: boolean}): void {
             const choice = source.find((item) => item.id === id);
             if (!choice) {
                 return;
@@ -625,7 +631,7 @@ export function createDeckFilters<T extends DeckFilterChoice>(
                 changed = true;
             }
 
-            if (state.onlyFavorites && !isFavorite(choice.id)) {
+            if (options?.requested && state.onlyFavorites && !isFavorite(choice.id)) {
                 state.onlyFavorites = false;
                 setPressed(favoriteToggle, state.onlyFavorites);
                 changed = true;

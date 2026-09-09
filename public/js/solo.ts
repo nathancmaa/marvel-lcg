@@ -920,7 +920,10 @@ function renderHeroes(choices: HeroChoice[]): void {
         // from the coverage grid is hidden by "Hide precons", and a deck
         // remembered from last visit can be behind a hero filter set since --
         // both leave a hero named as chosen with no lit tile to show for it.
-        deckFilters.revealChoice(savedChoice.id);
+        // `requested` only for a hero a coverage square named: that is a deck
+        // being asked for, so the filters give way to it. Restoring what was
+        // selected last time is not, and "Favorites only" stays as it was set.
+        deckFilters.revealChoice(savedChoice.id, {requested: requested !== undefined});
     }
     if (requested) {
         // Several hundred decks are unhelpful when the answer is already known,
