@@ -54,6 +54,22 @@ class Deck2(Generic[TC], Object):
         else:
             return f"{self.deck_type.name}<{self.GetSize()}>"
 
+    def __str__(self) -> str:
+        """What a deck is called in a game message.
+
+        Log lines format decks with `{deck}`, which reached `__repr__` and
+        printed the class name and the current size -- "Cable's
+        PlayerDeck<40>". That form is worth keeping for debugging, so it stays
+        in `__repr__` and the player-facing name lives here.
+        """
+        name = self.deck_type.label
+        if self.bind_card:
+            return f"{self.bind_card.face}'s {name}"
+        owner = self.GetOwner()
+        if owner and not owner.is_scenario:
+            return f"{owner}'s {name}"
+        return name
+
     def GetIndex(self, face: 'CardFace') -> int:
         return self.cards.index(face.card)
 

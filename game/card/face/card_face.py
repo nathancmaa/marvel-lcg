@@ -102,6 +102,23 @@ class CardFace(ModelName, ModelTrait, ModelAction, ModelOnEvent, ModelGain, Mode
         'threat',
     ]
 
+    @staticmethod
+    def MarkerLabel(name: str) -> str:
+        """A token or counter name as a player would read it.
+
+        TOKEN and COUNTER are identifiers -- 'first_player_token',
+        'tic_tac_toe_1_1' -- and the log lines quoted them straight in, which
+        is how a variable name ends up in a game message. A trailing '_token'
+        or '_counter' goes too, because every message using this already ends
+        with that word.
+        """
+        text = str(name)
+        for suffix in ('_token', '_counter'):
+            if text.endswith(suffix):
+                text = text[:-len(suffix)]
+                break
+        return text.replace('_', ' ')
+
     COUNTER = Literal[
         'counter',
 

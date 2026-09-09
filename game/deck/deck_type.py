@@ -227,6 +227,30 @@ class DeckType(Enum):
     MissionArea             = 55
 
     @property
+    def label(self) -> str:
+        """This pile's name as a player would read it.
+
+        The enum names are identifiers, and messages were formatting them
+        straight in: "Cable's PlayerDeck<40> was created". Derived by
+        splitting the name into words so a type added later reads sensibly
+        without anyone remembering this list, with entries only for the few
+        whose split form would be wrong or say nothing.
+        """
+        import re as _re
+        named = {
+            DeckType.PlayerDeck:                'deck',
+            DeckType.HandsArea:                 'hand',
+            DeckType.AsideDeck:                 'set aside cards',
+            DeckType.PlaceCardArea:             'tucked cards',
+            DeckType.DealtEncounterCardsDeck:   'dealt encounter cards',
+            DeckType.RemovedArea:               'cards removed from the game',
+            DeckType.BoostCardsDeck:            'boost cards',
+        }.get(self)
+        if named:
+            return named
+        return _re.sub(r'(?<!^)(?=[A-Z])', ' ', self.name).lower()
+
+    @property
     def flags(self):
         return {
                 DeckType.PlaceCardArea:             DeckTypeFlags.PlaceCardArea,

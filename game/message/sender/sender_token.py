@@ -1,6 +1,9 @@
 from . import *
 from typing import Final
 
+# `CardFace.MarkerLabel` is reached through the face in hand rather than the
+# class: every CardFace reference in this module is a string annotation, and
+# importing the class here would close an import cycle.
 class SenderTokenCounter:
 
     ################################################################################
@@ -21,7 +24,7 @@ class SenderTokenCounter:
             self.by_effect: Final = by_effect
             super().__init__(trigger=face, pre_message=message)
             if num > 0 and (face.IsInPlay() or name != "threat"):
-                text = TransText("{face} placed {tokens} '{name}' token ({by_effect})", face=face, tokens=num, name=name, by_effect=by_effect.this)
+                text = TransText("{face} placed {tokens} {name} token ({by_effect})", face=face, tokens=num, name=face.MarkerLabel(name), by_effect=by_effect.this)
                 self.Present(text, "addcounter", face, by_effect.this)
             # if name == 'acceleration_token':
             #     self.TriggerOnEvent(OnEvent.AccelerationToken)
@@ -43,7 +46,7 @@ class SenderTokenCounter:
             self.by_effect: Final = pre_message.by_effect
             super().__init__(trigger=face, pre_message=pre_message)
             if removed_num > 0:
-                text = TransText("{face} removed {tokens} '{name}' token ({by_effect})", face=face, tokens=removed_num, name=self.token_name, by_effect=self.by_effect.this)
+                text = TransText("{face} removed {tokens} {name} token ({by_effect})", face=face, tokens=removed_num, name=face.MarkerLabel(self.token_name), by_effect=self.by_effect.this)
                 self.Present(text, "removecounter", face, self.by_effect.this)
             # if self.token_name == 'acceleration_token':
             #     self.TriggerOnEvent(OnEvent.AccelerationToken)
@@ -73,7 +76,7 @@ class SenderTokenCounter:
             self.place_player: Final = get_place_player()
             self.maximum: int|None = None
             super().__init__(trigger=face, end_event=Message.AfterCardPlacedCounter)
-            text = TransText("{face} would place {counters} '{name}' counter ({by_effect})", face=face, counters=counters, name=name, by_effect=by_effect.this)
+            text = TransText("{face} would place {counters} {name} counter ({by_effect})", face=face, counters=counters, name=face.MarkerLabel(name), by_effect=by_effect.this)
             self.Present(text, "", face, by_effect.this)
 
     class AfterCardPlacedCounter(TriggerFaceMessage, HasPreEventMessage):
@@ -85,7 +88,7 @@ class SenderTokenCounter:
             self.place_player: Final = message.place_player
             super().__init__(trigger=face, pre_message=message)
             if counters > 0:
-                text = TransText("{face} placed {counters} '{name}' counter ({by_effect})", face=face, counters=counters, name=name, by_effect=by_effect.this)
+                text = TransText("{face} placed {counters} {name} counter ({by_effect})", face=face, counters=counters, name=face.MarkerLabel(name), by_effect=by_effect.this)
                 self.Present(text, "addcounter", face, by_effect.this)
             # self.TriggerOnEvent(OnEvent.Counter)
 
@@ -110,7 +113,7 @@ class SenderTokenCounter:
             self.by_effect: Final = message.by_effect
             super().__init__(trigger=face, pre_message=message)
             if removed_counters > 0:
-                text = TransText("{face} removed {counters} '{name}' counter ({by_effect})", face=face, counters=removed_counters, name=self.counter_name, by_effect=self.by_effect.this)
+                text = TransText("{face} removed {counters} {name} counter ({by_effect})", face=face, counters=removed_counters, name=face.MarkerLabel(self.counter_name), by_effect=self.by_effect.this)
                 self.Present(text, "removecounter", face, self.by_effect.this)
             # self.TriggerOnEvent(OnEvent.Counter)
 
