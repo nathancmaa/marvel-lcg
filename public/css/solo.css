@@ -290,6 +290,7 @@ input {
 
 .scenario-product-label {
     min-height: 2.2em;
+    padding-bottom: 0.35rem;
     display: grid;
     place-items: center;
     margin-top: auto;
@@ -485,13 +486,13 @@ input {
    scenario tile is read as a row of art rather than one at a time. */
 .beaten-stripe {
     position: absolute;
-    left: 0.55rem;
-    right: 0.55rem;
-    bottom: 0.28rem;
-    height: 0.22rem;
+    left: 50%;
+    bottom: 0.42rem;
+    width: 45%;
+    height: 0.14rem;
+    transform: translateX(-50%);
     border-radius: 999px;
     background: var(--beaten-colour);
-    box-shadow: 0 0 0.4rem var(--beaten-colour);
 }
 
 .beaten-standard { --beaten-colour: #4fc98f; }

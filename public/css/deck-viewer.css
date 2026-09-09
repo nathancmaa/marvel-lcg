@@ -134,6 +134,7 @@
     display: flex;
     flex-wrap: wrap;
     gap: 0.45rem;
+    margin: 0.65rem 0 0;
 }
 
 .deck-share-row {
@@ -241,8 +242,8 @@
 .deck-record {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.4rem;
-    margin: 0.35rem 0 0;
+    gap: 0.45rem;
+    margin: 0.65rem 0;
 }
 
 .deck-record[hidden] {

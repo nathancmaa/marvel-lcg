@@ -13,6 +13,7 @@ const marvelCdbSync = document.getElementById('marvelcdb-sync') as HTMLButtonEle
 const marvelCdbStatus = document.getElementById('marvelcdb-status') as HTMLElement
 const marvelCdbDecks = document.getElementById('marvelcdb-decks') as HTMLTableElement
 const marvelCdbDecksBody = document.getElementById('marvelcdb-decks-body') as HTMLElement
+const marvelCdbDecksPanel = document.getElementById('marvelcdb-decks-panel') as HTMLElement
 
 type SyncedDeck = {
     id: string;
@@ -181,7 +182,10 @@ function renderSyncedDecks(status: MarvelCdbSyncStatus): void {
     }
 
     marvelCdbDecksBody.replaceChildren(...rows)
+    // The panel carries the border and the scroll, so it goes with the table
+    // rather than standing there as an empty box.
     marvelCdbDecks.hidden = rows.length === 0
+    marvelCdbDecksPanel.hidden = rows.length === 0
 }
 
 async function loadMarvelCdbStatus(): Promise<void> {

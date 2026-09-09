@@ -148,9 +148,18 @@
         /* One row per configured deck, including the ones that did not come
            down: a deck missing from a list of successes is exactly what this
            table is here to make visible. */
+        /* A panel of its own rather than a hundred rows down the page:
+           every synced deck gets a row, and the list is as long as the
+           collection. The header stays put while the rows move under it. */
         .synced-decks-wrap {
-            overflow-x: auto;
+            overflow: auto;
+            max-height: 20rem;
             margin-top: 0.7rem;
+            padding: 0 0.8rem;
+            border: 1px solid rgba(173, 200, 220, 0.28);
+            border-radius: 0.5rem;
+            background: rgba(6, 12, 20, 0.6);
+            overscroll-behavior: contain;
         }
 
         .synced-decks {
@@ -159,19 +168,24 @@
             font-size: 0.9rem;
         }
 
-        .synced-decks[hidden] {
+        .synced-decks[hidden],
+        .synced-decks-wrap[hidden] {
             display: none;
         }
 
         .synced-decks-caption {
-            margin-bottom: 0.45rem;
+            padding: 0.6rem 0 0.15rem;
             color: #9db3c4;
             font-size: 0.82rem;
             text-align: left;
         }
 
         .synced-decks th {
-            padding: 0.35rem 0.6rem 0.35rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background: #0b1420;
+            padding: 0.55rem 0.6rem 0.35rem 0;
             border-bottom: 1px solid #3a5568;
             color: #9db3c4;
             font-size: 0.78rem;
@@ -273,7 +287,7 @@
                 <button type="button" id="marvelcdb-sync">Sync</button>
             </div>
             <p id="marvelcdb-status" role="status" aria-live="polite"></p>
-            <div class="synced-decks-wrap">
+            <div class="synced-decks-wrap" id="marvelcdb-decks-panel" hidden>
                 <table id="marvelcdb-decks" class="synced-decks" hidden>
                     <caption class="synced-decks-caption">Decks kept in step with MarvelCDB</caption>
                     <thead>
