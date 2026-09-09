@@ -842,7 +842,11 @@ class HeroicDifficultyTests(unittest.TestCase):
                     row[1] for row in connection.execute('PRAGMA table_info(games)')
                 }
                 kept = connection.execute('SELECT COUNT(*) FROM games').fetchone()[0]
-            self.assertEqual(version, 6)
+            # Against SCHEMA_VERSION rather than the number it was when this
+            # was written: what the test means is "migrated all the way up",
+            # and a literal here fails on every future bump for no reason,
+            # exactly as line 101 already does it.
+            self.assertEqual(version, GameHistory.SCHEMA_VERSION)
             self.assertIn('heroic', columns)
             self.assertEqual(kept, 1, 'the migration must not lose games')
             # The pre-existing Expert win still reads as one.
