@@ -1,6 +1,6 @@
 # Marvel Champions Digital: Ronin Edition Changelog
 
-> Current release version: 0.7.6
+> Current release version: 0.7.7
 
 This document records the user-visible and development changes made in this
 fork after it diverged from the original
@@ -15,6 +15,45 @@ Versions 0.7.2 and 0.7.3 were briefly published as 0.8.0 and 0.8.1 and were
 renumbered onto the 0.7 line. Their tags and releases carry the new numbers
 and point at the same commits; the commits that cut them still name the old
 ones.
+
+## Version 0.7.7 (2026-09-08)
+
+Five additions to the pickers and the deck viewer, and one fix to the game
+log.
+
+- **Decks can be starred, and either picker narrowed to your favourites.** A
+  star sits on every Quick Game tile and beside the deck viewer's dropdown,
+  and "Favorites only" works the way "Hide precons" already does. One list
+  rather than two: a hero starred while choosing a game is starred while
+  browsing decks, and the viewer marks them with a star in its dropdown, since
+  a native list cannot carry a control on each line.
+- **The deck viewer says how the games went** -- win-loss and a percentage for
+  the deck, and for the hero behind it, or 0-0 for a deck that has never been
+  to the table. Decks are grouped by the name the game recorded, so two decks
+  sharing a name share a record: the name is all a finished game keeps of
+  which deck was played, and a wrong split would be worse than a merge.
+- **Villain tiles say which scenarios have been beaten, and at what.** A mark
+  along the bottom of the tile in the colour the coverage grid uses for the
+  same thing, taking the hardest clear by any hero -- exactly what that grid's
+  own column headers answer. The ladder is now read from one place by both
+  pages rather than written down twice.
+- **The villain picker steps through the boxes.** Working through them in
+  order is a real way to play this game, and doing it from the dropdown meant
+  opening it and finding the next line every time. The control only appears
+  while a box is selected: with every box showing there is no sequence to be
+  at a point in.
+- **Settings lists the decks being kept in step with MarvelCDB** -- deck,
+  hero, the ID linked to the page it came from, and whether it synced, failed,
+  or names cards this installation cannot play. The rows come from the
+  configured IDs rather than the last success, so a deck that failed still has
+  a row saying so. It scrolls in a panel of its own, because a row per deck is
+  as long as your collection.
+- **Internal names no longer appear in the game log.** It read "Cable's
+  PlayerDeck<40> was shuffled with Cable's DiscardPile<0>" and "placed 1
+  'first_player_token' token": decks were being formatted with the debug
+  representation, and token names are identifiers that were quoted in as they
+  stand. Both now read as English. The debug form is kept where debugging
+  looks for it.
 
 ## Version 0.7.6.1 (2026-09-07)
 
