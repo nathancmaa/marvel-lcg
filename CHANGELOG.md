@@ -1,4 +1,4 @@
-# Marvel Champions Digital: Ronin Edition Changelog
+# Marvel Champions Digital: Cerebro Changelog
 
 > Current release version: 0.7.7
 
