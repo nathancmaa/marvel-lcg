@@ -294,9 +294,14 @@ export type DeckFilters<T extends DeckFilterChoice> = {
      *
      * `requested` says the deck was named from outside -- a coverage square
      * asking for a hero -- rather than restored from last visit. It decides
-     * whether "Favorites only" is relaxed: a restore must not touch it, or the
-     * filter switches itself off during page load whenever the remembered deck
-     * is not starred, which is most of them, and so never survives a refresh.
+     * whether the two toggles are relaxed: a restore must not touch them, or
+     * a toggle switches itself off during page load whenever the remembered
+     * deck is one it hides, and so never survives a refresh at all.
+     *
+     * The hero dropdown is not treated that way, because relaxing it does not
+     * turn anything off: it moves to the hero whose deck is selected, which
+     * leaves the list as short as it was and showing what is about to be
+     * played.
      */
     revealChoice(id: string, options?: {requested?: boolean}): void;
     /**
@@ -625,7 +630,7 @@ export function createDeckFilters<T extends DeckFilterChoice>(
             }
             let changed = false;
 
-            if (state.hidePrecons && !choice.isUserDeck) {
+            if (options?.requested && state.hidePrecons && !choice.isUserDeck) {
                 state.hidePrecons = false;
                 setPressed(preconToggle, state.hidePrecons);
                 changed = true;
