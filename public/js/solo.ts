@@ -84,7 +84,7 @@ import {
 } from './marvelcdb_deck.js';
 import { withCardImageRevision } from './card_image_url.js';
 import { DeckFilters, buildHeroLabels, createDeckFilters, heroKeyOf } from './deck_filters.js';
-import { isFavorite, toggleFavorite } from './favorites.js';
+import { isFavorite, loadFavorites, onFavoritesChanged, toggleFavorite } from './favorites.js';
 import { beatenClass, beatenLabel } from './beaten.js';
 import { AspectDeckPicker, createAspectDeckPicker } from './aspect_decks.js';
 import { UniversalDeckPicker, createUniversalDeckPicker } from './universal_decks.js';
@@ -991,6 +991,12 @@ async function initialize(): Promise<void> {
         },
     });
     void aspectDeckPicker.load();
+
+    // Stars are drawn from the browser's copy immediately and corrected when
+    // the shared list lands, which is the only thing that can add a star this
+    // browser has never seen.
+    onFavoritesChanged(() => deckFilters.refresh());
+    void loadFavorites();
 
     universalDeckPicker = createUniversalDeckPicker({
         onChange: () => {

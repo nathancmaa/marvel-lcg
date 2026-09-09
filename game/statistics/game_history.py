@@ -31,7 +31,7 @@ REPLAY_FOLDERS = ConfigVariables.Folders('replay_folders', ['./replays/'])
 
 
 class GameHistory:
-    SCHEMA_VERSION = 6
+    SCHEMA_VERSION = 7
     KNOWN_RESULTS = ('win', 'loss', 'unknown', 'abandoned')
     KNOWN_SOURCES = ('digital', 'physical', 'replay_import')
 
@@ -174,6 +174,14 @@ class GameHistory:
                     owned_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL
                 );
+
+                -- Starred decks. Here rather than in the browser because one
+                -- container is played from several of them, and a star set on
+                -- the laptop meant nothing on the phone.
+                CREATE TABLE IF NOT EXISTS favorite_decks (
+                    deck_id TEXT PRIMARY KEY,
+                    favorited_at TEXT NOT NULL
+                );
                 '''
             )
             connection.execute(f'PRAGMA user_version = {self.SCHEMA_VERSION}')
@@ -275,6 +283,18 @@ class GameHistory:
                     'NOT NULL DEFAULT 0 CHECK (heroic >= 0)'
                 )
             connection.execute('PRAGMA user_version = 6')
+            version = 6
+
+        if version < 7:
+            connection.execute(
+                '''
+                CREATE TABLE IF NOT EXISTS favorite_decks (
+                    deck_id TEXT PRIMARY KEY,
+                    favorited_at TEXT NOT NULL
+                )
+                '''
+            )
+            connection.execute('PRAGMA user_version = 7')
 
     @staticmethod
     def HeroicLevel(rules: Any) -> int:
@@ -971,6 +991,60 @@ class GameHistory:
                 [(key, existing.get(key, now), now) for key in normalized],
             )
         return {'owned_products': normalized}
+
+    def GetFavoriteDecks(self) -> List[str]:
+        """Every starred deck, oldest star first."""
+        if not self.available:
+            return []
+        with self._lock, self._connect() as connection:
+            return [
+                str(row['deck_id'])
+                for row in connection.execute(
+                    # Oldest star first, and within a single save the order it
+                    # was sent in: everything saved together shares a
+                    # timestamp, so rowid is what keeps a list from coming
+                    # back alphabetised.
+                    'SELECT deck_id FROM favorite_decks '
+                    'ORDER BY favorited_at, rowid'
+                ).fetchall()
+            ]
+
+    def SaveFavoriteDecks(self, deck_ids: Any) -> Dict[str, Any]:
+        """Replace the starred decks with this list.
+
+        Whole-list rather than one star at a time, the way the collection is
+        saved: the browser holds the list anyway, and a replace cannot leave
+        the two disagreeing about a star that failed to send.
+
+        The id is the deck's file name, which is what both pickers already use
+        to identify a deck.
+        """
+        if not isinstance(deck_ids, list):
+            raise ValueError('Favourite decks must be a list.')
+        normalized: List[str] = []
+        for value in deck_ids:
+            deck_id = str(value).strip()
+            valid = re.fullmatch(r'[A-Za-z0-9_.\-]+', deck_id)
+            if not deck_id or len(deck_id) > 120 or not valid:
+                raise ValueError('A favourite deck id is invalid.')
+            if deck_id not in normalized:
+                normalized.append(deck_id)
+        now = self._now()
+        with self._lock, self._connect() as connection:
+            # Keep the moment a deck was first starred, so the order a player
+            # built the list up in survives a save that only adds to it.
+            existing = {
+                str(row['deck_id']): str(row['favorited_at'])
+                for row in connection.execute(
+                    'SELECT deck_id, favorited_at FROM favorite_decks'
+                ).fetchall()
+            }
+            connection.execute('DELETE FROM favorite_decks')
+            connection.executemany(
+                'INSERT INTO favorite_decks (deck_id, favorited_at) VALUES (?, ?)',
+                [(deck_id, existing.get(deck_id, now)) for deck_id in normalized],
+            )
+        return {'favorite_decks': normalized}
 
     @staticmethod
     def _rating_value(data: Dict[str, Any], key: str) -> int|None:

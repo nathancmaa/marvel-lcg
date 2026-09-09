@@ -1,6 +1,6 @@
 import { withCardImageRevision } from './card_image_url.js';
 import { buildHeroLabels, compareDeckText, heroKeyOf } from './deck_filters.js';
-import { isFavorite, toggleFavorite } from './favorites.js';
+import { isFavorite, loadFavorites, onFavoritesChanged, toggleFavorite } from './favorites.js';
 import { CardPaperLike, describeProfile, isSubstitutable, profileCard } from './card_profile.js';
 import { deckAspectCountsOf, isSplashInclude, suggestSubstitutes } from './card_substitution.js';
 
@@ -1146,6 +1146,16 @@ async function initialize(): Promise<void> {
         setToggle(groupHeroesToggle, groupByHero);
         setToggle(hidePreconsToggle, hidePrecons);
         setToggle(onlyFavoritesToggle, onlyFavorites);
+        // The dropdown carries a star per deck and the button reflects the one
+        // on screen, so both are redrawn when the shared list arrives.
+        onFavoritesChanged(() => {
+            fillDeckSelect();
+            if( currentDeck ) {
+                deckSelect.value = currentDeck.id;
+            }
+            paintFavoriteButton();
+        });
+        void loadFavorites();
         fillDeckSelect();
         if (!choices.length) {
             deckStatus.textContent = 'No local decks are available.';
