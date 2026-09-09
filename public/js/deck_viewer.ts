@@ -1,5 +1,6 @@
 import { withCardImageRevision } from './card_image_url.js';
 import { buildHeroLabels, compareDeckText, heroKeyOf } from './deck_filters.js';
+import { isFavorite, toggleFavorite } from './favorites.js';
 import { CardPaperLike, describeProfile, isSubstitutable, profileCard } from './card_profile.js';
 import { deckAspectCountsOf, isSplashInclude, suggestSubstitutes } from './card_substitution.js';
 
@@ -63,10 +64,14 @@ const selectedDeckStorageKey = 'marvel_lcg_deck_viewer_deck';
 const quickGameDeckStorageKey = 'marvel_lcg_solo_hero';
 const groupHeroesStorageKey = 'marvel_lcg_deck_viewer_group_heroes';
 const hidePreconsStorageKey = 'marvel_lcg_deck_viewer_hide_precons';
+const onlyFavoritesStorageKey = 'marvel_lcg_deck_viewer_only_favorites';
 
 const deckSelect = document.querySelector<HTMLSelectElement>('#deck-select')!;
 const groupHeroesToggle = document.querySelector<HTMLButtonElement>('#viewer-group-heroes')!;
 const hidePreconsToggle = document.querySelector<HTMLButtonElement>('#viewer-hide-precons')!;
+const onlyFavoritesToggle = document.querySelector<HTMLButtonElement>('#viewer-only-favorites')!;
+const favoriteDeckButton = document.querySelector<HTMLButtonElement>('#favorite-deck')!;
+const favoriteDeckLabel = document.querySelector<HTMLElement>('#favorite-deck-label')!;
 const marvelCdbLink = document.querySelector<HTMLAnchorElement>('#marvelcdb-link')!;
 const deckStatus = document.querySelector<HTMLElement>('#deck-status')!;
 const deckSourceBadge = document.querySelector<HTMLElement>('#deck-source-badge')!;
@@ -76,6 +81,7 @@ const identityImage = document.querySelector<HTMLImageElement>('#identity-image'
 const deckHero = document.querySelector<HTMLElement>('#deck-hero')!;
 const deckName = document.querySelector<HTMLElement>('#deck-name')!;
 const deckCount = document.querySelector<HTMLElement>('#deck-count')!;
+const deckRecord = document.querySelector<HTMLElement>('#deck-record')!;
 const deckAspects = document.querySelector<HTMLElement>('#deck-aspects')!;
 const collectionGap = document.querySelector<HTMLElement>('#collection-gap')!;
 const deckMulligan = document.querySelector<HTMLElement>('#deck-mulligan')!;
@@ -111,8 +117,25 @@ const productsByPack = new Map<string, ProductInfo>();
 let choices: DeckChoice[] = [];
 let groupByHero = localStorage.getItem(groupHeroesStorageKey) === '1';
 let hidePrecons = localStorage.getItem(hidePreconsStorageKey) === '1';
+let onlyFavorites = localStorage.getItem(onlyFavoritesStorageKey) === '1';
 let previewFaces: string[] = [];
 let previewFaceIndex = 0;
+type RecordRow = {
+    hero_code?: string;
+    deck_name?: string;
+    games: number;
+    wins: number;
+    losses: number;
+    win_rate: number;
+};
+
+type DeckRecords = {
+    available: boolean;
+    heroes: RecordRow[];
+    decks: RecordRow[];
+};
+
+let deckRecords: DeckRecords | null = null;
 let currentDeck: DeckChoice | null = null;
 let currentShareEntries: CardEntry[] = [];
 let isCreatingShareImage = false;
@@ -214,7 +237,24 @@ function deckLabel(choice: DeckChoice): string {
 
 /** The decks the current toggles allow, in display order. */
 function visibleChoices(): DeckChoice[] {
-    return choices.filter(choice => !hidePrecons || choice.isUserDeck);
+    return choices.filter(choice => (!hidePrecons || choice.isUserDeck)
+        && (!onlyFavorites || isFavorite(choice.id)));
+}
+
+/**
+ * The star beside Play, for whichever deck is open.
+ *
+ * Also redraws the list: the option labels carry the star, and with
+ * "Favorites only" on, un-starring the open deck takes it out of the list --
+ * which refreshDeckList then handles the same way it handles hiding precons
+ * while viewing one.
+ */
+function paintFavoriteButton(): void {
+    const starred = currentDeck !== null && isFavorite(currentDeck.id);
+    favoriteDeckButton.disabled = currentDeck === null;
+    favoriteDeckButton.setAttribute('aria-pressed', String(starred));
+    favoriteDeckButton.classList.toggle('active', starred);
+    favoriteDeckLabel.textContent = starred ? 'Favorited' : 'Favorite';
 }
 
 function fillDeckSelect(): void {
@@ -263,7 +303,9 @@ function fillDeckSelect(): void {
         for (const choice of bucket) {
             const option = document.createElement('option');
             option.value = choice.id;
-            option.textContent = deckLabel(choice);
+            option.textContent = isFavorite(choice.id)
+                ? `★ ${deckLabel(choice)}`
+                : deckLabel(choice);
             group.appendChild(option);
         }
         deckSelect.appendChild(group);
@@ -857,6 +899,68 @@ function randomHeroDeck(): void {
     void showDeck(choice);
 }
 
+/**
+ * How the games went, for this deck and for the hero behind it.
+ *
+ * Recorded games only: a deck that has never been to the table reads 0-0
+ * rather than disappearing, because "no games yet" is itself the answer to
+ * the question the line is there to answer.
+ */
+async function loadDeckRecords(): Promise<DeckRecords | null> {
+    try {
+        const records = await fetchJson<DeckRecords>('/get_deck_records?');
+        return records.available ? records : null;
+    } catch (error) {
+        // History is optional. A viewer that cannot reach it still shows decks.
+        console.warn('Could not load game records', error);
+        return null;
+    }
+}
+
+/** The identity card the game history keys a hero on: `40001a` of `40001a,40001b`. */
+function heroCodeOf(choice: DeckChoice): string {
+    return String(choice.data.hero?.[0] ?? '').split(',')[0].trim().toLowerCase();
+}
+
+function formatRecord(row: RecordRow | undefined): string {
+    if( !row || row.games === 0 ) {
+        return '0-0';
+    }
+    // win_rate arrives as a percentage already, the way the statistics page
+    // reads it -- not a fraction.
+    return `${row.wins}-${row.losses} · ${row.win_rate.toFixed(0)}%`;
+}
+
+function renderDeckRecord(choice: DeckChoice): void {
+    if( !deckRecords ) {
+        deckRecord.hidden = true;
+        return;
+    }
+    const heroCode = heroCodeOf(choice);
+    const deckName = deckLabel(choice);
+    const deckRow = deckRecords.decks.find(row => row.deck_name === deckName);
+    const heroRow = deckRecords.heroes.find(row => row.hero_code === heroCode);
+
+    deckRecord.replaceChildren(
+        recordChip('This deck', formatRecord(deckRow)),
+        recordChip(choice.data.name, formatRecord(heroRow)),
+    );
+    deckRecord.hidden = false;
+}
+
+function recordChip(label: string, value: string): HTMLElement {
+    const chip = document.createElement('span');
+    chip.className = 'record-chip';
+    const name = document.createElement('span');
+    name.className = 'record-chip-label';
+    name.textContent = label;
+    const score = document.createElement('span');
+    score.className = 'record-chip-value';
+    score.textContent = value;
+    chip.append(name, score);
+    return chip;
+}
+
 async function showDeck(choice: DeckChoice): Promise<void> {
     deckStatus.textContent = 'Loading cards…';
     shareStatus.textContent = '';
@@ -929,6 +1033,8 @@ async function showDeck(choice: DeckChoice): Promise<void> {
         // already worth reading without it.
         void renderMulligan(choice, [...signatures, ...playerDeck]);
 
+        paintFavoriteButton();
+        renderDeckRecord(choice);
         deckSourceBadge.hidden = false;
         deckSourceBadge.textContent = choice.isUserDeck ? 'MY DECK' : 'STARTER DECK';
         deckSourceBadge.classList.toggle('starter', !choice.isUserDeck);
@@ -992,6 +1098,22 @@ hidePreconsToggle.addEventListener('click', () => {
     refreshDeckList();
 });
 
+onlyFavoritesToggle.addEventListener('click', () => {
+    onlyFavorites = !onlyFavorites;
+    setToggle(onlyFavoritesToggle, onlyFavorites);
+    localStorage.setItem(onlyFavoritesStorageKey, onlyFavorites ? '1' : '0');
+    refreshDeckList();
+});
+
+favoriteDeckButton.addEventListener('click', () => {
+    if( !currentDeck ) {
+        return;
+    }
+    toggleFavorite(currentDeck.id);
+    paintFavoriteButton();
+    refreshDeckList();
+});
+
 playDeckButton.addEventListener('click', playCurrentDeck);
 randomHeroButton.addEventListener('click', randomHeroDeck);
 shareDeckButton.addEventListener('click', () => {
@@ -1011,16 +1133,19 @@ previewFlip.addEventListener('click', () => {
 
 async function initialize(): Promise<void> {
     try {
-        const [loadedChoices, sets, owned] = await Promise.all([
+        const [loadedChoices, sets, owned, records] = await Promise.all([
             loadChoices(),
             fetchJson<Record<string, SetInfo>>('/get_sets_json?'),
             loadOwnedProducts(),
+            loadDeckRecords(),
         ]);
         choices = loadedChoices;
+        deckRecords = records;
         ownedProducts = owned;
         loadProductCatalog(sets);
         setToggle(groupHeroesToggle, groupByHero);
         setToggle(hidePreconsToggle, hidePrecons);
+        setToggle(onlyFavoritesToggle, onlyFavorites);
         fillDeckSelect();
         if (!choices.length) {
             deckStatus.textContent = 'No local decks are available.';

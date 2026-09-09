@@ -46,7 +46,19 @@
     text-transform: uppercase;
 }
 
+/* The star sits with the list it applies to. A native <select> cannot carry
+   a control per option, so the pair share a row and the button acts on
+   whichever deck is showing. */
+.deck-select-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 0.5rem;
+    width: min(42rem, 100%);
+}
+
 #deck-select {
+    flex: 1 1 14rem;
     width: min(42rem, 100%);
     min-height: 3rem;
     padding: 0.65rem 2.8rem 0.65rem 0.85rem;
@@ -171,6 +183,91 @@
 .share-deck-button:disabled {
     cursor: wait;
     filter: grayscale(0.7);
+}
+
+/* Favoriting is a toggle, not a third thing to press, so it stays outlined
+   until it is on rather than competing with Play and Share for attention. */
+.favorite-deck-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex: 0 0 auto;
+    min-height: 3rem;
+    padding: 0.65rem 1rem;
+    border: 1px solid rgba(237, 196, 97, 0.5);
+    border-radius: 0.5rem;
+    background: rgba(16, 28, 40, 0.9);
+    color: #cfdae4;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.favorite-deck-button:hover:not(:disabled) {
+    border-color: #edc461;
+    color: #ffe7a3;
+}
+
+.favorite-deck-button:focus-visible {
+    outline: 3px solid #e8bd62;
+    outline-offset: 2px;
+}
+
+.favorite-deck-button[aria-pressed="true"] {
+    border-color: #edc461;
+    background: rgba(157, 104, 25, 0.35);
+    color: #ffe7a3;
+}
+
+.favorite-deck-star {
+    color: #6b7c8c;
+    font-size: 1.05rem;
+    line-height: 1;
+}
+
+.favorite-deck-button[aria-pressed="true"] .favorite-deck-star {
+    color: #ffd66b;
+}
+
+/* Disabled only until a deck is open, which is a moment at page load. */
+.favorite-deck-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+/* Two records, side by side: this deck's, and every game with the hero
+   behind it. Quiet enough to sit under the card count without competing
+   with the deck name above it. */
+.deck-record {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin: 0.35rem 0 0;
+}
+
+.deck-record[hidden] {
+    display: none;
+}
+
+.record-chip {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    padding: 0.25rem 0.65rem;
+    border: 1px solid rgba(143, 190, 224, 0.38);
+    border-radius: 999px;
+    background: rgba(16, 28, 40, 0.75);
+    font-size: 0.85rem;
+}
+
+.record-chip-label {
+    color: #9db3c4;
+}
+
+.record-chip-value {
+    color: #eaf3fa;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
 }
 
 .share-status {

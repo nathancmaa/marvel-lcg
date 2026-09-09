@@ -1,3 +1,4 @@
+import { beatenClass, beatenLabel } from './beaten.js';
 import { bgStatsPlayUrl, canPushToBgStats } from './bgstats_play.js';
 import { UserSettings } from './user_settings.js';
 
@@ -713,19 +714,6 @@ function renderMatchupGrid(): void {
     ): number => pairs.reduce(
         (best, {hero, scenario}) => Math.max(best, cellFor(hero, scenario)?.best_beaten ?? 0),
         0);
-
-    /** 0 shows nothing at all, so an untouched header stays quiet. */
-    const beatenClass = (beaten: number): string =>
-        beaten >= 3 ? `beaten-heroic-${Math.min(beaten - 2, 4)}`
-        : beaten === 2 ? 'beaten-expert'
-        : beaten === 1 ? 'beaten-standard'
-        : '';
-
-    const beatenLabel = (beaten: number): string =>
-        beaten >= 3 ? `best clear: Heroic ${beaten - 2}`
-        : beaten === 2 ? 'best clear: Expert'
-        : beaten === 1 ? 'best clear: Standard'
-        : 'not beaten yet';
 
     const head = document.createElement('thead');
     const nameRow = document.createElement('tr');

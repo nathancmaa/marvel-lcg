@@ -469,6 +469,22 @@ class GameServerGet(GameServerBase):
             return web.json_response({'error': str(exc)}, status=400)
         return web.json_response(dashboard)
 
+    async def get_deck_records(self, request: web.Request) -> web.Response:
+        history = self.game.game_history
+        if history is None:
+            return web.json_response({
+                'available': False,
+                'error': 'Game history is disabled.',
+            })
+        try:
+            records = await TaskManager.ToThread(
+                history.GetDeckRecords,
+                request.query.get('source', 'all'),
+            )
+        except ValueError as exc:
+            return web.json_response({'error': str(exc)}, status=400)
+        return web.json_response(records)
+
     async def get_active_campaign(self, request: web.Request) -> web.Response:
         world = self.game.world
         if not world or not world.rule.mode_campaign.val or not world.scene.campaign.campaign_id:
@@ -565,6 +581,7 @@ class GameServerGet(GameServerBase):
         self.AddAwaitGetSecurity('/get_sets_json', self.get_sets_json)
         self.AddAwaitGetSecurity('/get_aspect_decks_json', self.get_aspect_decks_json)
         self.AddAwaitGetSecurity('/get_matchup_matrix', self.get_matchup_matrix)
+        self.AddAwaitGetSecurity('/get_deck_records', self.get_deck_records)
         self.AddPostSecurity('/import_tracker_games', self.import_tracker_games)
         self.AddAwaitGetSecurity('/get_sets_custom_scenario', self.get_sets_custom_scenario)
         self.AddAwaitGetSecurity('/get_cards_json', self.get_cards_json)

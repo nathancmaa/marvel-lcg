@@ -112,6 +112,7 @@ export function createScenarioFilters<T extends ScenarioFilterChoice>(
     const {listHost, createButton, isNew, onRendered} = options;
     const state = readState();
     let source: T[] = [];
+    let products: string[] = [];
 
     const bar = document.createElement('div');
     bar.className = 'deck-filters';
@@ -152,6 +153,31 @@ export function createScenarioFilters<T extends ScenarioFilterChoice>(
     bar.append(productField, sortField, groupToggle, count);
     listHost.parentElement?.insertBefore(bar, listHost);
 
+    // Working through the boxes in order is a real way to play this game, and
+    // doing it from the dropdown means opening it and finding the next line
+    // every time. The stepper only appears while a box is actually selected:
+    // with "All boxes" showing there is no sequence to be at a point in.
+    const stepper = document.createElement('div');
+    stepper.className = 'filter-stepper';
+    stepper.hidden = true;
+
+    const previousBox = document.createElement('button');
+    previousBox.type = 'button';
+    previousBox.className = 'deck-filter-toggle';
+    previousBox.textContent = '‹ Previous box';
+
+    const stepperCount = document.createElement('span');
+    stepperCount.className = 'filter-stepper-count';
+    stepperCount.setAttribute('aria-live', 'polite');
+
+    const nextBox = document.createElement('button');
+    nextBox.type = 'button';
+    nextBox.className = 'deck-filter-toggle';
+    nextBox.textContent = 'Next box ›';
+
+    stepper.append(previousBox, stepperCount, nextBox);
+    listHost.parentElement?.insertBefore(stepper, listHost.nextSibling);
+
     function labelText(text: string): HTMLSpanElement {
         const span = document.createElement('span');
         span.className = 'deck-filter-label';
@@ -182,7 +208,7 @@ export function createScenarioFilters<T extends ScenarioFilterChoice>(
                 seen.set(choice.productLabel, choice.productOrder);
             }
         }
-        const products = [...seen.entries()]
+        const products_ = [...seen.entries()]
             .sort((left, right) => left[1] - right[1] || compareText(left[0], right[0]))
             .map(([label]) => label);
 
@@ -191,7 +217,7 @@ export function createScenarioFilters<T extends ScenarioFilterChoice>(
         all.value = '';
         all.textContent = 'All boxes';
         productSelect.appendChild(all);
-        for (const product of products) {
+        for (const product of products_) {
             const option = document.createElement('option');
             option.value = product;
             option.textContent = product;
@@ -200,11 +226,12 @@ export function createScenarioFilters<T extends ScenarioFilterChoice>(
 
         // A remembered box with nothing installed falls back to "All" rather
         // than leaving the picker mysteriously empty.
-        if (state.product && !products.includes(state.product)) {
+        if (state.product && !products_.includes(state.product)) {
             state.product = '';
             persist();
         }
         productSelect.value = state.product;
+        products = products_;
     }
 
     function applySort(choices: T[]): T[] {
@@ -283,8 +310,36 @@ export function createScenarioFilters<T extends ScenarioFilterChoice>(
             ? `${total} scenario${total === 1 ? '' : 's'}`
             : `${total} of ${source.length} scenarios`;
 
+        updateStepper();
         onRendered?.();
     }
+
+    function updateStepper(): void {
+        const index = products.indexOf(state.product);
+        stepper.hidden = !state.product || index < 0;
+        if (stepper.hidden) {
+            return;
+        }
+        stepperCount.textContent = `Box ${index + 1} of ${products.length}`;
+        previousBox.disabled = index === 0;
+        nextBox.disabled = index === products.length - 1;
+    }
+
+    /** Move to the box `offset` along, staying inside the list. */
+    function stepBox(offset: number): void {
+        const index = products.indexOf(state.product);
+        const next = products[index + offset];
+        if (index < 0 || next === undefined) {
+            return;
+        }
+        state.product = next;
+        productSelect.value = next;
+        persist();
+        draw();
+    }
+
+    previousBox.addEventListener('click', () => stepBox(-1));
+    nextBox.addEventListener('click', () => stepBox(1));
 
     productSelect.addEventListener('change', () => {
         state.product = productSelect.value;

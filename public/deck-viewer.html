@@ -28,14 +28,23 @@
                 <span id="deck-source-badge" class="deck-source-badge" hidden></span>
             </div>
             <label class="deck-select-label" for="deck-select">Local deck</label>
-            <select id="deck-select" disabled>
-                <option>Loading decks…</option>
-            </select>
+            <div class="deck-select-row">
+                <select id="deck-select" disabled>
+                    <option>Loading decks…</option>
+                </select>
+                <button id="favorite-deck" class="favorite-deck-button" type="button"
+                        aria-pressed="false" disabled>
+                    <span class="favorite-deck-star" aria-hidden="true">★</span>
+                    <span id="favorite-deck-label">Favorite</span>
+                </button>
+            </div>
             <div class="deck-filters" role="group" aria-label="Deck list options">
                 <button id="viewer-group-heroes" class="deck-filter-toggle" type="button"
                         aria-pressed="false">Group by hero</button>
                 <button id="viewer-hide-precons" class="deck-filter-toggle" type="button"
                         aria-pressed="false">Hide precons</button>
+                <button id="viewer-only-favorites" class="deck-filter-toggle" type="button"
+                        aria-pressed="false">Favorites only</button>
                 <button id="viewer-random-hero" class="deck-filter-toggle" type="button">Random deck</button>
             </div>
             <p id="deck-status" class="load-status" aria-live="polite"></p>
@@ -47,6 +56,7 @@
                 <p id="deck-hero" class="summary-kicker"></p>
                 <h2 id="deck-name"></h2>
                 <p id="deck-count" class="deck-count"></p>
+                <p id="deck-record" class="deck-record" hidden></p>
                 <div id="deck-aspects" class="deck-aspects" aria-label="Deck aspects"></div>
                 <p id="collection-gap" class="collection-gap" aria-live="polite" hidden></p>
                 <div id="deck-mulligan" class="deck-mulligan" hidden>

@@ -7,6 +7,8 @@
 // The module owns its own controls markup as well, so solo.html needs no
 // changes -- the deck list is JavaScript-generated already.
 
+import { isFavorite } from './favorites.js';
+
 export type DeckFilterData = {
     name: string;
     deck_name?: string;
@@ -30,6 +32,7 @@ type ControlState = {
     sort: SortMode;
     hidePrecons: boolean;
     groupByHero: boolean;
+    onlyFavorites: boolean;
 };
 
 // The default, kept as it was so Quick Game remembers what it always has.
@@ -66,6 +69,7 @@ const DEFAULT_STATE: ControlState = {
     sort: 'deck',
     hidePrecons: false,
     groupByHero: false,
+    onlyFavorites: false,
 };
 
 function readState(storageKey: string): ControlState {
@@ -83,6 +87,7 @@ function readState(storageKey: string): ControlState {
             sort,
             hidePrecons: parsed.hidePrecons === true,
             groupByHero: parsed.groupByHero === true,
+            onlyFavorites: parsed.onlyFavorites === true,
         };
     } catch {
         // A private window, cleared storage, or a hand-edited value should
@@ -288,6 +293,14 @@ export type DeckFilters<T extends DeckFilterChoice> = {
      * screen leaves the bar exactly as the player set it.
      */
     revealChoice(id: string): void;
+    /**
+     * Redraw with the current list and options.
+     *
+     * For state the bar reads but does not own: starring a deck changes what
+     * "Favorites only" admits, and the star on every other tile stays as it
+     * was drawn until something asks for a redraw.
+     */
+    refresh(): void;
 };
 
 export function createDeckFilters<T extends DeckFilterChoice>(
@@ -333,12 +346,13 @@ export function createDeckFilters<T extends DeckFilterChoice>(
 
     const groupToggle = createToggle('Group by hero', state.groupByHero);
     const preconToggle = createToggle('Hide precons', state.hidePrecons);
+    const favoriteToggle = createToggle('Favorites only', state.onlyFavorites);
 
     const count = document.createElement('span');
     count.className = 'deck-filter-count';
     count.setAttribute('aria-live', 'polite');
 
-    bar.append(heroLabel, sortLabel, groupToggle, preconToggle, count);
+    bar.append(heroLabel, sortLabel, groupToggle, preconToggle, favoriteToggle, count);
     listHost.parentElement?.insertBefore(bar, listHost);
 
     function labelText(text: string): HTMLSpanElement {
@@ -410,6 +424,9 @@ export function createDeckFilters<T extends DeckFilterChoice>(
     function applyFilters(choices: T[]): T[] {
         return choices.filter((choice) => {
             if (state.hidePrecons && !choice.isUserDeck) {
+                return false;
+            }
+            if (state.onlyFavorites && !isFavorite(choice.id)) {
                 return false;
             }
             if (state.heroId && heroKeyOf(choice) !== state.heroId) {
@@ -570,10 +587,20 @@ export function createDeckFilters<T extends DeckFilterChoice>(
         draw();
     });
 
+    favoriteToggle.addEventListener('click', () => {
+        state.onlyFavorites = !state.onlyFavorites;
+        setPressed(favoriteToggle, state.onlyFavorites);
+        persist();
+        draw();
+    });
+
     return {
         render(choices: T[]): void {
             source = choices;
             refreshHeroOptions();
+            void ensureAspectsThenDraw();
+        },
+        refresh(): void {
             void ensureAspectsThenDraw();
         },
         filterToHero(heroKey: string): void {
@@ -595,6 +622,12 @@ export function createDeckFilters<T extends DeckFilterChoice>(
             if (state.hidePrecons && !choice.isUserDeck) {
                 state.hidePrecons = false;
                 setPressed(preconToggle, state.hidePrecons);
+                changed = true;
+            }
+
+            if (state.onlyFavorites && !isFavorite(choice.id)) {
+                state.onlyFavorites = false;
+                setPressed(favoriteToggle, state.onlyFavorites);
                 changed = true;
             }
 

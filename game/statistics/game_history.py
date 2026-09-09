@@ -1126,6 +1126,61 @@ class GameHistory:
             for row in rows
         ]
 
+    def GetDeckRecords(self, source: str='all') -> Dict[str, Any]:
+        """Win-loss records keyed by hero identity and by deck name.
+
+        For the deck viewer, which asks about one deck at a time. The
+        dashboard already groups by hero, but it also carries a hundred recent
+        games, every achievement and the collection, so a page that wants two
+        numbers asks here instead.
+
+        Decks are grouped by the name recorded with the game, which is what
+        the viewer shows in its list -- so two different decks sharing a name
+        share a record. Deliberate: the name is all a finished game keeps of
+        which deck was played, and a wrong split would be worse than a merge.
+        """
+        if not self.available:
+            return {'available': False, 'error': 'Game history is unavailable.'}
+        source = self._normalize_source_filter(source)
+        with self._lock, self._connect() as connection:
+            parameters: tuple[Any, ...] = () if source == 'all' else (source,)
+            source_clause = 'AND source = ? ' if source != 'all' else ''
+
+            def grouped(query: str) -> List[Dict[str, Any]]:
+                rows: List[Dict[str, Any]] = []
+                for row in connection.execute(query, parameters).fetchall():
+                    item = dict(row)
+                    games = int(item.pop('games'))
+                    item['games'] = games
+                    item['wins'] = int(item['wins'])
+                    item['losses'] = games - item['wins']
+                    item['win_rate'] = self._rate(item['wins'], games)
+                    rows.append(item)
+                return rows
+
+            heroes = grouped(
+                'SELECT hero_code, MAX(hero_name) hero_name, COUNT(*) games, '
+                "SUM(CASE WHEN result = 'win' THEN 1 ELSE 0 END) wins "
+                "FROM games WHERE is_service = 0 AND result IN ('win', 'loss') "
+                "AND hero_code != '' "
+                + source_clause +
+                'GROUP BY hero_code ORDER BY games DESC, hero_name'
+            )
+            decks = grouped(
+                'SELECT deck_name, MAX(hero_code) hero_code, COUNT(*) games, '
+                "SUM(CASE WHEN result = 'win' THEN 1 ELSE 0 END) wins "
+                "FROM games WHERE is_service = 0 AND result IN ('win', 'loss') "
+                "AND deck_name != '' "
+                + source_clause +
+                'GROUP BY deck_name ORDER BY games DESC, deck_name'
+            )
+            return {
+                'available': True,
+                'source_filter': source,
+                'heroes': heroes,
+                'decks': decks,
+            }
+
     def GetDashboard(self, source: str='all') -> Dict[str, Any]:
         if not self.available:
             return {'available': False, 'error': 'Game history is unavailable.'}

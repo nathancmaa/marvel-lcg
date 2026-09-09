@@ -16,6 +16,12 @@ type ScenarioData = {
     modular_sets: string[];
 };
 
+/** Only the part of /get_matchup_matrix a villain tile needs. */
+type MatchupMatrix = {
+    available: boolean;
+    cells?: Record<string, {best_beaten?: number}>;
+};
+
 type UnderlingData = {
     name: string;
     villain: string[];
@@ -78,6 +84,8 @@ import {
 } from './marvelcdb_deck.js';
 import { withCardImageRevision } from './card_image_url.js';
 import { DeckFilters, buildHeroLabels, createDeckFilters, heroKeyOf } from './deck_filters.js';
+import { isFavorite, toggleFavorite } from './favorites.js';
+import { beatenClass, beatenLabel } from './beaten.js';
 import { AspectDeckPicker, createAspectDeckPicker } from './aspect_decks.js';
 import { ScenarioFilters, createScenarioFilters } from './scenario_filters.js';
 
@@ -151,7 +159,7 @@ const deckFilters: DeckFilters<HeroChoice> = createDeckFilters<HeroChoice>({
             !choice.isUserDeck && newHeroIds.has(choice.id),
         );
         button.classList.toggle('user-deck', choice.isUserDeck);
-        return button;
+        return withFavoriteStar(button, choice.id, choice.name);
     },
     // Re-drawing the list discards the selected styling, so put it back.
     onRendered: () => markSelected(heroList, selectedHero?.id ?? ''),
@@ -172,6 +180,7 @@ const scenarioFilters: ScenarioFilters<ScenarioChoice> =
             product.className = 'scenario-product-label';
             product.textContent = choice.productLabel;
             button.appendChild(product);
+            markBeaten(button, choice);
             return button;
         },
         isNew: (choice) => newScenarioIds.has(choice.id),
@@ -597,6 +606,91 @@ function createChoiceButton(
     return button;
 }
 
+/**
+ * How far each scenario has been beaten, by any hero, keyed on scenario id.
+ *
+ * The coverage grid answers this per pairing; a villain tile is asking the
+ * simpler question -- have I taken this one down yet, and at what -- so it
+ * takes the best clear along the scenario's whole column, exactly as that
+ * grid's own column headers do.
+ */
+let bestBeatenByScenario = new Map<string, number>();
+
+async function loadBeatenScenarios(): Promise<Map<string, number>> {
+    const best = new Map<string, number>();
+    try {
+        const matrix = await fetchJson<MatchupMatrix>('/get_matchup_matrix?');
+        if (!matrix.available || !matrix.cells) {
+            return best;
+        }
+        for (const [key, cell] of Object.entries(matrix.cells)) {
+            // Keys are `<hero code>|<scenario id>`; the hero half is not
+            // wanted here, only the hardest clear anyone managed.
+            const scenarioId = key.slice(key.indexOf('|') + 1);
+            const beaten = cell.best_beaten ?? 0;
+            if (beaten > (best.get(scenarioId) ?? 0)) {
+                best.set(scenarioId, beaten);
+            }
+        }
+    } catch (error) {
+        // History is optional, and a picker that cannot reach it still picks.
+        console.warn('Could not load which villains have been beaten', error);
+    }
+    return best;
+}
+
+function markBeaten(button: HTMLButtonElement, choice: ScenarioChoice): void {
+    const beaten = bestBeatenByScenario.get(choice.id) ?? 0;
+    const stripeClass = beatenClass(beaten);
+    button.title = `${choice.name} — ${beatenLabel(beaten)}`;
+    if (!stripeClass) {
+        return;
+    }
+    const stripe = document.createElement('span');
+    stripe.className = `beaten-stripe ${stripeClass}`;
+    button.appendChild(stripe);
+}
+
+/**
+ * Pair a deck tile with its own star, in a slot the two share.
+ *
+ * The star has to be a button of its own -- it is a second action on the tile,
+ * and a control nested inside a button is neither valid nor reachable from the
+ * keyboard. So the tile keeps its markup exactly and gains a sibling, with the
+ * slot around them taking over the tile's width so the grid still lays out one
+ * card per cell at every breakpoint.
+ */
+function withFavoriteStar(tile: HTMLButtonElement, id: string, name: string): HTMLElement {
+    const slot = document.createElement('div');
+    slot.className = 'choice-slot';
+
+    const star = document.createElement('button');
+    star.type = 'button';
+    star.className = 'favorite-star';
+    star.textContent = '★';
+
+    function paint(): void {
+        const starred = isFavorite(id);
+        star.classList.toggle('active', starred);
+        star.setAttribute('aria-pressed', String(starred));
+        star.title = starred ? `Remove ${name} from favorites` : `Add ${name} to favorites`;
+        star.setAttribute('aria-label', star.title);
+    }
+    paint();
+
+    star.addEventListener('click', () => {
+        toggleFavorite(id);
+        paint();
+        // Starring while "Favorites only" is on removes the tile under the
+        // pointer, which is the honest thing for the filter to do -- but the
+        // count and every other tile have to agree with it.
+        deckFilters.refresh();
+    });
+
+    slot.append(tile, star);
+    return slot;
+}
+
 async function loadScenarioChoices(): Promise<ScenarioChoice[]> {
     const [sets, availablePaths] = await Promise.all([
         fetchJson<Record<string, SetInfo>>('/get_sets_json?'),
@@ -897,10 +991,17 @@ async function initialize(): Promise<void> {
         applyAspectHero();
     });
 
-    const [scenarioResult, heroResult] = await Promise.allSettled([
+    const [scenarioResult, heroResult, beatenResult] = await Promise.allSettled([
         loadScenarioChoices(),
         loadHeroChoices(),
+        loadBeatenScenarios(),
     ]);
+
+    // Before the tiles are built, so each one is drawn with its stripe rather
+    // than gaining one a moment later.
+    if (beatenResult.status === 'fulfilled') {
+        bestBeatenByScenario = beatenResult.value;
+    }
 
     if (scenarioResult.status === 'fulfilled') {
         renderScenarios(scenarioResult.value);

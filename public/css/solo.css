@@ -233,6 +233,33 @@ input {
     color: #d8f1ff;
 }
 
+/* Under the grid rather than in the bar above it: it is where you end up
+   after looking through a box, and it only exists while there is a box to be
+   at a point in. */
+.filter-stepper {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin: 0.75rem 0 0;
+}
+
+.filter-stepper[hidden] {
+    display: none;
+}
+
+.filter-stepper-count {
+    color: #aebbc6;
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.filter-stepper .deck-filter-toggle:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    border-color: rgba(120, 210, 255, 0.18);
+}
+
 .deck-filter-count {
     margin-left: auto;
     color: #aebbc6;
@@ -274,6 +301,74 @@ input {
     letter-spacing: 0.035em;
     line-height: 1.2;
     text-align: center;
+}
+
+/* A deck tile and its star share a slot. The slot takes over the tile's
+   width so the wrapping grid still gets one card-sized cell per deck, and
+   the tile fills it -- the percentage widths further down resolve against
+   the grid only while the slot is the flex item. */
+.choice-slot {
+    position: relative;
+    display: flex;
+    width: 8.8rem;
+    flex: 0 0 8.8rem;
+    transition: transform 140ms ease;
+}
+
+.choice-slot > .choice-card {
+    width: 100%;
+    flex: 1 1 auto;
+}
+
+/* Lift the slot rather than the tile inside it, so the star rides along
+   and hovering the star does not leave the two at different heights. */
+.choice-slot:hover {
+    transform: translateY(-3px);
+}
+
+.choice-slot > .choice-card:hover {
+    transform: none;
+}
+
+.favorite-star {
+    position: absolute;
+    top: 0.7rem;
+    right: 0.7rem;
+    z-index: 2;
+    width: 1.85rem;
+    height: 1.85rem;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 1px solid rgba(225, 238, 248, 0.35);
+    border-radius: 50%;
+    background: rgba(9, 17, 25, 0.82);
+    color: #8a99a7;
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: color 140ms ease, border-color 140ms ease, background 140ms ease;
+}
+
+.favorite-star:hover {
+    color: #ffd66b;
+    border-color: rgba(255, 214, 107, 0.7);
+}
+
+.favorite-star.active {
+    color: #ffd66b;
+    border-color: rgba(255, 214, 107, 0.85);
+    background: rgba(58, 42, 18, 0.92);
+}
+
+.favorite-star:focus-visible {
+    outline: 3px solid #f1c94c;
+    outline-offset: 2px;
+}
+
+/* The selected tick already owns the top-right corner. */
+.choice-slot > .choice-card.selected + .favorite-star {
+    right: 2.85rem;
 }
 
 .choice-card {
@@ -383,6 +478,28 @@ input {
     font-weight: 700;
     box-shadow: 0 0.2rem 0.55rem rgba(0, 0, 0, 0.65);
 }
+
+/* How far this villain has been beaten, in the colours the coverage grid
+   uses for the same thing. A stripe along the bottom edge: the corners are
+   already spoken for by the MY DECK / NEW badge and the selected tick, and a
+   scenario tile is read as a row of art rather than one at a time. */
+.beaten-stripe {
+    position: absolute;
+    left: 0.55rem;
+    right: 0.55rem;
+    bottom: 0.28rem;
+    height: 0.22rem;
+    border-radius: 999px;
+    background: var(--beaten-colour);
+    box-shadow: 0 0 0.4rem var(--beaten-colour);
+}
+
+.beaten-standard { --beaten-colour: #4fc98f; }
+.beaten-expert   { --beaten-colour: #17603f; }
+.beaten-heroic-1 { --beaten-colour: #e8705f; }
+.beaten-heroic-2 { --beaten-colour: #cf4632; }
+.beaten-heroic-3 { --beaten-colour: #a32d1d; }
+.beaten-heroic-4 { --beaten-colour: #731a0f; }
 
 .choice-card img {
     width: 100%;
@@ -769,14 +886,21 @@ input {
         gap: 0.55rem;
     }
 
-    .choice-card {
+    .choice-card,
+    .choice-slot {
         width: calc(50% - 0.3rem);
         flex-basis: calc(50% - 0.3rem);
+    }
+
+    .choice-slot > .choice-card {
+        width: 100%;
+        flex-basis: auto;
     }
 }
 
 @media (max-width: 25rem) {
-    .choice-card {
+    .choice-card,
+    .choice-slot {
         width: 100%;
         flex-basis: 100%;
     }
