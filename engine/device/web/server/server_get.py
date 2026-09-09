@@ -138,6 +138,11 @@ class GameServerGet(GameServerBase):
         file = FileManager.FindJsonPath("AspectDecks", "aspect_decks.json")
         return self.ReadJsonFile(file)
 
+    async def get_universal_decks_json(self, request: web.Request) -> web.Response:
+        """Prebuilt player decks, one built for each hero."""
+        file = FileManager.FindJsonPath("UniversalDecks", "universal_decks.json")
+        return self.ReadJsonFile(file)
+
     @staticmethod
     def _matchup_slug(value: str) -> str:
         """The key game history files a scenario under.
@@ -580,6 +585,7 @@ class GameServerGet(GameServerBase):
         self.AddAwaitGetSecurity('/get_hero_json', self.get_hero_json)
         self.AddAwaitGetSecurity('/get_sets_json', self.get_sets_json)
         self.AddAwaitGetSecurity('/get_aspect_decks_json', self.get_aspect_decks_json)
+        self.AddAwaitGetSecurity('/get_universal_decks_json', self.get_universal_decks_json)
         self.AddAwaitGetSecurity('/get_matchup_matrix', self.get_matchup_matrix)
         self.AddAwaitGetSecurity('/get_deck_records', self.get_deck_records)
         self.AddPostSecurity('/import_tracker_games', self.import_tracker_games)

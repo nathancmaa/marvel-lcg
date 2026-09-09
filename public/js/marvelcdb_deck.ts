@@ -116,8 +116,8 @@ export function getDeckHeroCode(deck: {hero?: string[]}): string {
     return (first ?? '').split(',')[0]?.trim().toLowerCase() ?? '';
 }
 
-/** Campaign only offers the first two; Quick Game adds the third. */
-export type DeckSource = 'precon' | 'marvelcdb' | 'aspect';
+/** Campaign only offers the first two; Quick Game adds the rest. */
+export type DeckSource = 'precon' | 'marvelcdb' | 'aspect' | 'universal';
 
 export type DeckSourceController = {
     getSource(): DeckSource;
@@ -146,6 +146,7 @@ export function createDeckSourceController(options: {
     const status = document.querySelector<HTMLElement>('#marvelcdb-deck-status')!;
     const recentList = document.querySelector<HTMLElement>('#marvelcdb-recent')!;
     const aspectPanel = document.querySelector<HTMLElement>('#aspect-panel');
+    const universalPanel = document.querySelector<HTMLElement>('#universal-panel');
 
     let source: DeckSource = 'precon';
     let deck: MarvelCdbDeckData | null = null;
@@ -189,9 +190,13 @@ export function createDeckSourceController(options: {
     function setSource(next: DeckSource): void {
         source = next;
         panel.hidden = next !== 'marvelcdb';
-        // Campaign has no aspect-deck option, so this panel is absent there.
+        // Campaign has neither prebuilt-deck option, so both panels are
+        // absent there.
         if (aspectPanel) {
             aspectPanel.hidden = next !== 'aspect';
+        }
+        if (universalPanel) {
+            universalPanel.hidden = next !== 'universal';
         }
         if (next !== 'marvelcdb') {
             clear();
@@ -257,12 +262,17 @@ export function createDeckSourceController(options: {
         }
     }
 
+    // Listed once rather than tested inline: a source missing from the check
+    // does not fail, it silently becomes 'precon', so the radio appears to do
+    // nothing at all.
+    const KNOWN_SOURCES: ReadonlySet<string> = new Set<DeckSource>(
+        ['precon', 'marvelcdb', 'aspect', 'universal']);
+
     sourceInputs.forEach((element) => {
         element.addEventListener('change', () => {
             if (element.checked) {
                 const value = element.value;
-                setSource(
-                    value === 'marvelcdb' || value === 'aspect' ? value : 'precon');
+                setSource(KNOWN_SOURCES.has(value) ? value as DeckSource : 'precon');
             }
         });
     });

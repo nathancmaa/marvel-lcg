@@ -922,6 +922,20 @@ input {
     display: none;
 }
 
+/* The universal panel has nothing to choose in it -- the hero decides the
+   deck -- so it is one line saying which deck that is. */
+.universal-summary {
+    margin: 0 0 0.5rem;
+    color: #e6eef6;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.universal-summary.missing {
+    color: #e8bd62;
+    font-weight: 500;
+}
+
 .aspect-select-label {
     display: block;
     margin-bottom: 0.4rem;

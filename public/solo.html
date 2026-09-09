@@ -49,6 +49,24 @@
                     <input type="radio" name="deck-source" value="aspect">
                     <span>Aspect deck</span>
                 </label>
+                <label class="deck-source-option">
+                    <input type="radio" name="deck-source" value="universal">
+                    <span>Universal deck</span>
+                </label>
+            </div>
+
+            <div id="universal-panel" class="aspect-panel" hidden>
+                <p id="universal-summary" class="universal-summary" aria-live="polite">
+                    Choose a hero to see their universal deck.
+                </p>
+                <p class="aspect-credit">
+                    One deck per hero from
+                    <a id="universal-source-link" href="#" target="_blank" rel="noopener noreferrer">
+                        Universal Prebuilt Decks on BoardGameGeek</a>.
+                    Built so a full collection can hold every one of them at once,
+                    with no card shared between decks. Choose the hero above and
+                    theirs comes with them.
+                </p>
             </div>
 
             <div id="aspect-panel" class="aspect-panel" hidden>

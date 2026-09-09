@@ -87,6 +87,7 @@ import { DeckFilters, buildHeroLabels, createDeckFilters, heroKeyOf } from './de
 import { isFavorite, toggleFavorite } from './favorites.js';
 import { beatenClass, beatenLabel } from './beaten.js';
 import { AspectDeckPicker, createAspectDeckPicker } from './aspect_decks.js';
+import { UniversalDeckPicker, createUniversalDeckPicker } from './universal_decks.js';
 import { ScenarioFilters, createScenarioFilters } from './scenario_filters.js';
 
 const scenarioStorageKey = 'marvel_lcg_solo_scenario';
@@ -192,6 +193,23 @@ const scenarioFilters: ScenarioFilters<ScenarioChoice> =
 // signature cards, obligations and nemesis set.
 let deckSourceController: DeckSourceController | null = null;
 let aspectDeckPicker: AspectDeckPicker | null = null;
+let universalDeckPicker: UniversalDeckPicker | null = null;
+
+/** The universal deck for whoever is selected, when that is the deck source. */
+function currentUniversalDeck() {
+    if (deckSourceController?.getSource() !== 'universal' || !selectedHero) {
+        return null;
+    }
+    return universalDeckPicker?.getDeckFor(selectedHero.id) ?? null;
+}
+
+/** Keep the universal panel talking about the hero that is actually selected. */
+function refreshUniversalPanel(): void {
+    if (deckSourceController?.getSource() !== 'universal') {
+        return;
+    }
+    universalDeckPicker?.show(selectedHero?.id ?? '', selectedHero?.name ?? '');
+}
 
 function getFileName(path: string): string {
     return path.replace(/^.*[\\/]/, '').replace(/\.[^/.]+$/, '');
@@ -241,6 +259,7 @@ function updateMatchupSummary(): void {
     const hero = selectedHero;
     const source = deckSourceController?.getSource();
     const aspectDeck = source === 'aspect' ? aspectDeckPicker?.getDeck() ?? null : null;
+    const universalDeck = currentUniversalDeck();
     const resolved = source === 'marvelcdb' ? deckSourceController?.getDeck() ?? null : null;
 
     summaryHero.textContent = hero ? hero.data.name : 'Not selected';
@@ -256,11 +275,15 @@ function updateMatchupSummary(): void {
         ? '—'
         : aspectDeck
             ? `${aspectDeck.name} (aspect deck)`
-            : resolved
-                ? String(resolved.deck_name ?? resolved.name ?? 'MarvelCDB deck')
-                : hero.isUserDeck
-                    ? hero.name
-                    : `${hero.name} (precon)`;
+            : universalDeck
+                ? `${universalDeck.name} (${universalDeck.aspect})`
+                : source === 'universal'
+                    ? 'No universal deck for this hero'
+                    : resolved
+                        ? String(resolved.deck_name ?? resolved.name ?? 'MarvelCDB deck')
+                        : hero.isUserDeck
+                            ? hero.name
+                            : `${hero.name} (precon)`;
 
     summaryScenario.textContent = selectedScenario
         ? selectedScenario.name + (selectedUnderling ? ` · ${selectedUnderling.name}` : '')
@@ -272,7 +295,8 @@ function updatePlayButton(): void {
     updateMatchupSummary();
     const source = deckSourceController?.getSource();
     const awaitingDeck = (source === 'marvelcdb' && !deckSourceController?.getDeck())
-        || (source === 'aspect' && !aspectDeckPicker?.getDeck());
+        || (source === 'aspect' && !aspectDeckPicker?.getDeck())
+        || (source === 'universal' && !currentUniversalDeck());
     playButton.disabled = isStarting
         || deckSourceController?.isBusy() === true
         || !selectedScenario
@@ -512,6 +536,7 @@ function selectHero(choice: HeroChoice, keepMarvelCdbDeck = false): void {
         localStorage.setItem(heroStorageKey, choice.id);
     }
     updateHeroSelection();
+    refreshUniversalPanel();
     markSelected(heroList, choice.id);
     errorMessage.textContent = '';
     // Picking a different hero by hand abandons a loaded deck; a deck that
@@ -967,6 +992,14 @@ async function initialize(): Promise<void> {
     });
     void aspectDeckPicker.load();
 
+    universalDeckPicker = createUniversalDeckPicker({
+        onChange: () => {
+            refreshUniversalPanel();
+            updatePlayButton();
+        },
+    });
+    void universalDeckPicker.load();
+
     deckSourceController = createDeckSourceController({
         onChange: updatePlayButton,
         onResolved: selectResolvedMarvelCdbDeck,
@@ -985,6 +1018,9 @@ async function initialize(): Promise<void> {
             if (source === 'aspect') {
                 applyAspectHero();
             }
+            // The tiles stay up for a universal deck: the hero is how the deck
+            // is chosen, so there is nothing else to pick.
+            refreshUniversalPanel();
             updateHeroSelection();
         },
     });
@@ -1038,6 +1074,10 @@ async function startGame(): Promise<void> {
     if (deckSource === 'aspect' && !aspectDeck) {
         return;
     }
+    const universalDeck = currentUniversalDeck();
+    if (deckSource === 'universal' && !universalDeck) {
+        return;
+    }
 
     const scenarioChoice = selectedScenario;
     const heroChoice = selectedHero;
@@ -1047,9 +1087,13 @@ async function startGame(): Promise<void> {
     // An aspect deck is only the aspect and basic cards, so the hero keeps its
     // own identity, signature cards, obligations and nemesis set and only the
     // player deck is replaced -- the same shape a resolved MarvelCDB deck has.
+    // A universal deck is the same shape as an aspect deck -- 25 aspect and
+    // basic cards and nothing of the hero's -- so it is carried the same way,
+    // replacing only the player deck.
+    const prebuilt = aspectDeck ?? universalDeck;
     const heroDeck = resolvedDeck
-        ?? (aspectDeck
-            ? {...heroChoice.data, player_deck: [...aspectDeck.player_deck]}
+        ?? (prebuilt
+            ? {...heroChoice.data, player_deck: [...prebuilt.player_deck]}
             : heroChoice.data);
 
     isStarting = true;
