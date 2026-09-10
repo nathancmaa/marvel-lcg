@@ -134,16 +134,36 @@ input {
     margin-bottom: 0.9rem;
 }
 
+/* The heading is one line that must not grow past the section: min-width
+   lets a flex child shrink below its content, so a long deck name truncates
+   instead of pushing the row wider and taking everything to its right with
+   it. */
 .section-heading > div {
     display: flex;
     align-items: center;
     gap: 0.7rem;
+    min-width: 0;
 }
 
+/* The tabs are last, so they sit against the section's right edge and stay
+   there. Ahead of them is the selected hero and deck, which changes length
+   every time the selection does -- with the tabs before it, that moved them
+   sideways on every click, and a control that will not hold still is hard to
+   aim at. The text grows leftward into the space instead. */
 .heading-right {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     gap: 0.75rem;
+    min-width: 0;
+}
+
+.heading-right .current-selection {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: right;
 }
 
 /* Which hero is being chosen. Only here when two-handed is on, and the grid
