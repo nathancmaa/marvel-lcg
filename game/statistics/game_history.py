@@ -32,8 +32,11 @@ REPLAY_FOLDERS = ConfigVariables.Folders('replay_folders', ['./replays/'])
 
 
 class GameHistory:
-    SCHEMA_VERSION = 7
+    SCHEMA_VERSION = 8
     KNOWN_RESULTS = ('win', 'loss', 'unknown', 'abandoned')
+    # Marvel Champions is a one to four player game, and the engine seats four.
+    # Here so that the recorder's bound is the game's rather than one of its own.
+    MAX_PLAYERS = 4
     KNOWN_SOURCES = ('digital', 'physical', 'replay_import')
 
     def __init__(self, file_path: str|None=None, replay_folders: List[str]|None=None) -> None:
@@ -204,6 +207,24 @@ class GameHistory:
                     deck_id TEXT PRIMARY KEY,
                     favorited_at TEXT NOT NULL
                 );
+
+                -- Who played a game. One row for a solo game, two for a
+                -- two-handed one, so a win counts for both heroes without the
+                -- game itself being counted twice: games answers "how did this
+                -- game go", this answers "who was in it".
+                CREATE TABLE IF NOT EXISTS game_players (
+                    game_id INTEGER NOT NULL
+                        REFERENCES games(id) ON DELETE CASCADE,
+                    seat INTEGER NOT NULL,
+                    hero_code TEXT NOT NULL DEFAULT '',
+                    hero_name TEXT NOT NULL DEFAULT '',
+                    deck_name TEXT NOT NULL DEFAULT '',
+                    deck_source TEXT NOT NULL DEFAULT '',
+                    PRIMARY KEY (game_id, seat)
+                );
+
+                CREATE INDEX IF NOT EXISTS game_players_hero_index
+                    ON game_players(hero_code);
                 '''
             )
             connection.execute(f'PRAGMA user_version = {self.SCHEMA_VERSION}')
@@ -317,6 +338,49 @@ class GameHistory:
                 '''
             )
             connection.execute('PRAGMA user_version = 7')
+            version = 7
+
+        if version < 8:
+            connection.executescript(
+                '''
+                CREATE TABLE IF NOT EXISTS game_players (
+                    game_id INTEGER NOT NULL
+                        REFERENCES games(id) ON DELETE CASCADE,
+                    seat INTEGER NOT NULL,
+                    hero_code TEXT NOT NULL DEFAULT '',
+                    hero_name TEXT NOT NULL DEFAULT '',
+                    deck_name TEXT NOT NULL DEFAULT '',
+                    deck_source TEXT NOT NULL DEFAULT '',
+                    PRIMARY KEY (game_id, seat)
+                );
+
+                CREATE INDEX IF NOT EXISTS game_players_hero_index
+                    ON game_players(hero_code);
+                '''
+            )
+            # Every game recorded so far had exactly one hero, in seat 0.
+            # Backfilled rather than left to the readers, so there is one
+            # answer to "who played this" and not two.
+            #
+            # Only from the columns the table actually has: a database that
+            # arrived here from an early schema may never have gained them,
+            # and a migration that assumes its own history is how an upgrade
+            # fails on the one database nobody can replace.
+            columns = {
+                row['name'] for row in connection.execute(
+                    'PRAGMA table_info(games)'
+                ).fetchall()
+            }
+            carried = [
+                name if name in columns else "''"
+                for name in ('hero_code', 'hero_name', 'deck_name', 'deck_source')
+            ]
+            connection.execute(
+                'INSERT OR IGNORE INTO game_players '
+                '(game_id, seat, hero_code, hero_name, deck_name, deck_source) '
+                f'SELECT id, 0, {", ".join(carried)} FROM games'
+            )
+            connection.execute('PRAGMA user_version = 8')
 
     @staticmethod
     def HeroicLevel(rules: Any) -> int:
@@ -454,7 +518,12 @@ class GameHistory:
             or game.scene.GetMetadataBool('statistics_excluded')
         ):
             return False
-        if len(game.world.const_players) != 1:
+        # One to four, which is what the game itself supports -- not a limit
+        # of this recorder, which has a row per seat and would take any number.
+        # Quick Game only sets up one hero or two, but a game reaching here
+        # with three was still played, and refusing to record it would be the
+        # same silent loss this table was added to stop.
+        if not 1 <= len(game.world.const_players) <= GameHistory.MAX_PLAYERS:
             return False
         if game.scene.is_puzzle or game.controller_manager.replay.is_replay:
             return False
@@ -483,7 +552,23 @@ class GameHistory:
         scenario_name = campaign.name or villain_code
         metadata = getattr(player, 'metadata', {}) or {}
         playtime = max(0.0, Time.GetTime() - game.session.start_time + scene.playtime)
+        players = [
+            {
+                'seat': seat,
+                'hero_code': self._first_card_id(seated.hero),
+                'hero_name': seated.name,
+                'deck_name': getattr(seated, 'deck_name', '') or seated.name,
+                'deck_source': str(
+                    (getattr(seated, 'metadata', {}) or {}).get(
+                        'source',
+                        (getattr(seated, 'metadata', {}) or {}).get('url', 'starter'),
+                    )
+                ),
+            }
+            for seat, seated in enumerate(scene.players)
+        ]
         return {
+            'players': players,
             'source_key': f'game:{game_id}',
             'finished_at': self._now(),
             'engine_version': scene.version,
@@ -627,6 +712,35 @@ class GameHistory:
             assert row is not None
             database_game_id = int(row['id'])
 
+            # Who was in it. A record with no players named is a game from
+            # before there could be more than one, so it takes the seat it
+            # always implicitly had.
+            seats = record.get('players') if isinstance(record, dict) else None
+            if not seats:
+                seats = [{
+                    'seat': 0,
+                    'hero_code': values['hero_code'],
+                    'hero_name': values['hero_name'],
+                    'deck_name': values['deck_name'],
+                    'deck_source': values['deck_source'],
+                }]
+            connection.executemany(
+                'INSERT OR REPLACE INTO game_players '
+                '(game_id, seat, hero_code, hero_name, deck_name, deck_source) '
+                'VALUES (?, ?, ?, ?, ?, ?)',
+                [
+                    (
+                        database_game_id,
+                        int(seat.get('seat', index)),
+                        str(seat.get('hero_code', '')),
+                        str(seat.get('hero_name', '')),
+                        str(seat.get('deck_name', '')),
+                        str(seat.get('deck_source', '')),
+                    )
+                    for index, seat in enumerate(seats)
+                ],
+            )
+
             outcome_updated = False
             if not inserted and values.get('replay_file'):
                 connection.execute(
@@ -710,8 +824,12 @@ class GameHistory:
         metadata = raw.get('metadata') if isinstance(raw.get('metadata'), dict) else {}
         campaign = raw.get('campaign') if isinstance(raw.get('campaign'), dict) else {}
         players = raw.get('players') if isinstance(raw.get('players'), list) else []
-        if len(players) != 1:
-            raise ValueError('Only solo replays are imported into game history.')
+        # The same bound as a live game, and for the same reason: a replay
+        # naming more players than the game supports was not produced by it.
+        if not 1 <= len(players) <= self.MAX_PLAYERS:
+            raise ValueError(
+                f'Replays of more than {self.MAX_PLAYERS} players are not '
+                'game history.')
         if raw.get('puzzle') or metadata.get('is_puzzle'):
             raise ValueError('Puzzle replays are not game history.')
         if (
@@ -738,7 +856,25 @@ class GameHistory:
         scenario_name = str(campaign.get('name', '') or villain_code)
         player_metadata = player.get('metadata') if isinstance(player.get('metadata'), dict) else {}
         saved_time = self._normalize_finished_at(metadata.get('time'), file_path)
+        seats = [
+            {
+                'seat': seat,
+                'hero_code': self._first_card_id(seated.get('hero')),
+                'hero_name': str(seated.get('name', '')),
+                'deck_name': str(
+                    seated.get('deck_name', '') or seated.get('name', '')),
+                'deck_source': str(
+                    (seated.get('metadata') or {}).get(
+                        'source',
+                        (seated.get('metadata') or {}).get('url', 'replay'),
+                    )
+                ),
+            }
+            for seat, seated in enumerate(players)
+            if isinstance(seated, dict)
+        ]
         return {
+            'players': seats,
             'source_key': source_key,
             'finished_at': saved_time,
             'engine_version': str(raw.get('version', '')),
@@ -1175,16 +1311,17 @@ class GameHistory:
             return []
         source = self._normalize_source_filter(source)
         with self._lock, self._connect() as connection:
-            where = " WHERE is_service = 0 AND result IN ('win', 'loss')"
+            where = " WHERE g.is_service = 0 AND g.result IN ('win', 'loss')"
             parameters: tuple[Any, ...] = ()
             if source != 'all':
-                where += ' AND source = ?'
+                where += ' AND g.source = ?'
                 parameters = (source,)
             rows = connection.execute(
-                'SELECT hero_code, scenario_key, COUNT(*) games, '
-                "SUM(CASE WHEN result = 'win' THEN 1 ELSE 0 END) wins, "
-                'SUM(expert) expert_games, '
-                "SUM(CASE WHEN expert = 1 AND result = 'win' THEN 1 ELSE 0 END) "
+                'SELECT p.hero_code hero_code, g.scenario_key scenario_key, '
+                'COUNT(*) games, '
+                "SUM(CASE WHEN g.result = 'win' THEN 1 ELSE 0 END) wins, "
+                'SUM(g.expert) expert_games, '
+                "SUM(CASE WHEN g.expert = 1 AND g.result = 'win' THEN 1 ELSE 0 END) "
                 'expert_wins, '
                 # The best this pairing has been beaten at, on one ladder:
                 # 0 never, 1 Standard, 2 Expert, 3+ Heroic at level - 2.
@@ -1195,15 +1332,18 @@ class GameHistory:
                 # would put Expert + Heroic 1 level with Heroic 2, which it is
                 # not. MAX over wins only: losing at Heroic says you tried it,
                 # not that you cleared it.
-                "MAX(CASE WHEN result != 'win' THEN 0 "
-                'WHEN heroic > 0 THEN 2 + heroic '
-                'WHEN expert = 1 THEN 2 '
+                "MAX(CASE WHEN g.result != 'win' THEN 0 "
+                'WHEN g.heroic > 0 THEN 2 + g.heroic '
+                'WHEN g.expert = 1 THEN 2 '
                 'ELSE 1 END) best_beaten, '
-                'MAX(heroic) heroic_played, '
-                "MAX(CASE WHEN result = 'win' THEN heroic ELSE 0 END) heroic_beaten "
+                'MAX(g.heroic) heroic_played, '
+                "MAX(CASE WHEN g.result = 'win' THEN g.heroic ELSE 0 END) heroic_beaten "
 
-                f'FROM games{where} '
-                'GROUP BY hero_code, scenario_key',
+                # Through the seats, so a two-handed win lands on the row of
+                # each hero who was there rather than only the first.
+                'FROM game_players p JOIN games g ON g.id = p.game_id'
+                f'{where} '
+                'GROUP BY p.hero_code, g.scenario_key',
                 parameters,
             ).fetchall()
         return [
@@ -1240,7 +1380,7 @@ class GameHistory:
         source = self._normalize_source_filter(source)
         with self._lock, self._connect() as connection:
             parameters: tuple[Any, ...] = () if source == 'all' else (source,)
-            source_clause = 'AND source = ? ' if source != 'all' else ''
+            source_clause = 'AND g.source = ? ' if source != 'all' else ''
 
             def grouped(query: str) -> List[Dict[str, Any]]:
                 rows: List[Dict[str, Any]] = []
@@ -1254,21 +1394,25 @@ class GameHistory:
                     rows.append(item)
                 return rows
 
+            seated = ('FROM game_players p JOIN games g ON g.id = p.game_id '
+                      "WHERE g.is_service = 0 AND g.result IN ('win', 'loss') ")
             heroes = grouped(
-                'SELECT hero_code, MAX(hero_name) hero_name, COUNT(*) games, '
-                "SUM(CASE WHEN result = 'win' THEN 1 ELSE 0 END) wins "
-                "FROM games WHERE is_service = 0 AND result IN ('win', 'loss') "
-                "AND hero_code != '' "
+                'SELECT p.hero_code hero_code, MAX(p.hero_name) hero_name, '
+                'COUNT(*) games, '
+                "SUM(CASE WHEN g.result = 'win' THEN 1 ELSE 0 END) wins "
+                + seated +
+                "AND p.hero_code != '' "
                 + source_clause +
-                'GROUP BY hero_code ORDER BY games DESC, hero_name'
+                'GROUP BY p.hero_code ORDER BY games DESC, hero_name'
             )
             decks = grouped(
-                'SELECT deck_name, MAX(hero_code) hero_code, COUNT(*) games, '
-                "SUM(CASE WHEN result = 'win' THEN 1 ELSE 0 END) wins "
-                "FROM games WHERE is_service = 0 AND result IN ('win', 'loss') "
-                "AND deck_name != '' "
+                'SELECT p.deck_name deck_name, MAX(p.hero_code) hero_code, '
+                'COUNT(*) games, '
+                "SUM(CASE WHEN g.result = 'win' THEN 1 ELSE 0 END) wins "
+                + seated +
+                "AND p.deck_name != '' "
                 + source_clause +
-                'GROUP BY deck_name ORDER BY games DESC, deck_name'
+                'GROUP BY p.deck_name ORDER BY games DESC, deck_name'
             )
             return {
                 'available': True,
@@ -1313,13 +1457,17 @@ class GameHistory:
                 return rows
 
             heroes = grouped(
-                'SELECT hero_code, MAX(hero_name) hero_name, COUNT(*) games, '
-                "SUM(CASE WHEN result = 'win' THEN 1 ELSE 0 END) wins, "
-                'ROUND(AVG(hero_rating), 2) average_rating, '
-                'COUNT(hero_rating) rating_count '
-                "FROM games WHERE is_service = 0 AND result IN ('win', 'loss') "
-                + ("AND source = ? " if source != 'all' else '') +
-                'GROUP BY hero_code ORDER BY games DESC, hero_name'
+                # Through the seats: a two-handed game is one game and two
+                # heroes, and each of them played it.
+                'SELECT p.hero_code hero_code, MAX(p.hero_name) hero_name, '
+                'COUNT(*) games, '
+                "SUM(CASE WHEN g.result = 'win' THEN 1 ELSE 0 END) wins, "
+                'ROUND(AVG(g.hero_rating), 2) average_rating, '
+                'COUNT(g.hero_rating) rating_count '
+                'FROM game_players p JOIN games g ON g.id = p.game_id '
+                "WHERE g.is_service = 0 AND g.result IN ('win', 'loss') "
+                + ("AND g.source = ? " if source != 'all' else '') +
+                'GROUP BY p.hero_code ORDER BY games DESC, hero_name'
             )
             villains = grouped(
                 'SELECT MAX(villain_code) villain_code, '
@@ -1332,13 +1480,15 @@ class GameHistory:
                 'GROUP BY scenario_key ORDER BY games DESC, villain_name'
             )
             matchups = grouped(
-                'SELECT hero_code, MAX(hero_name) hero_name, '
-                'MAX(villain_code) villain_code, MAX(villain_name) villain_name, expert, '
+                'SELECT p.hero_code hero_code, MAX(p.hero_name) hero_name, '
+                'MAX(g.villain_code) villain_code, '
+                'MAX(g.villain_name) villain_name, g.expert expert, '
                 'COUNT(*) games, '
-                "SUM(CASE WHEN result = 'win' THEN 1 ELSE 0 END) wins "
-                "FROM games WHERE is_service = 0 AND result IN ('win', 'loss') "
-                + ("AND source = ? " if source != 'all' else '') +
-                'GROUP BY hero_code, scenario_key, expert '
+                "SUM(CASE WHEN g.result = 'win' THEN 1 ELSE 0 END) wins "
+                'FROM game_players p JOIN games g ON g.id = p.game_id '
+                "WHERE g.is_service = 0 AND g.result IN ('win', 'loss') "
+                + ("AND g.source = ? " if source != 'all' else '') +
+                'GROUP BY p.hero_code, g.scenario_key, g.expert '
                 'ORDER BY games DESC, hero_name, villain_name, expert'
             )
             recent = [dict(row) for row in connection.execute(

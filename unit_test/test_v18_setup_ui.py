@@ -155,7 +155,11 @@ class V18SetupUiTests(unittest.TestCase):
         self.assertIn("self.AddAwaitGetSecurity('/', self.handle_main)", server)
         self.assertIn("self.AddAwaitGetSecurity('/table', self.handle_marvel)", server)
         self.assertNotIn("request.query_string", server)
-        self.assertIn("window.location.assign('/table?p=0')", solo)
+        # Quick Game has two explicit routes since two-handed: the hot seat
+        # answers for every hero from one screen, so it is a different route
+        # rather than a different thing done to the same one.
+        self.assertIn("'/table?p=0'", solo)
+        self.assertIn("'/table?hot_seat=1'", solo)
         self.assertIn("window.location.assign('/table?p=0')", campaign)
         self.assertIn("let gameUrl = '/table?hot_seat&3d_scene'", replay)
 

@@ -595,7 +595,10 @@ class GameHistoryTests(unittest.TestCase):
             'players': [{'name': 'Spider-Man', 'hero': ['01001a']}],
             'inputs': [],
         }
-        multiplayer = {**base, 'players': base['players'] * 2}
+        # Five, not two: the recorder takes up to the four seats the engine
+        # has, so a replay is only refused for having more than the engine
+        # could have produced.
+        multiplayer = {**base, 'players': base['players'] * 5}
         puzzle = {**base, 'puzzle': ['Puzzle.CreateHandCards()']}
         ineligible = {**base, 'metadata': {'statistics_eligible': False}}
         mcp_game = {**base, 'metadata': {'statistics_excluded': True}}
@@ -607,6 +610,29 @@ class GameHistoryTests(unittest.TestCase):
 
         self.assertEqual(self.history.ImportReplays(), 0)
         self.assertEqual(self.history.GetDashboard()['overview']['unknown_games'], 0)
+
+    def test_a_two_handed_replay_is_imported_for_both_heroes(self):
+        """The counterpart to the rule above: two is one person's game."""
+        replay = {
+            'version': '0.7.7.0',
+            'metadata': {'game_result': 'win', 'game_id': 'two-handed'},
+            'rules': ['v18_all'],
+            'campaign': {'name': 'Rhino', 'villain': ['01094']},
+            'players': [
+                {'name': 'Spider-Man', 'hero': ['01001a']},
+                {'name': 'Cable', 'hero': ['40001a']},
+            ],
+            'inputs': [],
+        }
+        (self.replay_folder / 'two-handed.json').write_text(
+            json.dumps(replay), encoding='utf-8')
+
+        self.assertEqual(self.history.ImportReplays(), 1)
+        heroes = self.history.GetDashboard()['heroes']
+        self.assertEqual(
+            {row['hero_code'] for row in heroes}, {'01001a', '40001a'})
+        # One game, played by two heroes, not two games.
+        self.assertEqual(self.history.GetDashboard()['overview']['completed'], 1)
 
     def test_game_over_metadata_makes_future_replay_import_exact(self):
         scene = Scene(metadata={
@@ -749,12 +775,19 @@ class HeroicDifficultyTests(unittest.TestCase):
 
     def record(self, scenario, expert, heroic, result):
         with self.history._lock, self.history._connect() as connection:
-            connection.execute(
+            cursor = connection.execute(
                 'INSERT INTO games (source_key, finished_at, imported_at,'
                 ' hero_code, scenario_key, expert, heroic, result)'
                 ' VALUES (?,?,?,?,?,?,?,?)',
                 (f'{scenario}:{expert}:{heroic}:{result}', '2026-01-01',
                  '2026-01-01', 'HERO', scenario, expert, heroic, result))
+            # Who played it. Since two-handed games, that is a row of its own
+            # rather than a column on the game, and a game without one is not
+            # a game anybody played.
+            connection.execute(
+                'INSERT INTO game_players (game_id, seat, hero_code, hero_name)'
+                " VALUES (?, 0, 'HERO', 'Hero')",
+                (cursor.lastrowid,))
 
     def beaten(self, scenario):
         for row in self.history.GetMatchupCounts('all'):
