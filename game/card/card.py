@@ -13,6 +13,20 @@ from game.world.game_area import *
 from game.world import *
 from game.render.descriptor.card import CardDescriptor
 
+
+def AbilityAsksThePlayer(ability: 'Ability') -> bool:
+    """
+    Whether this ability ever puts a choice in front of the player.
+
+    Actions, Responses and Interrupts do; their forced counterparts do not,
+    since those resolve on their own. A card with none of them is one you only
+    ever read, which is what lets the table stack it out of the way.
+    """
+    flags = ability.flags
+    return not flags.is_forced and (
+        flags.is_action or flags.is_response or flags.is_interrupt)
+
+
 @final
 class Card(Object):
     # def __enter__(self):
@@ -1024,5 +1038,8 @@ class Card(Object):
             cost                = self.face.printed_cost.val if HasCost.IsType(self.face) else 0,
             crc                 = self.GetCRC(),
             is_new              = Engine.statistics.IsNew(self.face.paper.card_id),
-            is_action           = any(x for x in self.face.effects if x.ability.flags.is_action) #  or x.ability.type.is_resource
+            is_action           = any(x for x in self.face.effects if x.ability.flags.is_action), #  or x.ability.type.is_resource
+            is_passive          = not any(
+                AbilityAsksThePlayer(x.ability) for x in self.face.effects
+            ),
         )

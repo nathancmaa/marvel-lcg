@@ -2,7 +2,7 @@ import { UI } from "./ui.js";
 import { SCENE_WIDTH_CHANGED } from './scene.js'
 import { ClassName } from './class_name.js'
 import { Cards } from "./cards.js";
-import { Setting } from "./settings.js";
+import { ButtonSetting, Setting } from "./settings.js";
 import { Lib } from "./lib.js";
 
 export class MoveCard {
@@ -15,6 +15,16 @@ export class MoveCard {
     /** Total width, in card widths, kept free at the left and right edges of
      *  the stage so a compressed row cannot slide under the deck columns. */
     static EDGE_RESERVE_CARDS = 2.5;
+
+    /** How much of a stacked passive upgrade is left showing, in card widths.
+     *  Enough to read the edge art and, more to the point, to hover: a hovered
+     *  card lifts above its neighbours, so a sliver is a full preview. */
+    static STACK_PEEK = 0.18;
+
+    /** The narrowest a gap may be squeezed to when a row overflows, in card
+     *  widths. Even compression across a long row can otherwise close a gap
+     *  completely, or run two cards past each other into the wrong order. */
+    static MIN_VISIBLE = 0.12;
 
     static timer: Record<string, number> = {}
     static updating_area: Set<HTMLElement> = new Set()
@@ -123,9 +133,29 @@ export class MoveCard {
         }
     }
 
+    /**
+     * Whether this card should be stacked behind the one before it.
+     *
+     * Only upgrades that are pure text -- no Action, Response or Interrupt --
+     * and only on the characters that collect them. An upgrade you might have
+     * to click stays where you can click it; an ally can carry either kind,
+     * which is why this asks the card rather than the row it sits in.
+     */
+    private static isStackedUpgrade(card: any): boolean {
+        if (!ButtonSetting.collapse_upgrades) return false;
+        if (!card.is_face_up || card.card_type !== 'Upgrade') return false;
+        if (!card.is_passive || !card.bind_object_id) return false;
+        const host = Cards.getCard(card.bind_object_id);
+        return host !== undefined
+            && ['Ally', 'Hero', 'AlterEgo'].includes(host.card_type);
+    }
+
     private static buildAreaXList(parent: HTMLElement, cards_els: HTMLElement[], list_x: number[], padding: number) {
         let rendered_ids: number[] = [];
         let end_offset_x = 0;
+        // The host of the run of upgrades being stacked, so a second host's
+        // upgrades start their own stack instead of continuing this one.
+        let stacking_onto: number | null = null;
         const statusCountByTarget = new Map<number, number>();
         for (let i = cards_els.length - 1; i >= 0; i--) {
             const object_id = Number(cards_els[i].dataset.id!);
@@ -140,6 +170,21 @@ export class MoveCard {
             }
 
             if (card.is_face_up) end_offset_x = 0;
+
+            // Pull this upgrade back over the one before it, leaving an edge.
+            // The step belongs to the card on the left, so shrinking it here
+            // stacks the pair without touching the host, which stays whole,
+            // or the last of the run, which keeps its width so whatever comes
+            // next clears the stack.
+            const stacked = MoveCard.isStackedUpgrade(card);
+            if (stacked && stacking_onto === card.bind_object_id) {
+                const previous = list_x.pop()!;
+                list_x.push(previous > 0
+                    ? Math.min(previous, MoveCard.cardWidth * MoveCard.STACK_PEEK)
+                    : previous);
+            }
+            stacking_onto = stacked ? card.bind_object_id : null;
+
             list_x.push(x);
             rendered_ids.push(object_id);
 
@@ -260,7 +305,21 @@ export class MoveCard {
     private static distributeOverflow(list_x2: number[], sceneWidth: number, sceneWidth2: number) {
         const diff = (list_x2[list_x2.length - 1] - list_x2[0] + MoveCard.cardWidth) - sceneWidth2;
         const size = diff / (list_x2.length - 1);
-        return list_x2.map((num, index) => Math.round(num - size * index));
+        const squeezed = list_x2.map((num, index) => Math.round(num - size * index));
+
+        // The squeeze is the same for every gap regardless of how wide it
+        // started, so a long enough row closes its narrowest gaps entirely and
+        // then pushes cards past each other into the wrong order. Hold every
+        // gap open by an edge -- but never wider than it was, since a stacked
+        // upgrade or a second status card is meant to sit closer than that.
+        const floor = MoveCard.cardWidth * MoveCard.MIN_VISIBLE;
+        for (let i = 1; i < squeezed.length; i++) {
+            const room = Math.min(floor, list_x2[i] - list_x2[i - 1]);
+            if (squeezed[i] - squeezed[i - 1] < room) {
+                squeezed[i] = Math.round(squeezed[i - 1] + room);
+            }
+        }
+        return squeezed;
     }
 
     private static setCardStyles(

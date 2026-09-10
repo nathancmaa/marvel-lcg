@@ -1,4 +1,5 @@
 import { DeckTracker } from './deck_tracker.js'
+import { MoveCard } from './move-card.js'
 import { StandingPanel } from './standing_panel.js'
 import { Lib } from './lib.js'
 import { Setting, ButtonSetting } from './settings.js'
@@ -727,6 +728,21 @@ export class Button{
             }
         })
 
+        // No `hide`: unlike the toggles above it, this one is worth having in
+        // a one-handed game, which is where a hero collects the most upgrades.
+        Button.createButtonBase(parent_div_left, {
+            text: "U",
+            title: "Stack passive upgrades",
+            id: 'collapse-upgrades',
+            property: 'collapse_upgrades',
+            cookie_name: 'btn_collapse_upgrades',
+            onClick: () => {
+                // Nothing appeared or moved between areas, so the usual
+                // relayout has no work queued; ask for every row directly.
+                MoveCard.doMoveFirstTime()
+            }
+        })
+
         Button.createButtonBase(parent_div_left, {
             text: `<i class="fa fa-lock" aria-hidden="true"></i>`,
             class_name: "hide lock",
@@ -790,6 +806,8 @@ export class Button{
     static createButtonBase(parent: HTMLElement, options: {
         names?: string[];
         text?: string;
+        /** Hover text, for the buttons whose label is a single letter. */
+        title?: string;
         class_name?: string;
         id?: string;
         property?: keyof typeof ButtonSetting;
@@ -797,9 +815,12 @@ export class Button{
         callWhenInit?: boolean;
         cookie_name?: string;
     }) {
-        const { names=[], text="", class_name, id="", property, onClick, callWhenInit=false, cookie_name="" } = options;
+        const { names=[], text="", title="", class_name, id="", property, onClick, callWhenInit=false, cookie_name="" } = options;
         const button = document.createElement('button');
         button.id = id
+        if( title ) {
+            button.title = title
+        }
 
         button.className = class_name ? `button ${class_name}` : "button";
 

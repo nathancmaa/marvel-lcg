@@ -83,6 +83,8 @@ export class CardDescriptor {
     cost                !: number;
     is_new              !: boolean;
     is_action           !: boolean;
+    /** No Action, Response or Interrupt: nothing to click, only to read. */
+    is_passive          !: boolean;
     control_player      !: number;
     is_in_play           !: boolean;
     is_in_hand           !: boolean;
@@ -169,6 +171,7 @@ export class CardDescriptor {
         this.cost                   = obj['cost'];
         this.is_new                 = obj['is_new'];
         this.is_action              = obj['is_action']
+        this.is_passive             = obj['is_passive']
         this.control_player         = control_player;
         this.is_in_play             = is_in_play;
         this.is_in_hand             = is_in_hand;
