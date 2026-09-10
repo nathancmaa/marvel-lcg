@@ -16,7 +16,10 @@
     transition: .15s linear left;
 }
 #right-side-bar {
-    --width: calc(4 * var(--font-size-out));
+    /* Wide enough for the longest label, in a monospace face where a character
+       is about 0.6em: "Answers" is seven of them, so four was half a character
+       short and the word ran out of its button on both sides. */
+    --width: calc(5 * var(--font-size-out));
     /* How far in from the edge the bar can be reached, and so how big a target
        there is to open it with. It is the reach that is this wide, not the bar:
        parking part of the bar on screen instead left the buttons permanently
