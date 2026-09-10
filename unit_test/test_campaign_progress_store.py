@@ -41,38 +41,6 @@ class CampaignProgressStoreTests(unittest.TestCase):
             'updatedAt': '2026-08-11T10:00:00+00:00',
         }
 
-    def test_a_record_without_heroIds_is_a_campaign_of_one_hero(self):
-        """A campaign saved before two-handed ones is still readable.
-
-        The version deliberately did not move for this field. A validator that
-        rejected the record somebody is part way through would read exactly
-        like losing the campaign.
-        """
-        saved = self.store.Start(self.start_request())
-        self.assertEqual(saved['campaign']['heroIds'], ['spider_man'])
-        self.assertEqual(saved['campaign']['heroId'], 'spider_man')
-
-    def test_a_two_handed_campaign_keeps_both_heroes(self):
-        campaign = {**self.campaign(), 'heroIds': ['spider_man', 'cable']}
-        saved = self.store.Start(self.start_request(campaign=campaign))
-        self.assertEqual(saved['campaign']['heroIds'], ['spider_man', 'cable'])
-        # The first seat stays in heroId, which is what the conflict check and
-        # every existing reader look at.
-        self.assertEqual(saved['campaign']['heroId'], 'spider_man')
-
-    def test_heroIds_must_agree_with_heroId_and_name_real_seats(self):
-        for hero_ids, why in (
-            (['cable', 'spider_man'], 'heroId is not the first seat'),
-            (['spider_man', 'spider_man'], 'the same hero twice'),
-            ([], 'no heroes at all'),
-            (['a', 'b', 'c', 'd', 'e'], 'more heroes than the game seats'),
-            ('spider_man', 'a string rather than a list'),
-        ):
-            with self.subTest(why=why):
-                campaign = {**self.campaign(), 'heroIds': hero_ids}
-                with self.assertRaises(ValueError):
-                    self.store.Start(self.start_request(campaign=campaign))
-
     @staticmethod
     def active_run(
         campaign_id='rise_of_red_skull',

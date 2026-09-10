@@ -15,10 +15,6 @@ CAMPAIGN_PROGRESS_FILE = ConfigVariables.File(
 )
 
 
-# Marvel Champions seats four, and a campaign carries the same heroes through
-# every scenario of it. The bound is the game's rather than this record's.
-MAX_CAMPAIGN_HEROES = 4
-
 CAMPAIGN_SCENARIOS: Dict[str, List[str]] = {
     'rise_of_red_skull': [
         'crossbones', 'absorbing_man', 'taskmaster', 'zola', 'red_skull',
@@ -105,7 +101,6 @@ class CampaignProgressStore:
             raise ValueError('scenarioIndex is outside this campaign.')
 
         hero_id = cls._RequireString(data.get('heroId'), 'heroId')
-        hero_ids = cls._ValidateHeroIds(data.get('heroIds'), hero_id)
         campaign_log = cls._RequireDict(data.get('campaignLog'), 'campaignLog')
         if any(not isinstance(key, str) or not isinstance(item, str)
                for key, item in campaign_log.items()):
@@ -124,38 +119,10 @@ class CampaignProgressStore:
             'campaignId': campaign_id,
             'scenarioIndex': scenario_index,
             'heroId': hero_id,
-            'heroIds': hero_ids,
             'campaignLog': dict(campaign_log),
             'completed': completed,
             'updatedAt': updated_at or cls._Now(),
         }
-
-    @classmethod
-    def _ValidateHeroIds(cls, value: Any, hero_id: str) -> List[str]:
-        """Every hero carrying this campaign, seat by seat.
-
-        Added rather than replacing heroId, and the version deliberately does
-        not move: a record written before two-handed campaigns is a campaign
-        somebody is part way through, and a validator that rejected it would
-        read exactly like losing one. So a record without this field is a
-        single hero, heroId stays the first seat, and both old and new readers
-        find what they expect.
-        """
-        if value is None:
-            return [hero_id]
-
-        if not isinstance(value, list):
-            raise ValueError('heroIds must be a list.')
-        if not 1 <= len(value) <= MAX_CAMPAIGN_HEROES:
-            raise ValueError(
-                f'heroIds must name 1 to {MAX_CAMPAIGN_HEROES} heroes.')
-
-        hero_ids = [cls._RequireString(item, 'heroIds') for item in value]
-        if len(set(hero_ids)) != len(hero_ids):
-            raise ValueError('heroIds must not repeat a hero.')
-        if hero_ids[0] != hero_id:
-            raise ValueError('heroId must be the first of heroIds.')
-        return hero_ids
 
     @classmethod
     def _ValidateActiveRun(
