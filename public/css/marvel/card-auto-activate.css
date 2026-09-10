@@ -17,8 +17,12 @@ body.hide-auto-activate .auto-activate-btn {
     color: beige;
 }
 
+/* A marked card wears the standing answers pane's own accent, not a warning
+   colour. Red reads as "stop" or "wrong" on a control whose ticked state is
+   the thing you asked for, and it says nothing about where the mark went;
+   this is the colour the pane numbers its list in. */
 .card.auto-activate .auto-activate-btn {
-    color: brown;
+    color: #78d2ff;
 }
 
 .card .auto-activate-btn,
