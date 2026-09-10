@@ -6,6 +6,7 @@ import {
 const animationTime = document.getElementById('animation-time') as HTMLInputElement
 const animationTimeValue = document.getElementById('animation-time-value') as HTMLOutputElement
 const autoSaveReplays = document.getElementById('autosave-replays') as HTMLInputElement
+const twoHandedSolo = document.getElementById('two-handed-solo') as HTMLInputElement
 const bgStatsPlayer = document.getElementById('bgstats-player') as HTMLInputElement
 const bgStatsLocation = document.getElementById('bgstats-location') as HTMLInputElement
 const marvelCdbDeckIds = document.getElementById('marvelcdb-deck-ids') as HTMLInputElement
@@ -216,6 +217,7 @@ animationTimeValue.value = `${ANIMATION_TIME_DEFAULT.toFixed(1)} s`
 updateAnimationTime()
 
 autoSaveReplays.checked = UserSettings.getAutoSaveReplays()
+twoHandedSolo.checked = UserSettings.getTwoHandedSolo()
 bgStatsPlayer.value = UserSettings.getBgStatsPlayerName()
 bgStatsLocation.value = UserSettings.getBgStatsLocation()
 marvelCdbDeckIds.value = UserSettings.getMarvelCdbDeckIds()
@@ -224,6 +226,9 @@ updateMarvelCdbControls()
 animationTime.addEventListener('input', updateAnimationTime)
 autoSaveReplays.addEventListener('change', () => {
     UserSettings.setAutoSaveReplays(autoSaveReplays.checked)
+})
+twoHandedSolo.addEventListener('change', () => {
+    UserSettings.setTwoHandedSolo(twoHandedSolo.checked)
 })
 bgStatsPlayer.addEventListener('input', () => {
     UserSettings.setBgStatsPlayerName(bgStatsPlayer.value)

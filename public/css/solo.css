@@ -140,6 +140,60 @@ input {
     gap: 0.7rem;
 }
 
+.heading-right {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+/* Which hero is being chosen. Only here when two-handed is on, and the grid
+   below is untouched by it: one tile is selected at a time either way, and
+   the tabs say who that selection is for. */
+.player-tabs {
+    display: inline-flex;
+    padding: 0.15rem;
+    border: 1px solid rgba(120, 210, 255, 0.35);
+    border-radius: 0.5rem;
+    background: rgba(16, 28, 40, 0.9);
+}
+
+.player-tabs[hidden] {
+    display: none;
+}
+
+.player-tab {
+    padding: 0.25rem 0.75rem;
+    border: 0;
+    border-radius: 0.35rem;
+    background: transparent;
+    color: #aebbc6;
+    font: inherit;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.player-tab:hover {
+    color: #d8f1ff;
+}
+
+.player-tab.active {
+    background: rgba(120, 210, 255, 0.18);
+    color: #d8f1ff;
+    box-shadow: inset 0 0 0 1px rgba(120, 210, 255, 0.5);
+}
+
+.player-tab:focus-visible {
+    outline: 3px solid #f1c94c;
+    outline-offset: 2px;
+}
+
+/* A slot with nobody in it yet, so the tab says the game is not ready. */
+.player-tab.empty::after {
+    content: " ·";
+    color: #e8bd62;
+}
+
 .section-heading h2 {
     margin: 0;
     font-size: 1.25rem;

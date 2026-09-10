@@ -7,6 +7,7 @@ const autoSaveReplaysKey = 'marvel_lcg_autosave_replays'
 const marvelCdbDeckIdsKey = 'marvel_lcg_marvelcdb_deck_ids'
 const bgStatsPlayerKey = 'marvel_lcg_bgstats_player'
 const bgStatsLocationKey = 'marvel_lcg_bgstats_location'
+const twoHandedKey = 'marvel_lcg_two_handed_solo'
 
 function readStorage(key: string): string|null {
     try {
@@ -88,5 +89,22 @@ export class UserSettings {
 
     static setBgStatsLocation(location: string) {
         writeStorage(bgStatsLocationKey, location.trim())
+    }
+
+    /**
+     * Whether Quick Game sets up one hero or two.
+     *
+     * Two-handed is one person playing both heroes from one screen, which the
+     * engine has always supported -- the hot seat is upstream's, and this
+     * fork only ever stopped offering a way in. Off by default, because one
+     * hero against a villain is what this fork is for and the second picker
+     * would otherwise be in the way of every game.
+     */
+    static getTwoHandedSolo(): boolean {
+        return readStorage(twoHandedKey) === 'true'
+    }
+
+    static setTwoHandedSolo(enabled: boolean) {
+        writeStorage(twoHandedKey, enabled.toString())
     }
 }

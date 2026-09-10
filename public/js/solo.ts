@@ -82,13 +82,16 @@ type SoloGamePayload = {
 };
 
 import {
+    DeckSource,
     DeckSourceController,
+    MarvelCdbDeckData,
     createDeckSourceController,
     marvelCdbDeckUrl,
 } from './marvelcdb_deck.js';
 import { withCardImageRevision } from './card_image_url.js';
 import { DeckFilters, buildHeroLabels, createDeckFilters, heroKeyOf } from './deck_filters.js';
 import { isFavorite, loadFavorites, onFavoritesChanged, toggleFavorite } from './favorites.js';
+import { UserSettings } from './user_settings.js';
 import { beatenClass, beatenLabel } from './beaten.js';
 import { AspectDeckPicker, createAspectDeckPicker } from './aspect_decks.js';
 import { UniversalDeckPicker, createUniversalDeckPicker } from './universal_decks.js';
@@ -195,6 +198,39 @@ const scenarioFilters: ScenarioFilters<ScenarioChoice> =
 // The precon is the deck that ships with the hero; a MarvelCDB deck replaces
 // only the player deck, so the hero choice stays the source of truth for the
 // signature cards, obligations and nemesis set.
+/**
+ * One hero's worth of choice, for two-handed games.
+ *
+ * The picker below the tabs never changes: one tile selected at a time, one
+ * deck source, one panel. The tabs say which of these two the selection is
+ * being made for, and switching them puts the other one back.
+ *
+ * `deck` is what Play would send -- the hero's own data with whatever deck has
+ * replaced its player cards -- captured on the way out of a slot so the
+ * MarvelCDB deck or aspect deck chosen for a hero is still theirs when you
+ * come back.
+ */
+type PlayerSlot = {
+    hero: HeroChoice | null;
+    deck: HeroData | null;
+    source: DeckSource;
+    marvelCdbDeck: MarvelCdbDeckData | null;
+};
+
+const playerTabs = document.querySelector<HTMLElement>('#hero-player-tabs')!;
+const playerTabButtons = [
+    document.querySelector<HTMLButtonElement>('#player-tab-0')!,
+    document.querySelector<HTMLButtonElement>('#player-tab-1')!,
+];
+
+function emptySlot(): PlayerSlot {
+    return {hero: null, deck: null, source: 'precon', marvelCdbDeck: null};
+}
+
+let twoHanded = false;
+let activePlayer = 0;
+const playerSlots: PlayerSlot[] = [emptySlot(), emptySlot()];
+
 let deckSourceController: DeckSourceController | null = null;
 let aspectDeckPicker: AspectDeckPicker | null = null;
 let universalDeckPicker: UniversalDeckPicker | null = null;
@@ -266,7 +302,15 @@ function updateMatchupSummary(): void {
     const universalDeck = currentUniversalDeck();
     const resolved = source === 'marvelcdb' ? deckSourceController?.getDeck() ?? null : null;
 
-    summaryHero.textContent = hero ? hero.data.name : 'Not selected';
+    if (twoHanded) {
+        const names = playerSlots.map((slot, player) => {
+            const who = player === activePlayer ? hero : slot.hero;
+            return who ? who.data.name : 'not chosen';
+        });
+        summaryHero.textContent = `P1 ${names[0]} · P2 ${names[1]}`;
+    } else {
+        summaryHero.textContent = hero ? hero.data.name : 'Not selected';
+    }
     if (hero) {
         summaryHeroImage.src = withCardImageRevision(`/${hero.imageId}`);
         summaryHeroImage.alt = hero.data.name;
@@ -301,10 +345,15 @@ function updatePlayButton(): void {
     const awaitingDeck = (source === 'marvelcdb' && !deckSourceController?.getDeck())
         || (source === 'aspect' && !aspectDeckPicker?.getDeck())
         || (source === 'universal' && !currentUniversalDeck());
+    // In two-handed the other slot has to be filled as well, and the one on
+    // screen is not in its slot until the tabs are switched.
+    const otherPlayerReady = !twoHanded
+        || playerSlots.every((slot, player) => player === activePlayer || slot.hero);
     playButton.disabled = isStarting
         || deckSourceController?.isBusy() === true
         || !selectedScenario
         || !selectedHero
+        || !otherPlayerReady
         || ((selectedScenario.data.underling_sets?.length ?? 0) > 0 && !selectedUnderling)
         || awaitingDeck;
 }
@@ -543,6 +592,7 @@ function selectHero(choice: HeroChoice, keepMarvelCdbDeck = false): void {
     refreshUniversalPanel();
     // Every villain tile is marked against the hero, so they all change.
     scenarioFilters.refresh();
+    paintPlayerTabs();
     markSelected(heroList, choice.id);
     errorMessage.textContent = '';
     // Picking a different hero by hand abandons a loaded deck; a deck that
@@ -1060,6 +1110,14 @@ async function initialize(): Promise<void> {
         },
     });
 
+    twoHanded = UserSettings.getTwoHandedSolo();
+    paintPlayerTabs();
+    for (const button of playerTabButtons) {
+        button.addEventListener('click', () => {
+            switchToPlayer(Number(button.dataset.player));
+        });
+    }
+
     aspectHero.addEventListener('change', () => {
         localStorage.setItem(aspectHeroStorageKey, aspectHero.value);
         applyAspectHero();
@@ -1094,6 +1152,100 @@ async function initialize(): Promise<void> {
     updatePlayButton();
 }
 
+/**
+ * What the hero in hand would take to the table right now.
+ *
+ * A resolved MarvelCDB deck is a whole hero deck -- the conversion keeps the
+ * identity, signature cards, obligations and nemesis set from the precon and
+ * replaces only the player deck. An aspect deck and a universal deck are just
+ * the aspect and basic cards, so they replace the player deck and leave the
+ * rest of the hero alone, which comes to the same shape.
+ */
+function composeHeroDeck(hero: HeroChoice): HeroData {
+    const source = deckSourceController?.getSource();
+    if (source === 'marvelcdb') {
+        const resolved = deckSourceController?.getDeck();
+        return (resolved as HeroData | null) ?? hero.data;
+    }
+    const prebuilt = source === 'aspect'
+        ? aspectDeckPicker?.getDeck() ?? null
+        : source === 'universal'
+            ? currentUniversalDeck()
+            : null;
+    return prebuilt
+        ? {...hero.data, player_deck: [...prebuilt.player_deck]}
+        : hero.data;
+}
+
+/** Put what is on screen into the slot the tabs currently point at. */
+function captureActiveSlot(): void {
+    const source = deckSourceController?.getSource() ?? 'precon';
+    playerSlots[activePlayer] = {
+        hero: selectedHero,
+        deck: selectedHero ? composeHeroDeck(selectedHero) : null,
+        source,
+        marvelCdbDeck: source === 'marvelcdb'
+            ? deckSourceController?.getDeck() ?? null
+            : null,
+    };
+    paintPlayerTabs();
+}
+
+/** Show a slot again: the hero it holds, and the deck source it was using. */
+function restoreSlot(slot: PlayerSlot): void {
+    const radio = document.querySelector<HTMLInputElement>(
+        `input[name="deck-source"][value="${slot.source}"]`);
+    if (radio && !radio.checked) {
+        radio.checked = true;
+        radio.dispatchEvent(new Event('change', {bubbles: true}));
+    }
+    if (slot.hero) {
+        selectHero(slot.hero, slot.source === 'marvelcdb');
+    } else {
+        selectedHero = null;
+        markSelected(heroList, '');
+        updateHeroSelection();
+    }
+    // A netdeck has to be pinned back into the list, or the hero it belongs to
+    // is selected with nothing to show for it.
+    if (slot.source === 'marvelcdb' && slot.marvelCdbDeck) {
+        deckSourceController?.setDeck(slot.marvelCdbDeck, '');
+    }
+    updatePlayButton();
+}
+
+function paintPlayerTabs(): void {
+    playerTabs.hidden = !twoHanded;
+    playerTabButtons.forEach((button, player) => {
+        const slot = playerSlots[player];
+        const isActive = player === activePlayer;
+        button.classList.toggle('active', isActive);
+        button.setAttribute('aria-selected', String(isActive));
+        button.classList.toggle('empty', !slot.hero && player !== activePlayer);
+        const hero = player === activePlayer ? selectedHero : slot.hero;
+        button.title = hero
+            ? `Player ${player + 1}: ${hero.data.name}`
+            : `Player ${player + 1}: no hero chosen`;
+    });
+}
+
+function switchToPlayer(player: number): void {
+    if (player === activePlayer || !twoHanded) {
+        return;
+    }
+    captureActiveSlot();
+    activePlayer = player;
+    restoreSlot(playerSlots[player]);
+    paintPlayerTabs();
+    updateMatchupSummary();
+}
+
+/** Both heroes, in player order, for a two-handed game. */
+function twoHandedHeroes(): Array<HeroChoice | null> {
+    captureActiveSlot();
+    return playerSlots.map((slot) => slot.hero);
+}
+
 async function startGame(): Promise<void> {
     if (isStarting || !selectedScenario || !selectedHero) {
         return;
@@ -1122,14 +1274,21 @@ async function startGame(): Promise<void> {
     // An aspect deck is only the aspect and basic cards, so the hero keeps its
     // own identity, signature cards, obligations and nemesis set and only the
     // player deck is replaced -- the same shape a resolved MarvelCDB deck has.
-    // A universal deck is the same shape as an aspect deck -- 25 aspect and
-    // basic cards and nothing of the hero's -- so it is carried the same way,
-    // replacing only the player deck.
-    const prebuilt = aspectDeck ?? universalDeck;
-    const heroDeck = resolvedDeck
-        ?? (prebuilt
-            ? {...heroChoice.data, player_deck: [...prebuilt.player_deck]}
-            : heroChoice.data);
+    const heroDeck = composeHeroDeck(heroChoice);
+    // Two-handed sends both heroes and opens the table in the hot seat, where
+    // one screen answers for whichever of them the game is asking.
+    const heroDecks: HeroData[] = [];
+    if (twoHanded) {
+        captureActiveSlot();
+        for (const slot of playerSlots) {
+            if (!slot.hero || !slot.deck) {
+                return;
+            }
+            heroDecks.push(slot.deck);
+        }
+    } else {
+        heroDecks.push(heroDeck);
+    }
 
     isStarting = true;
     errorMessage.textContent = '';
@@ -1174,7 +1333,7 @@ async function startGame(): Promise<void> {
         const payload: SoloGamePayload = {
             campaign_json: JSON.stringify(scenario),
             encounter_set_names: encounterSetNames,
-            hero_json: [JSON.stringify(heroDeck)],
+            hero_json: heroDecks.map((deck) => JSON.stringify(deck)),
             seed: -1,
             timeout: 0,
             challenges: [],
@@ -1188,7 +1347,7 @@ async function startGame(): Promise<void> {
         if (!response.ok) {
             throw new Error(`${response.status} ${response.statusText}`);
         }
-        window.location.assign('/table?p=0');
+        window.location.assign(twoHanded ? '/table?hot_seat=1' : '/table?p=0');
     } catch (error) {
         console.error(error);
         errorMessage.textContent = 'Could not create the game. Check the server log and try again.';
