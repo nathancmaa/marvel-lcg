@@ -552,6 +552,66 @@ function matchupCellSize(scenarioCount: number): number {
     return Math.max(MIN_CELL_PX, Math.min(MAX_CELL_PX, fit));
 }
 
+/**
+ * The matchup controls, remembered between visits.
+ *
+ * Sorting the grid by completion is a choice about how to read it rather than
+ * a one-off, and having to make it again on every visit is what made it feel
+ * like the page had opinions of its own. Browser-local, like every other view
+ * preference here.
+ */
+const MATCHUP_CONTROLS_KEY = 'marvel_lcg_matchup_controls';
+
+type MatchupControls = {
+    heroes: string;
+    scenarios: string;
+    counts: boolean;
+    playedOnly: boolean;
+};
+
+function readMatchupControls(): Partial<MatchupControls> {
+    try {
+        const raw = localStorage.getItem(MATCHUP_CONTROLS_KEY);
+        return raw ? JSON.parse(raw) as Partial<MatchupControls> : {};
+    } catch {
+        // A private window or a hand-edited value should never stop the grid
+        // from drawing.
+        return {};
+    }
+}
+
+function writeMatchupControls(): void {
+    try {
+        const state: MatchupControls = {
+            heroes: element<HTMLSelectElement>('matchup-sort-heroes').value,
+            scenarios: element<HTMLSelectElement>('matchup-sort-scenarios').value,
+            counts: element<HTMLInputElement>('matchup-counts').checked,
+            playedOnly: element<HTMLInputElement>('matchup-played-only').checked,
+        };
+        localStorage.setItem(MATCHUP_CONTROLS_KEY, JSON.stringify(state));
+    } catch {
+        // Persistence is a convenience; losing it costs one dropdown.
+    }
+}
+
+/** Put the remembered controls back, before the grid is first drawn. */
+function restoreMatchupControls(): void {
+    const saved = readMatchupControls();
+    const heroSort = element<HTMLSelectElement>('matchup-sort-heroes');
+    const scenarioSort = element<HTMLSelectElement>('matchup-sort-scenarios');
+    // Only a value the dropdown actually offers: a mode dropped in a later
+    // release would otherwise select nothing and sort by whatever that means.
+    if (saved.heroes && [...heroSort.options].some(o => o.value === saved.heroes)) {
+        heroSort.value = saved.heroes;
+    }
+    if (saved.scenarios
+        && [...scenarioSort.options].some(o => o.value === saved.scenarios)) {
+        scenarioSort.value = saved.scenarios;
+    }
+    element<HTMLInputElement>('matchup-counts').checked = saved.counts === true;
+    element<HTMLInputElement>('matchup-played-only').checked = saved.playedOnly === true;
+}
+
 function renderMatchupGrid(): void {
     const table = element<HTMLTableElement>('matchup-table');
     const summary = element<HTMLElement>('matchup-summary');
@@ -573,8 +633,11 @@ function renderMatchupGrid(): void {
     let heroes = matrix.heroes;
     let scenarios = matrix.scenarios;
     if (playedOnly) {
+        // Rows only. Dropping unplayed columns as well turned the grid into a
+        // record of what has happened, when the question it exists to answer
+        // is what has not -- an unplayed villain is exactly the square worth
+        // seeing, and hiding it also moved every remaining column.
         heroes = heroes.filter(h => scenarios.some(s => cellFor(h, s)));
-        scenarios = scenarios.filter(s => heroes.some(h => cellFor(h, s)));
     }
 
     /**
@@ -1135,10 +1198,13 @@ function bindEvents(): void {
     bindMatchupResize();
     element<HTMLButtonElement>('tracker-import')
         .addEventListener('click', () => void importTrackerExport());
-    element<HTMLSelectElement>('matchup-sort-heroes').addEventListener('change', renderMatchupGrid);
-    element<HTMLSelectElement>('matchup-sort-scenarios').addEventListener('change', renderMatchupGrid);
-    element<HTMLInputElement>('matchup-counts').addEventListener('change', renderMatchupGrid);
-    element<HTMLInputElement>('matchup-played-only').addEventListener('change', renderMatchupGrid);
+    for (const id of ['matchup-sort-heroes', 'matchup-sort-scenarios',
+                      'matchup-counts', 'matchup-played-only']) {
+        element(id).addEventListener('change', () => {
+            writeMatchupControls();
+            renderMatchupGrid();
+        });
+    }
     element<HTMLInputElement>('collection-search').addEventListener('input', renderProducts);
     element<HTMLButtonElement>('save-collection').addEventListener('click', () => void saveCollection());
     element<HTMLButtonElement>('log-game').addEventListener('click', () => void openPhysicalGame());
@@ -1170,6 +1236,9 @@ async function initialize(): Promise<void> {
     const error = element('error');
     const dashboardElement = element('dashboard');
     try {
+        // Before anything draws: the grid is rendered as its data arrives,
+        // which is earlier than the controls are bound.
+        restoreMatchupControls();
         setData = await fetchJson<Record<string, SetInfo>>('/get_sets_json?');
         products = buildProducts(setData);
         await loadDashboard();
