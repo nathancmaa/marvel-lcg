@@ -1,16 +1,23 @@
 import { Cards } from './cards.js'
 import { ClassName } from './class_name.js'
 import { Effect } from './effect.js';
-import { HistoryLog } from './history.js';
-import { Lib } from './lib.js';
-import { Notify } from './notify.js'
 import { ButtonSetting, Setting } from './settings.js';
+import { StandingAnswers } from './standing_answers.js';
 
 export class AutoActivate
 {
-    static config: Set<string> = new Set()
+    /**
+     * The marked cards, in the order they should fire.
+     *
+     * Kept as a view onto StandingAnswers rather than a set of its own: the
+     * order is the whole point once two marked cards trigger together, and a
+     * Set cannot hold one.
+     */
+    static get config(): {has(card_id: string): boolean} {
+        return StandingAnswers
+    }
 
-    private static applyConfig() {
+    static applyConfig() {
         document.querySelectorAll<HTMLElement>('.card').forEach(card_div =>
         {
             const object_id = Number(card_div.dataset.id!)
@@ -19,69 +26,20 @@ export class AutoActivate
                 card_div.classList.add(ClassName.auto_activate)
             }
             else if( card_div.classList.contains(ClassName.auto_activate) ) {
-                // AutoActivate.config.add(card_id)
                 card_div.classList.remove(ClassName.auto_activate)
             }
         })
     }
 
-    static async loadConfig(hide_notification=false) {
-        AutoActivate.config = Lib.cookie.getSet("auto_activate_faces")
-    }
-
-    static async loadConfigOld(hide_notification=false) {
-        const response = await fetch(`get_auto_activate_config`);
-        if (!response.ok) {
-            throw new Error('Network response was not ok: ' + response.statusText);
-        }
-
-        const config = await response.json()
-        if( Object.keys(config).length == 0 ) {
-            if( !hide_notification ) {
-                Notify.showResponse(`Load auto activate config failed`)
-            }
-            return
-        }
-
-        AutoActivate.config = new Set(config);
-        HistoryLog.close()
-
-        AutoActivate.applyConfig()
-
-        if( !hide_notification ) {
-            Notify.showResponse(`Loaded auto activate config`)
-        }
-    }
-
-    static saveConfig() {
-        Lib.cookie.setList("auto_activate_faces", Array.from(AutoActivate.config))
-    }
-
-    static saveConfigOld() {
-        const data = JSON.stringify(Array.from(AutoActivate.config));
-        const url = 'save_auto_activate_config';
-
-        fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ data })
-        })
-        .then(async response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            const text = await response.text()
-            HistoryLog.close()
-            Notify.showResponse(text)
-        })
-        .then(responseData => {
-            console.log('Success:', responseData);
-        })
-        .catch(error => {
-            console.error('Error:', error);
-        });
+    /**
+     * Keep the ticks on the board agreeing with the list.
+     *
+     * The list can change from the pane as well as from a card, and a card
+     * removed there was still showing its tick -- two places claiming
+     * different things about the same card.
+     */
+    static {
+        StandingAnswers.onChanged(() => AutoActivate.applyConfig())
     }
 
     static isHasAutoActivate() {
@@ -94,7 +52,7 @@ export class AutoActivate
                 return false;
             }
             const card_id = Cards.getCard(option.bind_id)?.card_id
-            if( card_id && AutoActivate.config.has(card_id) ) {
+            if( card_id && StandingAnswers.has(card_id) ) {
                 return true
             }
         }
@@ -127,7 +85,7 @@ export class AutoActivate
         if( !card ) {
             return false
         }
-        return AutoActivate.config.has(card.card_id)
+        return StandingAnswers.has(card.card_id)
     }
 
     static isAutoActivate2(card_div: HTMLElement) {

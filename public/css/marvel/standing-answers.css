@@ -1,0 +1,134 @@
+/* The standing answers pane.
+   Modelled on the deck tracker so the two read as the same kind of thing:
+   a panel off the right-hand buttons, closed with the same corner cross. */
+
+#standing-answers {
+    position: absolute;
+    top: 4rem;
+    right: 5.5rem;
+    z-index: 50;
+    width: 20rem;
+    max-height: 60vh;
+    display: flex;
+    flex-direction: column;
+    padding: 0.75rem 0.9rem 0.9rem;
+    border: 1px solid rgba(120, 210, 255, 0.4);
+    border-radius: 0.6rem;
+    background: rgba(10, 18, 28, 0.96);
+    box-shadow: 0 1rem 2.5rem rgba(0, 0, 0, 0.55);
+    color: #e6eef6;
+    font-size: 0.9rem;
+}
+
+#standing-answers.hide {
+    display: none;
+}
+
+#standing-answers-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(143, 190, 224, 0.35);
+}
+
+#standing-answers-title {
+    flex: 1;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+#standing-answers-close {
+    cursor: pointer;
+    padding: 0 0.35rem;
+    color: #aebbc6;
+    font-size: 1.1rem;
+    line-height: 1;
+}
+
+#standing-answers-close:hover {
+    color: #d8f1ff;
+}
+
+#standing-answers-empty {
+    margin: 0.7rem 0 0;
+    color: #aebbc6;
+    font-size: 0.85rem;
+    line-height: 1.45;
+}
+
+#standing-answers-empty.hide {
+    display: none;
+}
+
+#standing-answers-list {
+    list-style: none;
+    margin: 0.5rem 0 0;
+    padding: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.standing-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.45rem;
+    border-radius: 0.35rem;
+    background: rgba(22, 36, 50, 0.9);
+}
+
+/* The number is the whole point of the pane, so it reads first. */
+.standing-rank {
+    min-width: 1.2rem;
+    color: #78d2ff;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+}
+
+.standing-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: help;
+}
+
+.standing-controls {
+    display: flex;
+    gap: 0.15rem;
+}
+
+.standing-move,
+.standing-remove {
+    width: 1.5rem;
+    height: 1.5rem;
+    padding: 0;
+    border: 1px solid rgba(120, 210, 255, 0.3);
+    border-radius: 0.25rem;
+    background: rgba(16, 28, 40, 0.9);
+    color: #cfdae4;
+    font: inherit;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.standing-move:hover:not(:disabled),
+.standing-remove:hover {
+    border-color: #78d2ff;
+    color: #d8f1ff;
+}
+
+.standing-move:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.standing-remove:hover {
+    border-color: #f08d82;
+    color: #f08d82;
+}

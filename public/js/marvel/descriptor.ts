@@ -11,6 +11,7 @@ import { HoverCard } from './hover.js';
 import { copyToClipboard } from '../lib/clipboard.js'
 import { ClassName } from './class_name.js';
 import { AutoActivate } from './auto_activate.js';
+import { StandingAnswers } from './standing_answers.js';
 import { Notify } from './notify.js';
 
 interface Options {
@@ -365,15 +366,14 @@ export class CardDescriptor {
         function toggleAutoActivateHelper(e: MouseEvent) {
             const object_id = Number(card_div!.dataset.id!)
             const card_id = Cards.getCard(object_id)!.card_id
-            card_div!.classList.toggle(ClassName.auto_activate)
             e.stopPropagation()
             e.preventDefault()
-            if( card_div!.classList.contains(ClassName.auto_activate) ) {
-                AutoActivate.config.add(card_id)
-            } else {
-                AutoActivate.config.delete(card_id)
-            }
-            AutoActivate.saveConfig()
+            // The list decides the order these fire in, so marking a card
+            // appends it rather than simply flagging it.
+            const name = String(Cards.getCard(object_id)?.name ?? card_id)
+                .replace(/^\*\s*/, '')
+            const marked = StandingAnswers.toggle(card_id, name)
+            card_div!.classList.toggle(ClassName.auto_activate, marked)
         }
         auto_activate.onclick = toggleAutoActivateHelper
 
@@ -393,7 +393,7 @@ export class CardDescriptor {
 
         // called_time += (performance.now() - start)
 
-        if( AutoActivate.config.has(this.card_id) ) {
+        if( StandingAnswers.has(this.card_id) ) {
             card_div.classList.add(ClassName.auto_activate)
         }
 

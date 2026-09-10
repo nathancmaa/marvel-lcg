@@ -1,4 +1,5 @@
 import { DeckTracker } from './deck_tracker.js'
+import { StandingPanel } from './standing_panel.js'
 import { Lib } from './lib.js'
 import { Setting, ButtonSetting } from './settings.js'
 import { Game } from './game.js'
@@ -628,8 +629,6 @@ export class Button{
             callWhenInit: true,
             cookie_name: 'btn_pause_flip',
         })
-        // Button.createButton3(parent_div4, "Load Auto Activate Config", "", "", () => {AutoActivate.doLoadAutoActivateConfig()})
-        // Button.createButton3(parent_div4, "Save AA Config", "", "", () => {AutoActivate.saveConfig()})
 
         Button.createButtonBase(parent_div1, {
             class_name: 'sort-card-btn',
@@ -743,6 +742,10 @@ export class Button{
         Button.createButtonBase(parent_div_right, {
             text: "Deck",
             onClick: () => {DeckTracker.toggle()}
+        })
+        Button.createButtonBase(parent_div_right, {
+            text: "Answers",
+            onClick: () => {StandingPanel.toggle()}
         })
         Button.createButtonBase(parent_div_right, {
             text: "Pause",

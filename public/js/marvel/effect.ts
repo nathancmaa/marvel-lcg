@@ -12,6 +12,7 @@ import { ClassName } from './class_name.js'
 import { BtnOk } from './btn_ok.js'
 import { HoverCard } from './hover.js'
 import { AutoActivate } from './auto_activate.js'
+import { StandingAnswers } from './standing_answers.js'
 import { Command } from './command.js'
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -841,6 +842,16 @@ export class Effect {
         }
         else
         {
+            // Several abilities triggered at once and the game is asking which
+            // to resolve first. If the player has given standing answers for
+            // more than one of them, the order they put those in is the answer
+            // -- resolve the highest and let the next ask bring the rest.
+            const standing = Effect.firstStandingAnswer(options)
+            if( standing ) {
+                UpdateCards(standing, true)
+                return
+            }
+
             for( const json_obj of options ) {
                 if( json_obj.name_with_space == 'Cancel' && options[options.length-1] == json_obj ) {
                     continue
@@ -881,6 +892,39 @@ export class Effect {
                 Effect.options_button_div.appendChild(button)
             }
         }
+    }
+
+    /**
+     * The option to take when the player has answered for it in advance.
+     *
+     * Only options that are actually available, never Cancel, and only when
+     * auto-activation is on and this is not a replay -- a replay replays what
+     * happened, and standing answers would be a second opinion about it.
+     *
+     * Ties cannot happen: the list is an order, so two marked cards in one ask
+     * always have a first.
+     */
+    static firstStandingAnswer(options: EffectDescriptor[]): EffectDescriptor | null {
+        if( ButtonSetting.is_replay || !ButtonSetting.auto_activate ) {
+            return null
+        }
+        let best: EffectDescriptor | null = null
+        let best_rank = Number.MAX_SAFE_INTEGER
+        for( const option of options ) {
+            if( option.failure_reason != '' || option.name_with_space == 'Cancel' ) {
+                continue
+            }
+            const card = Cards.getCard(option.bind_id)
+            if( !card || !AutoActivate.checkCanAutoActivate(option.bind_id) ) {
+                continue
+            }
+            const rank = StandingAnswers.rankOf(card.card_id)
+            if( rank < best_rank ) {
+                best_rank = rank
+                best = option
+            }
+        }
+        return best
     }
 
     static setOptions() {

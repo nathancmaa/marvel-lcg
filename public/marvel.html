@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="/public/css/marvel/side-bar.css">
     <link rel="stylesheet" href="/public/css/marvel/history.css">
     <link rel="stylesheet" href="/public/css/marvel/deck-tracker.css">
+    <link rel="stylesheet" href="/public/css/marvel/standing-answers.css">
     <link rel="stylesheet" href="/public/css/marvel/prompt.css">
     <link rel="stylesheet" href="/public/css/marvel/phase.css">
     <link rel="stylesheet" href="/public/css/marvel/target-arrow.css">
@@ -189,6 +190,19 @@
         </div>
         <div class='image-preview-name'></div>
         <div class="image-preview-debug-text debug-only"></div>
+    </div>
+
+    <div id="standing-answers" class="hide">
+        <div id="standing-answers-head">
+            <span id="standing-answers-title">Standing answers</span>
+            <span id="standing-answers-close" role="button" tabindex="0"
+                  title="Close">&times;</span>
+        </div>
+        <p id="standing-answers-empty">
+            Cards you mark with the tick fire without asking. When two of them
+            trigger together, they go in this order, top first.
+        </p>
+        <ol id="standing-answers-list"></ol>
     </div>
 
     <div id="deck-tracker" class="hide">

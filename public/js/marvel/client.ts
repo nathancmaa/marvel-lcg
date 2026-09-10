@@ -12,6 +12,7 @@ import { AskOptionPayload } from './data.js'
 import { Replay } from './replay.js'
 import { UI } from './ui.js'
 import { CardAnimation } from './card_animation.js'
+import { StandingAnswers } from './standing_answers.js'
 import { Lib } from './lib.js'
 import { ErrorDialog } from './error_dialog.js'
 import { MouseSync } from './mouse.js'
@@ -233,6 +234,9 @@ export class Client {
                 Game.world_descriptor.render_id = 0
             }
             UI.last_game_id = data.game_id
+            // Standing answers belong to the game being played, so a new
+            // one starts with none.
+            StandingAnswers.setGame(data.game_id)
             UI.firstGameSync()
             // Lib.alert("!!!")
             // when server restart, the `last_notify_id` will be 1

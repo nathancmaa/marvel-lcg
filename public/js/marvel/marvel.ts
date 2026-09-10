@@ -60,7 +60,6 @@ import { SwipeDetector } from './window.js';
 import { Client } from './client.js';
 
 import { Scene } from './scene.js';
-import { AutoActivate } from './auto_activate.js';
 import { ErrorDialog } from './error_dialog.js';
 import { Message } from './message.js';
 import { Replay } from './replay.js';
@@ -79,7 +78,6 @@ Button.doShow()
 SwipeDetector.attachSwipeListeners();
 Client.doConnect()
 
-AutoActivate.loadConfig(true)
 
 // document.addEventListener('click', async function() {
 //     document.documentElement.requestFullscreen();

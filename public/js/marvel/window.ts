@@ -4,6 +4,7 @@ import { HoverCard } from './hover.js'
 import { Button } from './buttons.js'
 import { HistoryLog } from './history.js'
 import { DeckTracker } from './deck_tracker.js'
+import { StandingPanel } from './standing_panel.js'
 import { Replay } from './replay.js'
 import { SelectStep } from './select.js'
 import { Effect } from './effect.js'
@@ -248,6 +249,9 @@ export class WindowLoad {
                 }
                 if( DeckTracker.isOpen() ) {
                     DeckTracker.close()
+                }
+                if( StandingPanel.isOpen() ) {
+                    StandingPanel.close()
                 }
                 if( HoverCard.center_preview.has_image ) {
                     Button.disablePause()
