@@ -7,6 +7,7 @@ import { DeckTracker } from './deck_tracker.js'
 import { Replay } from './replay.js'
 import { SelectStep } from './select.js'
 import { Effect } from './effect.js'
+import { UserSettings } from '../user_settings.js'
 
 ///////////////////////////////////////////////////////////////////////////////
 // Do
@@ -43,7 +44,55 @@ export class WindowLoad {
         }
     }
 
+    /**
+     * Whether the player is typing rather than playing.
+     *
+     * The table has text fields on it -- the debug console, the layout boxes --
+     * and every bare key here would otherwise fire while typing into one. It
+     * has always been true of q, e, r, f and 1 through 4; it matters more now
+     * that a single letter can answer a prompt.
+     */
+    static isTyping(event: KeyboardEvent): boolean {
+        const target = event.target as HTMLElement | null
+        if( !target ) {
+            return false
+        }
+        const tag = target.tagName
+        return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT'
+            || target.isContentEditable
+    }
+
+    /**
+     * The player's own key for OK or for cancel, if they have set one.
+     *
+     * Enter and Escape still work and are unchanged. These are a second pair,
+     * chosen for being under the hand already on the keyboard, and they answer
+     * exactly what Enter and Escape answer -- the same two buttons, not a
+     * shortcut around them.
+     */
+    static answerKey(event: KeyboardEvent): 'confirm' | 'deny' | null {
+        if( event.ctrlKey || event.altKey || event.metaKey ) {
+            return null
+        }
+        const pressed = event.key.toLowerCase()
+        if( !pressed ) {
+            return null
+        }
+        const confirm = UserSettings.getConfirmKey().toLowerCase()
+        const deny = UserSettings.getDenyKey().toLowerCase()
+        if( confirm && pressed === confirm ) {
+            return 'confirm'
+        }
+        if( deny && pressed === deny ) {
+            return 'deny'
+        }
+        return null
+    }
+
     static onKeyDown(event: KeyboardEvent) {
+        if( WindowLoad.isTyping(event) ) {
+            return
+        }
         if (event.altKey) {
             UI.hold_alt = true
             document.body.classList.add('hold-alt')
@@ -186,14 +235,14 @@ export class WindowLoad {
                 Replay.doReplay(true, 1, true)
             }
             else
-            if (event.key === "Enter") {
+            if (event.key === "Enter" || WindowLoad.answerKey(event) === 'confirm') {
                 if( !SelectStep.isCard() ) {
                     Button.doBtnOk()
                 }
                 event.preventDefault();
             }
             else
-            if (event.key === "Escape") {
+            if (event.key === "Escape" || WindowLoad.answerKey(event) === 'deny') {
                 if( HistoryLog.isOpen() ) {
                     HistoryLog.toggle()
                 }

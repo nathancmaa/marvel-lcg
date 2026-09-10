@@ -145,6 +145,51 @@
             margin-bottom: 0;
         }
 
+        .answer-keys {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem 1.5rem;
+        }
+
+        .answer-key {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .answer-key-label {
+            color: #aebbc6;
+            font-size: 0.9rem;
+        }
+
+        .key-box {
+            width: 5.5rem;
+            text-align: center;
+            font-weight: 700;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+
+        .key-box.listening {
+            border-color: #edc461;
+            color: #ffe7a3;
+        }
+
+        .key-clear {
+            padding: 0.4rem 0.7rem;
+            font-size: 0.85rem;
+        }
+
+        .answer-key-warning {
+            min-height: 1.2em;
+            margin: 0.6rem 0 0;
+            color: #e8bd62;
+        }
+
+        .answer-key-warning:empty {
+            display: none;
+        }
+
         /* One row per configured deck, including the ones that did not come
            down: a deck missing from a list of successes is exactly what this
            table is here to make visible. */
@@ -261,6 +306,26 @@
                 <input type="checkbox" id="autosave-replays">
                 <span>Autosave replays after each game</span>
             </label>
+        </section>
+
+        <section class="setting">
+            <span class="setting-title">Answer keys</span>
+            <p class="setting-description">A second key for OK and for cancel, beside Enter and Escape, for a hand that is already on the keyboard. Click a box and press the key you want. Leave one empty to turn it off; Enter and Escape keep working either way.</p>
+            <div class="answer-keys">
+                <label class="answer-key">
+                    <span class="answer-key-label">OK</span>
+                    <input type="text" id="confirm-key" class="key-box" readonly
+                           autocomplete="off" placeholder="press a key">
+                    <button type="button" class="key-clear" data-clears="confirm-key">Clear</button>
+                </label>
+                <label class="answer-key">
+                    <span class="answer-key-label">Cancel or skip</span>
+                    <input type="text" id="deny-key" class="key-box" readonly
+                           autocomplete="off" placeholder="press a key">
+                    <button type="button" class="key-clear" data-clears="deny-key">Clear</button>
+                </label>
+            </div>
+            <p id="answer-key-warning" class="answer-key-warning" role="status" aria-live="polite"></p>
         </section>
 
         <section class="setting">

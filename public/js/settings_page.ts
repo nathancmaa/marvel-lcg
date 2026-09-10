@@ -2,11 +2,15 @@ import {
     ANIMATION_TIME_DEFAULT,
     UserSettings,
 } from './user_settings.js'
+import { whatKeyDoes } from './game_keys.js'
 
 const animationTime = document.getElementById('animation-time') as HTMLInputElement
 const animationTimeValue = document.getElementById('animation-time-value') as HTMLOutputElement
 const autoSaveReplays = document.getElementById('autosave-replays') as HTMLInputElement
 const twoHandedSolo = document.getElementById('two-handed-solo') as HTMLInputElement
+const confirmKey = document.getElementById('confirm-key') as HTMLInputElement
+const denyKey = document.getElementById('deny-key') as HTMLInputElement
+const answerKeyWarning = document.getElementById('answer-key-warning') as HTMLElement
 const bgStatsPlayer = document.getElementById('bgstats-player') as HTMLInputElement
 const bgStatsLocation = document.getElementById('bgstats-location') as HTMLInputElement
 const marvelCdbDeckIds = document.getElementById('marvelcdb-deck-ids') as HTMLInputElement
@@ -218,6 +222,9 @@ updateAnimationTime()
 
 autoSaveReplays.checked = UserSettings.getAutoSaveReplays()
 twoHandedSolo.checked = UserSettings.getTwoHandedSolo()
+confirmKey.value = UserSettings.getConfirmKey()
+denyKey.value = UserSettings.getDenyKey()
+updateKeyWarning()
 bgStatsPlayer.value = UserSettings.getBgStatsPlayerName()
 bgStatsLocation.value = UserSettings.getBgStatsLocation()
 marvelCdbDeckIds.value = UserSettings.getMarvelCdbDeckIds()
@@ -230,6 +237,77 @@ autoSaveReplays.addEventListener('change', () => {
 twoHandedSolo.addEventListener('change', () => {
     UserSettings.setTwoHandedSolo(twoHandedSolo.checked)
 })
+
+/**
+ * The two answer keys, captured by pressing them rather than typed.
+ *
+ * A key you press is the key you get: typing "esc" into a box and hoping is
+ * how a setting ends up bound to the letter e.
+ */
+function keyLabel(key: string): string {
+    return key === ' ' ? 'Space' : key
+}
+
+/** Say what a chosen key already does at the table, without refusing it. */
+function updateKeyWarning(): void {
+    const notes: string[] = []
+    if( confirmKey.value && confirmKey.value === denyKey.value ) {
+        notes.push('OK and cancel are the same key, so only cancel will happen.')
+    }
+    for( const [box, role] of [[confirmKey, 'confirm'], [denyKey, 'cancel']] as const ) {
+        const existing = whatKeyDoes(box.value)
+        if( existing ) {
+            notes.push(
+                `${keyLabel(box.value)} already does "${existing}" at the table, `
+                + `and would now also ${role}.`)
+        }
+    }
+    answerKeyWarning.textContent = notes.join(' ')
+}
+
+function bindKeyBox(box: HTMLInputElement, save: (key: string) => void): void {
+    box.addEventListener('focus', () => {
+        box.classList.add('listening')
+        box.value = ''
+    })
+    box.addEventListener('blur', () => {
+        box.classList.remove('listening')
+        // Left empty on purpose is a real answer: it turns the second key off.
+        save(box.value)
+        updateKeyWarning()
+    })
+    box.addEventListener('keydown', (event) => {
+        event.preventDefault()
+        if( event.key === 'Tab' ) {
+            box.blur()
+            return
+        }
+        // A modifier on its own is somebody still reaching for the key.
+        if( ['Shift', 'Control', 'Alt', 'Meta'].includes(event.key) ) {
+            return
+        }
+        box.value = event.key
+        save(event.key)
+        updateKeyWarning()
+        box.blur()
+    })
+}
+
+bindKeyBox(confirmKey, (key) => UserSettings.setConfirmKey(key))
+bindKeyBox(denyKey, (key) => UserSettings.setDenyKey(key))
+
+for( const button of document.querySelectorAll<HTMLButtonElement>('.key-clear') ) {
+    button.addEventListener('click', () => {
+        const box = document.getElementById(button.dataset.clears!) as HTMLInputElement
+        box.value = ''
+        if( box === confirmKey ) {
+            UserSettings.setConfirmKey('')
+        } else {
+            UserSettings.setDenyKey('')
+        }
+        updateKeyWarning()
+    })
+}
 bgStatsPlayer.addEventListener('input', () => {
     UserSettings.setBgStatsPlayerName(bgStatsPlayer.value)
 })

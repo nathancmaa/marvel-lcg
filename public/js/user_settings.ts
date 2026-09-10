@@ -8,6 +8,8 @@ const marvelCdbDeckIdsKey = 'marvel_lcg_marvelcdb_deck_ids'
 const bgStatsPlayerKey = 'marvel_lcg_bgstats_player'
 const bgStatsLocationKey = 'marvel_lcg_bgstats_location'
 const twoHandedKey = 'marvel_lcg_two_handed_solo'
+const confirmKeyKey = 'marvel_lcg_confirm_key'
+const denyKeyKey = 'marvel_lcg_deny_key'
 
 function readStorage(key: string): string|null {
     try {
@@ -106,5 +108,32 @@ export class UserSettings {
 
     static setTwoHandedSolo(enabled: boolean) {
         writeStorage(twoHandedKey, enabled.toString())
+    }
+
+    /**
+     * A second key for OK, beside Enter.
+     *
+     * Enter and Escape both work and both sit under the hand that is not on
+     * the mouse, which is what makes them slow: the answer to most prompts is
+     * yes or no, and reaching for a corner of the keyboard to say it costs
+     * more than the answer is worth. These are for a key under the fingers.
+     *
+     * Empty means the second key is off and only Enter and Escape answer.
+     */
+    static getConfirmKey(): string {
+        return readStorage(confirmKeyKey) ?? 'z'
+    }
+
+    static setConfirmKey(key: string) {
+        writeStorage(confirmKeyKey, key)
+    }
+
+    /** A second key for cancel or skip, beside Escape. */
+    static getDenyKey(): string {
+        return readStorage(denyKeyKey) ?? 'x'
+    }
+
+    static setDenyKey(key: string) {
+        writeStorage(denyKeyKey, key)
     }
 }
