@@ -55,6 +55,10 @@ type ScenarioChoice = {
     // Position of the box in the release sequence, from the numeric prefix on
     // its sets_info key. Lets the picker order boxes as they came out.
     productOrder: number;
+    // Where the scenario sits inside its own box, which sets_info lists in
+    // the order the box presents them: Rhino, Klaw, Ultron in the Core Set,
+    // not the alphabetical Klaw, Rhino, Ultron.
+    boxIndex: number;
 };
 
 type HeroChoice = {
@@ -537,6 +541,8 @@ function selectHero(choice: HeroChoice, keepMarvelCdbDeck = false): void {
     }
     updateHeroSelection();
     refreshUniversalPanel();
+    // Every villain tile is marked against the hero, so they all change.
+    scenarioFilters.refresh();
     markSelected(heroList, choice.id);
     errorMessage.textContent = '';
     // Picking a different hero by hand abandons a loaded deck; a deck that
@@ -632,42 +638,51 @@ function createChoiceButton(
 }
 
 /**
- * How far each scenario has been beaten, by any hero, keyed on scenario id.
+ * How far each pairing has been beaten, keyed `<hero code>|<scenario id>`.
  *
- * The coverage grid answers this per pairing; a villain tile is asking the
- * simpler question -- have I taken this one down yet, and at what -- so it
- * takes the best clear along the scenario's whole column, exactly as that
- * grid's own column headers do.
+ * The whole grid rather than a column summary, because the question a villain
+ * tile answers is about the hero standing next to it: "have I beaten this one
+ * with them". Taking the best clear by anybody marked a villain as done while
+ * the hero on screen had never faced them, which is the opposite of what the
+ * mark is for.
  */
-let bestBeatenByScenario = new Map<string, number>();
+let beatenCells = new Map<string, number>();
 
 async function loadBeatenScenarios(): Promise<Map<string, number>> {
-    const best = new Map<string, number>();
+    const cells = new Map<string, number>();
     try {
         const matrix = await fetchJson<MatchupMatrix>('/get_matchup_matrix?');
         if (!matrix.available || !matrix.cells) {
-            return best;
+            return cells;
         }
         for (const [key, cell] of Object.entries(matrix.cells)) {
-            // Keys are `<hero code>|<scenario id>`; the hero half is not
-            // wanted here, only the hardest clear anyone managed.
-            const scenarioId = key.slice(key.indexOf('|') + 1);
-            const beaten = cell.best_beaten ?? 0;
-            if (beaten > (best.get(scenarioId) ?? 0)) {
-                best.set(scenarioId, beaten);
-            }
+            cells.set(key, cell.best_beaten ?? 0);
         }
     } catch (error) {
         // History is optional, and a picker that cannot reach it still picks.
         console.warn('Could not load which villains have been beaten', error);
     }
-    return best;
+    return cells;
+}
+
+/** The identity card the game history keys a hero on, e.g. `40001a`. */
+function heroCodeOf(choice: HeroChoice): string {
+    return String(choice.data.hero?.[0] ?? '').split(',')[0].trim().toLowerCase();
+}
+
+function beatenBySelectedHero(scenarioId: string): number {
+    if (!selectedHero) {
+        return 0;
+    }
+    const code = heroCodeOf(selectedHero);
+    return code ? beatenCells.get(`${code}|${scenarioId}`) ?? 0 : 0;
 }
 
 function markBeaten(button: HTMLButtonElement, choice: ScenarioChoice): void {
-    const beaten = bestBeatenByScenario.get(choice.id) ?? 0;
+    const beaten = beatenBySelectedHero(choice.id);
     const stripeClass = beatenClass(beaten);
-    button.title = `${choice.name} — ${beatenLabel(beaten)}`;
+    const who = selectedHero ? selectedHero.data.name : 'this hero';
+    button.title = `${choice.name} — ${who}: ${beatenLabel(beaten)}`;
     if (!stripeClass) {
         return;
     }
@@ -722,20 +737,25 @@ async function loadScenarioChoices(): Promise<ScenarioChoice[]> {
         fetchJson<string[]>('/list_scenarios?'),
     ]);
     const availableIds = new Set(availablePaths.map(getFileName));
-    const scenarioCatalog = new Map<string, {label: string; order: number}>();
+    const scenarioCatalog = new Map<
+        string, {label: string; order: number; boxIndex: number}>();
     for (const [setName, set] of Object.entries(sets)) {
         const order = setName.match(/^(\d+)\./);
         if (!order) {
             continue;
         }
-        for (const id of set.scenarios ?? []) {
+        // The order sets_info lists them in is the order the box does, so the
+        // position in that array is worth keeping rather than rediscovering
+        // from card numbers.
+        (set.scenarios ?? []).forEach((id, boxIndex) => {
             if (availableIds.has(id) && !scenarioCatalog.has(id)) {
                 scenarioCatalog.set(id, {
                     label: getProductLabel(setName, set),
                     order: Number(order[1]),
+                    boxIndex,
                 });
             }
-        }
+        });
     }
     const scenarioIds = Array.from(scenarioCatalog.keys());
 
@@ -761,6 +781,7 @@ async function loadScenarioChoices(): Promise<ScenarioChoice[]> {
                 expertId: availableIds.has(expertId) ? expertId : null,
                 productLabel: scenarioCatalog.get(id)!.label,
                 productOrder: scenarioCatalog.get(id)!.order,
+                boxIndex: scenarioCatalog.get(id)!.boxIndex,
             };
         } catch (error) {
             console.warn(`Failed to load scenario ${id}`, error);
@@ -895,15 +916,23 @@ function heroicRules(): string[] {
 }
 
 function renderScenarios(choices: ScenarioChoice[]): void {
-    if (requestedGame.scenario) {
-        // The box filter is remembered between visits, so a scenario arriving
-        // from the coverage grid could be selected while its tile sits behind
-        // a filter set to some other box.
-        scenarioFilters.showAllProducts();
-    }
     const savedId = requestedGame.scenario || localStorage.getItem(scenarioStorageKey);
     scenarioChoices = choices;
     scenarioFilters.render(choices);
+
+    if (requestedGame.scenario) {
+        // Arriving from a coverage square, the box that square belongs to is
+        // the only part of the list worth showing: sixty-odd villains is a
+        // long scroll to confirm one that has already been chosen. Filtering
+        // to the box also solves what showAllProducts was here for, which was
+        // a remembered filter hiding the tile that arrived selected.
+        const requested = choices.find((choice) => choice.id === requestedGame.scenario);
+        if (requested) {
+            scenarioFilters.filterToBox(requested.productLabel);
+        } else {
+            scenarioFilters.showAllProducts();
+        }
+    }
 
     const savedChoice = choices.find((choice) => choice.id === savedId);
     if (savedChoice) {
@@ -1045,7 +1074,7 @@ async function initialize(): Promise<void> {
     // Before the tiles are built, so each one is drawn with its stripe rather
     // than gaining one a moment later.
     if (beatenResult.status === 'fulfilled') {
-        bestBeatenByScenario = beatenResult.value;
+        beatenCells = beatenResult.value;
     }
 
     if (scenarioResult.status === 'fulfilled') {

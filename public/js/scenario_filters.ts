@@ -16,6 +16,8 @@ export type ScenarioFilterChoice = {
     name: string;
     productLabel: string;
     productOrder: number;
+    /** Where it sits inside its own box, in the order the box presents them. */
+    boxIndex: number;
 };
 
 type SortMode = 'default' | 'release' | 'name';
@@ -87,6 +89,14 @@ export type ScenarioFiltersOptions<T extends ScenarioFilterChoice> = {
 
 export type ScenarioFilters<T extends ScenarioFilterChoice> = {
     render(choices: T[]): void;
+    /**
+     * Redraw with the current list and options.
+     *
+     * For state the bar reads but does not own: each tile is marked with how
+     * far the selected hero has got against that villain, and choosing a
+     * different hero changes every one of those marks.
+     */
+    refresh(): void;
     /**
      * Clear the box filter so every scenario is listed again.
      *
@@ -249,6 +259,14 @@ export function createScenarioFilters<T extends ScenarioFilterChoice>(
                     return left.productOrder - right.productOrder;
                 }
             }
+            // Only "By name" is alphabetical. The other two are about release
+            // order, and a box has one of its own -- the Core Set opens with
+            // Rhino and ends with Ultron, which alphabetical turned into Klaw,
+            // Rhino, Ultron and made the first scenario look like the third.
+            if (state.sort !== 'name' && left.productLabel === right.productLabel
+                && left.boxIndex !== right.boxIndex) {
+                return left.boxIndex - right.boxIndex;
+            }
             return compareText(left.name, right.name) || compareText(left.id, right.id);
         });
         return sorted;
@@ -365,6 +383,9 @@ export function createScenarioFilters<T extends ScenarioFilterChoice>(
         render(choices: T[]): void {
             source = choices;
             refreshProductOptions();
+            draw();
+        },
+        refresh(): void {
             draw();
         },
         showAllProducts(): void {
