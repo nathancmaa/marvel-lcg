@@ -1,6 +1,6 @@
 # Marvel Champions Digital: Cerebro Changelog
 
-> Current release version: 0.7.7
+> Current release version: 0.7.8
 
 This document records the user-visible and development changes made in this
 fork after it diverged from the original
@@ -15,6 +15,53 @@ Versions 0.7.2 and 0.7.3 were briefly published as 0.8.0 and 0.8.1 and were
 renumbered onto the 0.7 line. Their tags and releases carry the new numbers
 and point at the same commits; the commits that cut them still name the old
 ones.
+
+## Version 0.7.8 (2026-09-09)
+
+Two heroes at once, a deck for every hero, and the statistics behind both.
+
+- **Two-handed solo.** One person playing two heroes from one screen, off by
+  default and turned on in Settings. Quick Game's hero section then grows P1
+  and P2 tabs and nothing else changes: the grid is still one selection at a
+  time, and the tabs say who that selection is for. Each tab keeps its hero
+  and the deck chosen for them, so a netdeck picked for P1 is still theirs
+  after a visit to P2. The game itself is the hot seat the engine has had
+  since irefrixs's first commit -- the replay viewer was already using it, and
+  this fork had only stopped offering a way in.
+- **A win counts for every hero who was there.** Game history records who
+  played a game as well as how it went, so a two-handed win lights both
+  heroes' squares on the coverage grid while remaining one game, one win, one
+  entry in the recent list. Every game already recorded keeps the seat it
+  always implicitly had. The limit is four, which is the game's own rather
+  than this app's.
+- **The universal decks.** One prebuilt deck per hero, from the geeklist the
+  aspect decks came from, as a fourth deck source on Quick Game. There is
+  nothing to choose in it: the deck belongs to the hero, so picking the hero
+  picks the deck. 54 of the 69 are here; the rest name cards this
+  installation does not implement, and a deck that would fail when a card is
+  drawn is not shipped. Built by a script from the list's own sheet, so it can
+  be rebuilt when a pack lands rather than trusted.
+- **Favourite decks are shared between devices.** They were in the browser,
+  which meant a deck starred on the laptop was not starred on the phone
+  against the same container. They now live beside the collection, which has
+  always worked that way.
+- **Quick Game reads better.** Villains are listed in their box's order rather
+  than alphabetically -- the Core Set opens with Rhino, not Klaw. A villain
+  tile's mark says whether the hero you have chosen has beaten them, not
+  whether anybody has. Arriving from a coverage square opens on that square's
+  box instead of all sixty-two. "Favorites only" and "Hide precons" survive a
+  refresh, which neither did.
+- **The coverage grid remembers its controls**, so sorting by completion is a
+  choice made once. "Played only" now hides unplayed heroes and keeps every
+  villain: an unplayed villain is the square worth looking at.
+- **The fork has its own icon**, and the game log has stopped naming its own
+  internals -- "Cable's deck was shuffled with Cable's discard pile" rather
+  than "PlayerDeck<40>", and "1 first player token" rather than a quoted
+  variable.
+- **Game history stopped leaking database connections.** Every operation
+  opened one and never closed it, for as long as the container was up. This
+  was also what made eighteen tests fail on Windows and nowhere else, which is
+  why it went unread for months.
 
 ## Version 0.7.7 (2026-09-08)
 
