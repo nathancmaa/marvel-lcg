@@ -8,6 +8,37 @@ export class BtnOk
 
     static btn_end_div  = document.getElementById('btn-end') as HTMLButtonElement;
     static btn_ok_div   = document.getElementById('btn-ok') as HTMLButtonElement;
+    /** The second confirm, under the options. */
+    static btn_ok_near  = document.getElementById('btn-ok-near') as HTMLButtonElement | null;
+
+    /**
+     * Keep the near confirm saying what the far one says.
+     *
+     * Watched rather than written at each call site: the OK button's label and
+     * disabled state are set from several places -- setOk, setDisable, and
+     * doPost's own handling -- and a mirror that has to be remembered at every
+     * one of them is a mirror that goes stale the first time a new one is
+     * added. This cannot be forgotten because nobody has to remember it.
+     */
+    static {
+        const near = BtnOk.btn_ok_near;
+        const far = BtnOk.btn_ok_div;
+        if( near && far ) {
+            const mirror = () => {
+                near.disabled = far.disabled;
+                near.innerHTML = far.innerHTML;
+                near.classList.toggle('overpay', far.classList.contains('overpay'));
+            };
+            new MutationObserver(mirror).observe(far, {
+                attributes: true,
+                attributeFilter: ['disabled', 'class'],
+                childList: true,
+                subtree: true,
+                characterData: true,
+            });
+            mirror();
+        }
+    }
 
     static refreshTime(time_out: number) {
         BtnOk.btn_end_div.dataset.time = time_out.toString()

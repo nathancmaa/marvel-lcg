@@ -34,6 +34,15 @@ class PassiveUpgradeTests(unittest.TestCase):
             with self.subTest(name):
                 self.assertTrue(self.IsPassive(name))
 
+    def test_a_card_you_spend_is_not_passive(self):
+        # Their only ability is a Resource -- Fury's Watch a plain one, Jet
+        # Belt a Hero Resource. Spending a card to pay for another is a click
+        # on that card, so neither is text you only read, and neither belongs
+        # stacked out of reach behind its neighbours.
+        for name in ["Fury's Watch", "Jet Belt"]:
+            with self.subTest(name):
+                self.assertFalse(self.IsPassive(name))
+
     def test_upgrades_the_player_has_to_use_are_not(self):
         # An Action, a Response and an Interrupt, one of each.
         for name in ["Arc Reactor", "Mission Leader", "Telekinetic Force Field"]:

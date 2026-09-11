@@ -30,12 +30,18 @@ def AbilityAsksThePlayer(ability: 'Ability') -> bool:
     """
     Whether this ability ever puts a choice in front of the player.
 
-    Answerable ones do, and so does an optional Action. A card with none of
-    them is one you only ever read, which is what lets the table stack it out
-    of the way.
+    Answerable ones do, and so does an optional Action. So does a Resource:
+    spending a card to pay for another is a click on that card, which the
+    first version of this missed -- an upgrade whose only ability was
+    "Resource: exhaust this to generate energy" read as pure text and was
+    stacked out of reach behind its neighbours.
+
+    A card with none of them is one you only ever read, which is what lets
+    the table stack it out of the way.
     """
+    flags = ability.flags
     return AbilityIsAnswerable(ability) or (
-        not ability.flags.is_forced and ability.flags.is_action)
+        not flags.is_forced and (flags.is_action or flags.is_resource))
 
 
 @final

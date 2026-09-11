@@ -1,28 +1,65 @@
-#option-buttons {
-    /* width: max-content; */
-    /* min-width: 65vw; */
+/* The options and the answer to them, stacked. The bar used to own this
+   position on its own; the wrapper owns it now so a confirm can sit under the
+   choices instead of across the table from them -- the OK on the right edge is
+   a long way from a decision being made in the middle of the board. */
+#option-area {
+    position: absolute;
+    left: 50%;
+    top: 34%;
+    transform: translate(-50%, -50%);
+    z-index: var(--z-index-buttons);
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
     max-width: 90vw;
+}
+
+#option-buttons {
+    max-width: 100%;
     margin: 0 auto;
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
     text-align: center;
-    z-index: var(--z-index-buttons);
     flex-wrap: wrap;
     --font-size: var(--font-size-out);
 
-    position: absolute;
-    left: 50%;
-    top: 34%;
-    transform: translate(-50%, -50%);
-
-    max-height: 60%;
+    max-height: 60vh;
     overflow-y: auto;
 
     border-radius: 1rem;
 
     background-color: #3b3b3ba4;
+}
+
+/* Present for the whole of an ask, including the part where the bar above it
+   has gone invisible to let you click the cards underneath. Hiding it with the
+   bar was the obvious rule and the wrong one: choosing an option is what
+   starts target selection, so the button disappeared at the exact moment it
+   was there to be pressed. */
+#btn-ok-near {
+    --font-size: var(--font-size-out);
+
+    min-width: calc(6 * var(--font-size));
+    height: calc(2.2 * var(--font-size));
+    margin: 0;
+    padding: 0 calc(0.8 * var(--font-size));
+    font-size: calc(1.2 * var(--font-size));
+    font-weight: bold;
+    border-radius: calc(.5 * var(--font-size));
+    box-shadow: 0 calc(.15 * var(--font-size)) gray;
+    cursor: pointer;
+}
+
+#btn-ok-near:disabled {
+    cursor: default;
+}
+
+#option-area:has(#option-buttons:empty) #btn-ok-near {
+    display: none;
 }
 
 /* The Cerebro theme gives this container padding, a border, and a background.
