@@ -48,6 +48,18 @@ A single-player table that keeps a record, on a server I control.
   targets, contrast and keyboard reach are treated as features. Includes proper
   **ultrawide and 2/3-width layouts** — the board reflows rather than stretching,
   and side schemes stop colliding with minions at awkward widths.
+- **Standing answers.** Tick a card that carries an optional Response or
+  Interrupt and the game stops asking about it — it answers for itself when the
+  window comes round. The **Priority** panel lists what you have ticked and the
+  order it fires in, which is what settles it when two of them trigger at once.
+  The list belongs to the game being played and is cleared when a new one
+  starts. A tick only ever answers a question the game asked: it never acts for
+  you, and an unticked card still prompts every time.
+- **Playable from the keyboard.** OK, cancel and undo each take a key of your
+  choosing beside Enter, Escape and ctrl+z; when the game offers a choice, the
+  home row takes the options in the order they are shown, with each key drawn
+  on its own button. All remappable in Settings, where a key you choose beats
+  whatever the table did with it by default.
 - **Stat tracking worth looking at.** One SQLite history covering digital games,
   imported replays and games played at the table, with a **hero × scenario
   coverage grid** showing the hardest difficulty each pairing has been beaten
@@ -194,6 +206,11 @@ are per-device and are **not** in any server-side backup:
   the server. Keep a copy of the IDs somewhere if they matter to you.
 - BG Stats player name and location, animation speed, replay autosaving, and
   the deck and scenario filter preferences.
+- The keys chosen for OK, cancel, undo and the options on screen, and whether
+  Quick Game is set up for two heroes.
+- The Priority list of standing answers. This one is per game as well as per
+  device: it is cleared when a new game starts, so there is nothing in it worth
+  carrying anywhere.
 
 Clearing site data for the app resets these and nothing else.
 

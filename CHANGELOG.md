@@ -1,6 +1,6 @@
 # Marvel Champions Digital: Cerebro Changelog
 
-> Current release version: 0.7.8
+> Current release version: 0.7.9
 
 This document records the user-visible and development changes made in this
 fork after it diverged from the original
@@ -15,6 +15,58 @@ Versions 0.7.2 and 0.7.3 were briefly published as 0.8.0 and 0.8.1 and were
 renumbered onto the 0.7 line. Their tags and releases carry the new numbers
 and point at the same commits; the commits that cut them still name the old
 ones.
+
+## Version 0.7.9 (2026-09-10)
+
+Answering the same question for the tenth time, without answering it again.
+
+- **Standing answers, and the Priority list.** A card with an optional
+  Response or Interrupt now carries a tick. Tick it and the game stops asking
+  about it: when that window comes round, the card answers for itself. The new
+  **Priority** panel, on the right-hand bar beside Log and Deck, is the list of
+  everything you have ticked, in the order it fires. That order is the point of
+  the panel -- when a defeated side scheme offers Mission Leader and Graymalkin
+  in the same breath, the game resolves the higher one and the next ask brings
+  the other. Move a card up or down with the arrows, drop it off the list to be
+  asked again, and hover a name to see the card. The list belongs to the game on
+  the table and is cleared when a new one starts: a standing answer is a
+  decision about this deck against this villain, not a setting.
+- **It answers questions, and nothing else.** A tick is not permission to act
+  for you. It applies only in a Response or Interrupt window -- never to a
+  character's actions or basic powers, so a ticked ally does not attack the
+  moment you click her -- and never to a forced trigger, which resolves itself
+  and was never a question. Nothing is ever declined on your behalf: an
+  unticked card asks every single time, so a card you forgot was in play is a
+  prompt rather than a silent miss. And the tick only appears where it means
+  something: on a mid-game board, eight cards of twenty-three rather than all
+  of them.
+- **One switch instead of two.** "Auto Activate" and "Show Auto Activate
+  Checkbox" were one feature split in half, and the half that put the tick on
+  the cards was off by default -- which left the other half with nothing marked
+  and no way to mark it. They are now a single **Auto Answer** in the log menu:
+  off means no ticks and no answers. A ticked card also stopped wearing a
+  warning colour; it takes the Priority panel's own accent, so the mark on the
+  board and the row in the panel read as the same thing.
+- **A key for undo, and a key for every option.** Undo was ctrl+z and nothing
+  else, the only common answer still needing both hands; it now takes a bare
+  key too, defaulting to **c**, beside the z and x that already answer OK and
+  cancel. When the game offers a choice -- Attack, Thwart, Change Form -- the
+  **home row takes them**, left to right, with each key drawn on its own
+  button. All of these are remappable in Settings, and a key you choose now
+  beats whatever the table did with it by default, rather than winning or
+  losing by accident of ordering. Clashes are explained rather than refused.
+- **Passive upgrades stack.** A hero or ally that has collected five upgrades
+  was taking five card widths of a row that has to hold everything else too,
+  and most of those upgrades are a stat line you read once and never touch.
+  Those now stack behind each other with an edge showing -- still hoverable, so
+  a sliver is a full preview -- and **Stack Passives** in the log menu turns it
+  off for a row you want to read whole. Only upgrades with nothing to click:
+  one that carries an Action, Response or Interrupt stays where you can reach
+  it. An ally's three stat upgrades go from 508 pixels of row to 300.
+- **A row that overflows stays readable.** The squeeze applied to a crowded row
+  was the same for every gap regardless of how wide it started, so a long
+  enough row closed its narrowest gaps and then pushed cards past each other
+  into the wrong order. Every gap now holds open by an edge.
 
 ## Version 0.7.8 (2026-09-09)
 
