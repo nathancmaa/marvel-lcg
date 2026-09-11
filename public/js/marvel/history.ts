@@ -3,6 +3,8 @@ export class HistoryLog
     static history_div? = document.getElementById("history") as HTMLElement;
     static history_text_div? = document.getElementById("history-text") as HTMLElement;
     static last_id = -1
+    /** The phase the last line was written under, so a change can be marked. */
+    static last_phase = ""
     static history_text = ""
     static contextMenu = document.getElementById('contextMenu') as HTMLElement;
     static click_object_id = 0
@@ -43,13 +45,23 @@ export class HistoryLog
             }
         })
     }
-    static addText(id: number, text: string) {
+    static addText(id: number, text: string, phase = "") {
         if( id == HistoryLog.last_id ) {
             return
         }
         if( text && HistoryLog.history_text_div ) {
             text = text.replaceAll("\n", "")
             HistoryLog.last_id = id
+            // Written just before the line rather than when the phase
+            // changes, so the rule always lands immediately above the
+            // first line of the new phase. Announcing it from the phase
+            // change itself would depend on which of the two updates the
+            // client happened to handle first.
+            if( phase && phase !== HistoryLog.last_phase ) {
+                HistoryLog.last_phase = phase
+                HistoryLog.history_text +=
+                    `<p class='log-phase'><span>${phase}</span></p>`
+            }
             // text = `#${id.toString().padStart(3, '0').slice(-3)} ${text}`
             text = `<p class='log-id'>${id}</p> <p>${text}</p>`
             HistoryLog.history_text += text
