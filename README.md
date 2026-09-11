@@ -198,12 +198,18 @@ docker compose up -d
 ### In your browser
 
 Some settings are held by the browser rather than the server, which means they
-are per-device and are **not** in any server-side backup:
+are per-device and are **not** in any server-side backup. They are also per
+**origin**, not per machine: reaching the same container through a different
+hostname — a Cloudflare tunnel beside a LAN address, say — is a different
+browser as far as these are concerned, and each keeps its own copy.
 
-- **The MarvelCDB deck ID list.** This is the one people lose without noticing.
-  The sync list lives in the browser that entered it, so opening the app on a
-  new device shows an empty list even though the decks themselves are safely on
-  the server. Keep a copy of the IDs somewhere if they matter to you.
+The **MarvelCDB deck ID list is not one of these**, despite living in the
+browser too. The server holds it in `deck/user-decks/.marvelcdb-sync-state.json`
+and the settings page reads it back on load, so a new device or a new hostname
+recovers the list rather than showing it empty.
+
+Held only by the browser:
+
 - BG Stats player name and location, animation speed, replay autosaving, and
   the deck and scenario filter preferences.
 - **Card size.** Per-device on purpose: a laptop and an ultrawide want
