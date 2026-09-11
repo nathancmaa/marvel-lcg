@@ -3,14 +3,29 @@ import { SCENE_WIDTH_CHANGED } from './scene.js'
 import { ClassName } from './class_name.js'
 import { Cards } from "./cards.js";
 import { ButtonSetting, Setting } from "./settings.js";
+import { UserSettings } from "../user_settings.js";
 import { Lib } from "./lib.js";
 
 export class MoveCard {
 
     // Root CSS custom properties
     static rootStyles = getComputedStyle(document.documentElement);
-    static cardWidth = parseFloat(MoveCard.rootStyles.getPropertyValue('--card-width'));
-    static cardHeight = parseFloat(MoveCard.rootStyles.getPropertyValue('--card-height'));
+
+    /* The size a card is laid out at. Read from the stylesheet rather than
+       written down, because the tablet breakpoint asks for a bigger card, and
+       kept as numbers rather than a property read per card because the layout
+       touches them several times for every card in every row.
+
+       Only applyCardScale writes these, and it is the only thing that writes
+       the CSS variables they mirror -- so the two cannot drift apart by
+       somebody changing one and forgetting the other, which is the bug this
+       shape exists to prevent. */
+    static cardWidth = 0;
+    static cardHeight = 0;
+
+    static {
+        MoveCard.applyCardScale();
+    }
 
     /** Total width, in card widths, kept free at the left and right edges of
      *  the stage so a compressed row cannot slide under the deck columns. */
@@ -29,6 +44,39 @@ export class MoveCard {
     static timer: Record<string, number> = {}
     static updating_area: Set<HTMLElement> = new Set()
     static updating_in_deck_cards: Set<HTMLElement> = new Set()
+
+    /**
+     * Resize the cards, and bring the layout's copy of the size with them.
+     *
+     * The design size is re-read every time with our own override lifted,
+     * the way designSceneWidth does it: that override is this function's
+     * answer from last time, and a breakpoint can change the size underneath
+     * it. Callers relayout afterwards; this only settles what a card is.
+     */
+    static applyCardScale(): void {
+        const root = document.documentElement;
+        // Cleared and not put back: every path below either sets a new value
+        // or means to leave it cleared.
+        root.style.removeProperty('--card-width');
+        root.style.removeProperty('--card-height');
+        const design = {
+            width: parseFloat(MoveCard.rootStyles.getPropertyValue('--card-width')),
+            height: parseFloat(MoveCard.rootStyles.getPropertyValue('--card-height')),
+        };
+        const scale = UserSettings.getCardScale() / 100;
+
+        if( scale === 1 ) {
+            // Removed rather than set to the design size, so that crossing the
+            // tablet breakpoint later still changes the card.
+            MoveCard.cardWidth = design.width;
+            MoveCard.cardHeight = design.height;
+            return;
+        }
+        MoveCard.cardWidth = Math.round(design.width * scale);
+        MoveCard.cardHeight = Math.round(design.height * scale);
+        root.style.setProperty('--card-width', `${MoveCard.cardWidth}px`);
+        root.style.setProperty('--card-height', `${MoveCard.cardHeight}px`);
+    }
 
     static narrowToRange(values: number[], newMin: number, newMax: number): number[] {
         const oldMin = Math.min(...values);
@@ -542,6 +590,9 @@ window.addEventListener(SCENE_WIDTH_CHANGED, () => {
     }
     relayoutHandle = requestAnimationFrame(() => {
         relayoutHandle = 0;
+        // A resize is also how the tablet breakpoint is crossed, which changes
+        // the size a card is laid out at.
+        MoveCard.applyCardScale();
         MoveCard.doMoveFirstTime();
     });
 });

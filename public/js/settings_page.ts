@@ -1,5 +1,6 @@
 import {
     ANIMATION_TIME_DEFAULT,
+    CARD_SCALE_DEFAULT,
     DEFAULT_OPTION_KEYS,
     UserSettings,
 } from './user_settings.js'
@@ -7,6 +8,8 @@ import { whatKeyDoes } from './game_keys.js'
 
 const animationTime = document.getElementById('animation-time') as HTMLInputElement
 const animationTimeValue = document.getElementById('animation-time-value') as HTMLOutputElement
+const cardScale = document.getElementById('card-scale') as HTMLInputElement
+const cardScaleValue = document.getElementById('card-scale-value') as HTMLOutputElement
 const autoSaveReplays = document.getElementById('autosave-replays') as HTMLInputElement
 const twoHandedSolo = document.getElementById('two-handed-solo') as HTMLInputElement
 const confirmKey = document.getElementById('confirm-key') as HTMLInputElement
@@ -252,6 +255,16 @@ async function loadMarvelCdbStatus(): Promise<void> {
         marvelCdbStatus.textContent = 'Could not load MarvelCDB synchronization status.'
     }
 }
+
+function updateCardScale(): void {
+    const percent = Number(cardScale.value) || CARD_SCALE_DEFAULT
+    cardScaleValue.textContent = `${percent}%`
+    UserSettings.setCardScale(percent)
+}
+
+cardScale.value = UserSettings.getCardScale().toString()
+updateCardScale()
+cardScale.addEventListener('input', updateCardScale)
 
 animationTime.value = UserSettings.getAnimationTime().toString()
 animationTimeValue.value = `${ANIMATION_TIME_DEFAULT.toFixed(1)} s`

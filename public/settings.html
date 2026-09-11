@@ -340,6 +340,17 @@
         </section>
 
         <section class="setting">
+            <label class="setting-title" for="card-scale">Card size</label>
+            <p class="setting-description">How big the cards on the table are, as a percentage of normal. Smaller cards leave more room in a row before it has to compress, which is what a busy scenario runs out of first. Applies the next time a game table is opened.</p>
+            <div class="slider-row">
+                <span>Smaller</span>
+                <input type="range" id="card-scale" min="50" max="100" value="100" step="5">
+                <span>Normal</span>
+                <output id="card-scale-value" for="card-scale">100%</output>
+            </div>
+        </section>
+
+        <section class="setting">
             <span class="setting-title">Replay autosave</span>
             <p class="setting-description">Automatically save the replay to the server when a game ends.</p>
             <label class="switch-row" for="autosave-replays">
