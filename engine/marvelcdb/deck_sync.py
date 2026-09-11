@@ -745,7 +745,34 @@ class MarvelCdbDeckSync:
         next_sync = synced_at + timedelta(seconds=self.interval_seconds)
         return max(0, (next_sync - datetime.now(timezone.utc)).total_seconds())
 
+    @staticmethod
+    def _refresh_card_art() -> None:
+        """Ask the image servers again for any art still coming from a stand-in.
+
+        Nothing to do with decks, and it rides here because this is the thread
+        that already wakes up on a timer. Fan sites publish scans of a new pack
+        months before Cerebro and MarvelCDB do; this is what lets the better
+        picture arrive without anyone running anything.
+        """
+        from engine.file.cache import Cache
+
+        try:
+            result = Cache.RefreshFallbackImages()
+        except Exception as exc:                        # noqa: BLE001
+            Log.Warn(CATEGORY_NAME, f'Card art refresh failed: {exc}')
+            return
+        if result['upgraded']:
+            Log.Info(
+                CATEGORY_NAME,
+                'Card art: %d of %d stand-in images replaced with published scans.'
+                % (result['upgraded'], result['checked']),
+            )
+
     def _run_periodic_sync(self) -> None:
+        # Once on the way in, so a restart picks up art published since the
+        # last run rather than waiting out the whole interval.
+        self._refresh_card_art()
+
         while True:
             with self._condition:
                 if self._stopping:
@@ -761,6 +788,7 @@ class MarvelCdbDeckSync:
                 self.SyncDecks(deck_ids)
             except Exception as exc:
                 Log.Warn(CATEGORY_NAME, f'MarvelCDB periodic sync failed: {exc}')
+            self._refresh_card_art()
 
     def Start(self) -> None:
         # Where the decks actually are, absolute. Everything about a volume

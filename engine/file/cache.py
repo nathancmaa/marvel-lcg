@@ -1,4 +1,6 @@
 from core import *
+import json
+import os
 import requests
 from engine.lib import ImageCreator, ImageLib
 from engine.log import Log
@@ -11,7 +13,18 @@ IMAGE_FOLDERS   = ConfigVariables.Folders('image_folders', ["./assets/pics/"])
 TEXTURE_FOLDER  = ConfigVariables.Folder('texture_folder', "./assets/textures/")
 CACHE_FOLDER    = ConfigVariables.Folder('cache_folder', "./assets/cache/")
 IMAGE_SERVERS   = ConfigVariables.ListStr('image_servers', [])
+# Per-card URLs for art no image server carries. Consulted only after every
+# server has been asked, so an official scan always wins when one exists.
+IMAGE_FALLBACK_FILE = ConfigVariables.File(
+    'image_fallback_file',
+    './data/card_images.json',
+)
 BREAK_WHEN_LOAD_ONLINE_IMAGE = ConfigVariables.Bool('break_when_load_online_image', False)
+
+# Which cached images came from the fallback map rather than from a server.
+# Only those are worth re-checking later, and the file empties itself as the
+# servers catch up.
+FALLBACK_INDEX_NAME = ".fallback-sources.json"
 
 STATUS_TEXTURES = frozenset({"tough", "stunned", "confused"})
 
@@ -42,10 +55,83 @@ class Cache:
 
     cache: Dict[str, bytes] = {}
     link_pic: Dict[str, str] = {}
+    fallback_images: Dict[str, str]|None = None
 
     @staticmethod
     def SetLinkPic(card_id: str, link_to_pic_id: str):
         Cache.link_pic[card_id] = link_to_pic_id
+
+    ################################################################################
+    # Art no image server carries yet
+    @staticmethod
+    def GetFallbackImages() -> Dict[str, str]:
+        """card_id -> URL, for cards the image servers do not have.
+
+        Read once and kept. A missing or unreadable file is not an error: it
+        only means every card has to come from a server, which is the normal
+        case for every pack older than a month or two.
+        """
+        if Cache.fallback_images is not None:
+            return Cache.fallback_images
+
+        Cache.fallback_images = {}
+        path = IMAGE_FALLBACK_FILE.value
+        if not path or not FileManager.Exists(path):
+            return Cache.fallback_images
+
+        try:
+            with FileManager.OpenFile(path, read=True) as file:
+                content = json.loads(file.Read())
+            images = content.get('images', {}) if isinstance(content, dict) else {}
+            Cache.fallback_images = {
+                str(card_id): str(url)
+                for card_id, url in images.items()
+                if url
+            }
+        except (ValueError, OSError) as error:
+            Log.Warn(CATEGORY_NAME, f"Could not read {path}: {error}")
+        return Cache.fallback_images
+
+    @staticmethod
+    def _FallbackIndexPath() -> str:
+        return FileManager.JoinPath(CACHE_FOLDER.value, FALLBACK_INDEX_NAME)
+
+    @staticmethod
+    def _LoadFallbackIndex() -> Dict[str, str]:
+        path = Cache._FallbackIndexPath()
+        if not FileManager.Exists(path):
+            return {}
+        try:
+            with FileManager.OpenFile(path, read=True) as file:
+                content = json.loads(file.Read())
+            return content if isinstance(content, dict) else {}
+        except (ValueError, OSError):
+            return {}
+
+    @staticmethod
+    def _SaveFallbackIndex(index: Dict[str, str]) -> None:
+        path = Cache._FallbackIndexPath()
+        try:
+            FileManager.MakeDir(FileManager.GetDirName(path))
+            with FileManager.OpenFile(path, write=True) as file:
+                file.Write(json.dumps(index, indent=4, sort_keys=True))
+        except OSError as error:
+            Log.Warn(CATEGORY_NAME, f"Could not write {path}: {error}")
+
+    @staticmethod
+    def _RememberFallback(card_id: str, url: str) -> None:
+        index = Cache._LoadFallbackIndex()
+        if index.get(card_id) == url:
+            return
+        index[card_id] = url
+        Cache._SaveFallbackIndex(index)
+
+    @staticmethod
+    def _ForgetFallback(card_id: str) -> None:
+        index = Cache._LoadFallbackIndex()
+        if card_id in index:
+            del index[card_id]
+            Cache._SaveFallbackIndex(index)
 
     @staticmethod
     def SetCache(card_id: str, data: bytes):
@@ -68,6 +154,126 @@ class Cache:
         if len(card_id) == 6 and card_id[:-1] in CEREBRO_REVERSED_IDENTITY_BASE_IDS:
             return f"{card_id}.{CEREBRO_SIDE_CACHE_REVISION}"
         return card_id
+
+    ################################################################################
+    # Downloading
+    @staticmethod
+    def IsCardId(text: str) -> bool:
+        import re
+        # Five digits, optionally followed by a face letter.
+        return bool(re.match(r'^\d{5}[a-z]?$', text))
+
+    @staticmethod
+    def Download(url: str, save_as: str, *, expected_missing: bool = False) -> bytes|None:
+        """Fetch one image and put it in the download cache.
+
+        Returns the bytes, or None if the URL did not answer with one.
+
+        `expected_missing` is for the cards we already know the servers do not
+        carry: asking them anyway is how the better picture eventually arrives,
+        and a 404 there is the answer, not a fault. Without it every card in the
+        fallback map would file two warnings a day, for months.
+        """
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
+        }
+        try:
+            Log.DebugInfo(CATEGORY_NAME, f"Downloading from {url}")
+            response = requests.get(url, headers=headers, timeout=3)
+            response.raise_for_status()
+
+            content_type = response.headers.get('Content-Type')
+            ext_name = "bmp"
+            if content_type:
+                if 'image/jpeg' in content_type:
+                    ext_name = "jpg"
+                elif 'image/png' in content_type:
+                    ext_name = "png"
+                elif 'image/webp' in content_type:
+                    ext_name = "webp"
+
+            Log.DebugInfo(CATEGORY_NAME, f"Downloaded: {save_as}")
+            data = response.content
+            file_path = FileManager.JoinPath(CACHE_FOLDER.value, f"{save_as}.{ext_name}")
+            FileManager.MakeDir(FileManager.GetDirName(file_path))
+            with FileManager.OpenFile(file_path, write=True, bin=True) as file:
+                file.Write(data)
+            # A card that arrives as a .png today may have been a .jpg
+            # yesterday. Without this the old extension stays on disk and wins
+            # the next time the folder is read.
+            Cache._RemoveOtherExtensions(save_as, ext_name)
+            return data
+        except requests.exceptions.Timeout:
+            report = Log.DebugInfo if expected_missing else Log.Warn
+            report(CATEGORY_NAME, f"Timeout occurred while downloading {save_as}")
+        except requests.exceptions.RequestException as error:
+            report = Log.DebugInfo if expected_missing else Log.Warn
+            report(CATEGORY_NAME, f"Request failed with error: {error}")
+        return None
+
+    @staticmethod
+    def _RemoveOtherExtensions(save_as: str, keep: str) -> None:
+        for ext_name in ("webp", "jpg", "png", "bmp"):
+            if ext_name == keep:
+                continue
+            path = FileManager.JoinPath(CACHE_FOLDER.value, f"{save_as}.{ext_name}")
+            if FileManager.Exists(path):
+                try:
+                    os.remove(path)
+                except OSError:
+                    pass
+
+    @staticmethod
+    def DownloadFromServers(card_id: str, save_as: str) -> bytes|None:
+        """Try every configured image server, in the order they are listed."""
+        # A card the fallback map covers is one the servers are already known
+        # not to have, so their refusal is not news.
+        expected_missing = card_id in Cache.GetFallbackImages()
+        for site in IMAGE_SERVERS.value:
+            source_card_id = Cache._GetSourceCardId(site, card_id)
+            url = site.replace('{card_id}', source_card_id)
+            url = url.replace('{card_id:U}', source_card_id.upper())
+            data = Cache.Download(url, save_as, expected_missing=expected_missing)
+            if data is not None:
+                return data
+        return None
+
+    @staticmethod
+    def RefreshFallbackImages() -> Dict[str, int]:
+        """Ask the servers again for anything currently served from the map.
+
+        Fan sites publish scans of a new pack months before Cerebro and
+        MarvelCDB do. This is what lets the better picture arrive on its own:
+        every card still being served from the fallback map is offered to the
+        servers again, and the first one that answers replaces it. The index
+        shrinks each time, so a table that is fully covered does no work at all.
+        """
+        index = Cache._LoadFallbackIndex()
+        if not index:
+            return {'checked': 0, 'upgraded': 0}
+
+        upgraded = 0
+        for card_id in sorted(index):
+            if not Cache.IsCardId(card_id):
+                Cache._ForgetFallback(card_id)
+                continue
+            data = Cache.DownloadFromServers(
+                card_id,
+                Cache._GetPersistentCacheName(card_id),
+            )
+            if data is None:
+                continue
+            upgraded += 1
+            Cache._ForgetFallback(card_id)
+            # Drop the decoded copy too, or this session keeps handing out the
+            # scan it already has in memory.
+            Cache.cache.pop(card_id, None)
+            Log.Info(
+                CATEGORY_NAME,
+                f"Card {card_id}: replaced the stand-in art with a published scan.",
+            )
+
+        return {'checked': len(index), 'upgraded': upgraded}
 
     @staticmethod
     def LoadImage(card_id: str) -> bytes:
@@ -133,69 +339,31 @@ class Cache:
             if image_data:
                 return image_data
 
-        def check_is_card_id(s: str):
-            import re
-            # Pattern to match: four digits followed by a lowercase letter
-            pattern = r'^\d{5}[a-z]?$'
-            return re.match(pattern, s)
-
-        def save_to_file(file_name: str, ext_name: str, data: bytes):
-            file_path = FileManager.JoinPath(CACHE_FOLDER.value, f"{file_name}.{ext_name}")
-            FileManager.MakeDir(FileManager.GetDirName(file_path))
-            with FileManager.OpenFile(file_path, write=True, bin=True) as file:
-                file.Write(data)
-
-        if IMAGE_SERVERS.value and check_is_card_id(card_id):
+        if Cache.IsCardId(card_id):
             # Load the image from the internet
             skip_break = not BREAK_WHEN_LOAD_ONLINE_IMAGE.value
             if not skip_break:
                 Debug.DebugBreak()
 
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
-            }
+            data = Cache.DownloadFromServers(card_id, persistent_cache_name)
+            if data is not None:
+                # It came from a server, so any older fallback copy of this card
+                # has just been replaced and the index entry is stale.
+                Cache._ForgetFallback(card_id)
+                image_data = try_load_image_data(data)
+                Cache.SetCache(file_name, image_data)
+                return image_data
 
-            # "https://cerebrodatastorage.blob.core.windows.net/cerebro-cards/official/${card_id}.jpg",
-            # "https://marvelcdb.com/bundles/cards/${card_id}.jpg",
-            # "https://marvelcdb.com/bundles/cards/${card_id}.png",
-
-            for site in IMAGE_SERVERS.value:
-                source_card_id = Cache._GetSourceCardId(site, card_id)
-                full_url = site
-                full_url = full_url.replace('{card_id}', source_card_id)
-                full_url = full_url.replace('{card_id:U}', source_card_id.upper())
-
-                try:
-                    Log.DebugInfo(CATEGORY_NAME, f"Downloading from {full_url}")
-
-                    response = requests.get(full_url, headers=headers, timeout=3)
-                    response.raise_for_status()
-
-                    content_type = response.headers.get('Content-Type')
-
-                    ext_name = "bmp"
-                    if content_type:
-                        # Determine the image format based on the Content-Type
-                        if 'image/jpeg' in content_type:
-                            ext_name = "jpg"
-                        elif 'image/png' in content_type:
-                            ext_name = "png"
-                        elif 'image/webp' in content_type:
-                            ext_name = "webp"
-
-                    # Check if the response is successful
-                    Log.DebugInfo(CATEGORY_NAME, f"Downloaded: {file_name}")
-                    data = response.content
-                    # Save the image to the cache
-                    save_to_file(persistent_cache_name, ext_name, data)
-                    # Get the image data from the response
+            # Only now: art the servers do not have. Recorded so the recurring
+            # refresh knows to keep asking them for something better.
+            url = Cache.GetFallbackImages().get(card_id)
+            if url:
+                data = Cache.Download(url, persistent_cache_name)
+                if data is not None:
+                    Cache._RememberFallback(card_id, url)
                     image_data = try_load_image_data(data)
                     Cache.SetCache(file_name, image_data)
                     return image_data
-                except requests.exceptions.Timeout:
-                    Log.Warn(CATEGORY_NAME, f"Timeout occurred while downloading {file_name}")
-                except requests.exceptions.RequestException as e:
-                    Log.Warn(CATEGORY_NAME, f"Request failed with error: {e}")
 
         # raise Exception(f"Failed to load {file_name} from the internet")
         image_data = ImageCreator.CreateNoImage(card_id)
