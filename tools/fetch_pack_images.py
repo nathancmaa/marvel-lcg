@@ -96,8 +96,59 @@ JESSICA_JONES: Dict[str, str] = {
     '61040':  HOH + '2026/07/jessica-jones-hero-pack-43.webp',
 }
 
+# The numbers in the "luke-cage-hero-pack-N" filenames are the site's own
+# upload sequence, not card numbers: each one is the card numbered N-1. That
+# was read off the scans rather than assumed, and every entry below was matched
+# to the number printed in its bottom right corner.
+LUKE_CAGE: Dict[str, str] = {
+    # The hero set.
+    '62001a': HOH + '2026/06/mc62_luke-cage_hero.png',
+    '62001b': HOH + '2026/06/mc62_luke-cage_alter-ego.png',
+    '62002':  HOH + '2026/06/mc62_luke-cage_jessica-jones.png',
+    '62003':  HOH + '2026/06/1-1.jpg',
+    '62004':  HOH + '2026/06/mc62_luke-cage_knuckle-sandwich.png',
+    '62005':  HOH + '2026/06/mc62_luke-cage_stand-with-me.png',
+    '62006':  HOH + '2026/06/mc62_luke-cage_sweet-christmas.png',
+    '62007':  HOH + '2026/06/2.png',
+    '62008':  HOH + '2026/06/mc62_luke-cage_burstein_process.png',
+    '62009':  '',  # Cruisin' for a Bruisin' -- not published anywhere yet.
+    '62010':  HOH + '2026/06/mc62_luke-cage_metal-bracers.png',
+    '62011':  HOH + '2026/06/mc62_luke-cage_power-man.png',
+
+    # Leadership.
+    '62012':  HOH + '2026/06/mc62_luke-cage_iron-fist.png',
+    '62013':  HOH + '2026/06/mc62_luke-cage_misty-knight.png',
+    '62014':  HOH + '2026/07/luke-cage-hero-pack-15.webp',
+    '62015':  HOH + '2026/06/mc62_luke-cage_take-a-stand.png',
+    '62016':  HOH + '2026/07/img_1483.webp',
+    '62018':  HOH + '2026/06/mc62_luke-cage_defensive-formation.png',
+    '62019':  HOH + '2026/06/mc62_luke-cage_righteous-purpose.png',
+
+    # Basic.
+    '62020':  HOH + '2026/07/luke-cage-hero-pack-21.webp',
+    '62021':  HOH + '2026/07/luke-cage-hero-pack-22.webp',
+    '62022':  HOH + '2026/06/mc62_luke-cage_dynamic-duo.png',
+    '62023':  HOH + '2026/06/mc62_luke-cage_power-man_iron-fist.png',
+    '62024':  HOH + '2026/06/mc62_luke-cage_unbreakable-bond.png',
+
+    # The obligation and the nemesis set.
+    '62028':  HOH + '2026/07/luke-cage-hero-pack-29.webp',
+    '62029':  HOH + '2026/07/luke-cage-hero-pack-30.webp',
+    '62030':  HOH + '2026/07/luke-cage-hero-pack-31.png',
+    '62031':  HOH + '2026/07/luke-cage-hero-pack-32.webp',
+    '62032':  HOH + '2026/07/luke-cage-hero-pack-33.webp',
+    '62033':  HOH + '2026/07/luke-cage-hero-pack-34.webp',
+
+    # The remaining aspects.
+    '62034':  HOH + '2026/07/luke-cage-hero-pack-35.webp',
+    '62035':  HOH + '2026/07/luke-cage-hero-pack-36.webp',
+    '62036':  HOH + '2026/07/luke-cage-37.webp',
+    '62037':  HOH + '2026/07/luke-cage-hero-pack-38-1.webp',
+}
+
 PACKS: Dict[str, Dict[str, str]] = {
     'jj': JESSICA_JONES,
+    'luke_cage': LUKE_CAGE,
 }
 
 # The cache tries these in order, so the extension has to be one it knows.
