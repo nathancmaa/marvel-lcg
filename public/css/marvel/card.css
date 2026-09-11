@@ -28,6 +28,11 @@ body.no-scale {
 }
 
 .card {
+    /* Card contents scale with the card. Set here rather than at the root so
+       the chrome keeps its own size, and read from the base so this is not a
+       variable defined in terms of itself. */
+    --font-size: calc(var(--font-size-base) * var(--card-scale));
+
     display: flex;
     justify-content: center;
 

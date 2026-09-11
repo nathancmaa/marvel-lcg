@@ -80,9 +80,11 @@ export class MoveCard {
     static applyCardScale(): void {
         const root = document.documentElement;
         // Cleared and not put back: every path below either sets a new value
-        // or means to leave it cleared.
+        // or means to leave it cleared. --card-scale goes too, so the design
+        // size is read at the size the stylesheet means it.
         root.style.removeProperty('--card-width');
         root.style.removeProperty('--card-height');
+        root.style.removeProperty('--card-scale');
         const design = {
             width: parseFloat(MoveCard.rootStyles.getPropertyValue('--card-width')),
             height: parseFloat(MoveCard.rootStyles.getPropertyValue('--card-height')),
@@ -92,6 +94,7 @@ export class MoveCard {
         if( scale === 1 ) {
             // Removed rather than set to the design size, so that crossing the
             // tablet breakpoint later still changes the card.
+            root.style.removeProperty('--card-scale');
             MoveCard.cardWidth = design.width;
             MoveCard.cardHeight = design.height;
             return;
@@ -100,6 +103,10 @@ export class MoveCard {
         MoveCard.cardHeight = Math.round(design.height * scale);
         root.style.setProperty('--card-width', `${MoveCard.cardWidth}px`);
         root.style.setProperty('--card-height', `${MoveCard.cardHeight}px`);
+        // What a card sizes its own text and badges by. Without this the frame
+        // shrank and its contents did not, which put a scheme's rules text
+        // outside the card.
+        root.style.setProperty('--card-scale', String(scale));
     }
 
     static narrowToRange(values: number[], newMin: number, newMax: number): number[] {
