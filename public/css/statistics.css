@@ -833,6 +833,11 @@ tbody tr:last-child td {
 }
 
 .matchup-table {
+    /* How tall the box label row is. Named because the row below it sticks at
+       exactly this offset, and the two going out of step is what puts one
+       header behind the other. */
+    --matchup-box-row: 1.2rem;
+
     /* Fixed, so 62 columns keep the width they are given instead of being
        widened by the rotated labels sitting above them. And sized to its own
        columns rather than to the panel: a global `table { width: 100% }`
@@ -865,11 +870,23 @@ tbody tr:last-child td {
    cell painted its own background over its neighbour's text and the names came
    out clipped to about six characters each. One backdrop behind the whole row
    has nothing to paint over. */
+/* Each header row sticks under the one before it rather than all of them
+   pinning to the same line, which is what left the box labels half covered by
+   the names below them once the grid scrolled. Written as first-row and
+   after-the-first so it holds whether or not the box row is drawn. */
 .matchup-table thead tr {
     position: sticky;
-    top: 0;
     z-index: 3;
     background: #0a1220;
+}
+
+.matchup-table thead tr:first-child {
+    top: 0;
+    z-index: 4;
+}
+
+.matchup-table thead tr + tr {
+    top: var(--matchup-box-row, 0px);
 }
 
 .matchup-table thead td:first-child {
@@ -904,8 +921,8 @@ tbody tr:last-child td {
    no width at all, and the group clips whatever will not fit. */
 .matchup-table .scenario-box {
     position: relative;
-    height: 1.1rem;
-    border-bottom: 2px solid rgba(120, 210, 255, 0.45);
+    height: var(--matchup-box-row, 1.2rem);
+    border-bottom: 1px solid rgba(143, 190, 224, 0.32);
     vertical-align: bottom;
 }
 
@@ -920,8 +937,16 @@ tbody tr:last-child td {
     white-space: nowrap;
 }
 
-.matchup-table .scenario-box + .scenario-box {
-    border-left: 1px solid rgba(120, 210, 255, 0.25);
+/* Where one box gives way to the next, all the way down the grid. The gaps
+   between columns are the dark page showing through; this is lighter, so a
+   box boundary reads as a different kind of break from the one between two
+   villains in the same box. */
+.matchup-table .box-start {
+    /* The rule lands in the gap rather than in the square: the cell grows by a
+       pixel but the button inside it keeps the column width, so every square
+       stays the same size and a box boundary simply gets a slightly wider,
+       lighter gap than the one between two villains in the same box. */
+    border-left: 1px solid rgba(159, 215, 245, 0.55);
 }
 
 /* A band across the grid before the first hero of each box. Left-aligned and

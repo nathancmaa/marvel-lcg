@@ -720,6 +720,19 @@ function renderMatchupGrid(): void {
     };
     const groupHeroes = sortHeroes === 'default';
     const groupScenarios = sortScenarios === 'default';
+    /**
+     * Columns that open a new box, so the boundary can be drawn down the whole
+     * grid rather than only under its label. Never the first column: there is
+     * nothing to its left to be separated from.
+     */
+    const boxStarts = new Set<number>();
+    if (groupScenarios) {
+        scenarios.forEach((scenario, index) => {
+            if (index > 0 && scenario.box !== scenarios[index - 1].box) {
+                boxStarts.add(index);
+            }
+        });
+    }
 
     /**
      * The wave each hero belongs to, rather than the box they came in.
@@ -851,9 +864,12 @@ function renderMatchupGrid(): void {
     }
     const nameRow = document.createElement('tr');
     nameRow.appendChild(document.createElement('td'));
-    for (const scenario of scenarios) {
+    scenarios.forEach((scenario, index) => {
         const cell = document.createElement('th');
         cell.className = 'scenario-label';
+        if (boxStarts.has(index)) {
+            cell.classList.add('box-start');
+        }
         cell.scope = 'col';
         const span = document.createElement('span');
         span.textContent = scenario.name;
@@ -872,7 +888,7 @@ ${beatenLabel(bestHere)}`
 ${percent(scenarioCompletion.get(scenario.id) ?? 0)} of heroes have beaten it`;
         cell.appendChild(span);
         nameRow.appendChild(cell);
-    }
+    });
     head.appendChild(nameRow);
     table.replaceChildren(columns, head);
 
@@ -916,8 +932,11 @@ ${percent(heroDone)} of scenarios beaten`;
         heroCell.appendChild(heroPercent);
         row.appendChild(heroCell);
 
-        for (const scenario of scenarios) {
+        scenarios.forEach((scenario, index) => {
             const cell = document.createElement('td');
+            if (boxStarts.has(index)) {
+                cell.classList.add('box-start');
+            }
             const data = cellFor(hero, scenario);
             // One square, one claim: the hardest difficulty this pairing has
             // actually been beaten at. Standard, then Expert, then Heroic by
@@ -959,7 +978,7 @@ ${percent(heroDone)} of scenarios beaten`;
             });
             cell.appendChild(button);
             row.appendChild(cell);
-        }
+        });
         body.appendChild(row);
     }
     table.appendChild(body);
