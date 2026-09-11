@@ -837,6 +837,9 @@ tbody tr:last-child td {
        exactly this offset, and the two going out of step is what puts one
        header behind the other. */
     --matchup-box-row: 1.2rem;
+    /* Set to the rail's width only while the rail is drawn, so the hero names
+       hold the left edge themselves when the heroes are re-sorted. */
+    --matchup-wave-rail: 0px;
 
     /* Fixed, so 62 columns keep the width they are given instead of being
        widened by the rotated labels sitting above them. And sized to its own
@@ -937,31 +940,40 @@ tbody tr:last-child td {
     white-space: nowrap;
 }
 
-/* Where one box gives way to the next, all the way down the grid. The gaps
-   between columns are the dark page showing through; this is lighter, so a
-   box boundary reads as a different kind of break from the one between two
-   villains in the same box. */
-.matchup-table .box-start {
-    /* The rule lands in the gap rather than in the square: the cell grows by a
-       pixel but the button inside it keeps the column width, so every square
-       stays the same size and a box boundary simply gets a slightly wider,
-       lighter gap than the one between two villains in the same box. */
-    border-left: 1px solid rgba(159, 215, 245, 0.55);
-}
 
-/* A band across the grid before the first hero of each box. Left-aligned and
-   sticky with the hero column, so the name stays readable while the grid is
-   scrolled sideways. */
-/* Spans the whole row, so it is measured against the grid's full width rather
-   than against one column -- but it still wraps rather than insisting, since
-   "played only" can narrow the grid to a handful of columns. */
-.matchup-table .hero-box {
+
+/* The wave a band of heroes belongs to, written up the side of them.
+   A band across the grid cost a row of height per wave and pushed the squares
+   apart; on its side it costs a little width, once. Sticky at the left edge
+   with the hero names sitting just inboard of it. */
+.matchup-table .wave-rail {
     position: sticky;
     left: 0;
-    padding: 0.2rem 0.4rem;
-    text-align: left;
-    background: rgba(16, 28, 40, 0.97);
-    border-top: 1px solid rgba(120, 210, 255, 0.3);
+    z-index: 2;
+    width: 22px;
+    max-width: 22px;
+    padding: 0;
+    background: #0a1220;
+    vertical-align: middle;
+    text-align: center;
+    overflow: hidden;
+}
+
+.matchup-table .wave-rail span {
+    display: block;
+    /* Bottom to top, the way a shelf of spines reads. */
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    margin: 0 auto;
+    max-height: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #9fd7f5;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
 }
 
 .matchup-table .scenario-label {
@@ -1008,7 +1020,8 @@ tbody tr:last-child td {
     justify-content: flex-end;
     gap: 0.1rem;
     position: sticky;
-    left: 0;
+    /* Inboard of the wave rail, which holds the left edge. */
+    left: var(--matchup-wave-rail, 0px);
     background: #0a1220;
     z-index: 1;
     color: #e6eef6;

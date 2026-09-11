@@ -536,6 +536,8 @@ function bindMatchupResize(): void {
 
 let matchupResizing = false;
 const HERO_COLUMN_PX = 160;
+/** The turned-on-its-side wave column beside the hero names. */
+const WAVE_RAIL_PX = 22;
 /** Small enough to still read as a square, big enough to hit. */
 const MIN_CELL_PX = 13;
 const MAX_CELL_PX = 34;
@@ -543,7 +545,7 @@ const MAX_CELL_PX = 34;
 /** The square size that fits this many columns in the width available. */
 function matchupCellSize(scenarioCount: number): number {
     const scroll = document.getElementById('matchup-scroll');
-    const available = (scroll?.clientWidth ?? 0) - HERO_COLUMN_PX - 12;
+    const available = (scroll?.clientWidth ?? 0) - HERO_COLUMN_PX - WAVE_RAIL_PX - 12;
     if (available <= 0 || scenarioCount === 0) {
         return 20;
     }
@@ -720,19 +722,6 @@ function renderMatchupGrid(): void {
     };
     const groupHeroes = sortHeroes === 'default';
     const groupScenarios = sortScenarios === 'default';
-    /**
-     * Columns that open a new box, so the boundary can be drawn down the whole
-     * grid rather than only under its label. Never the first column: there is
-     * nothing to its left to be separated from.
-     */
-    const boxStarts = new Set<number>();
-    if (groupScenarios) {
-        scenarios.forEach((scenario, index) => {
-            if (index > 0 && scenario.box !== scenarios[index - 1].box) {
-                boxStarts.add(index);
-            }
-        });
-    }
 
     /**
      * The wave each hero belongs to, rather than the box they came in.
@@ -808,6 +797,10 @@ function renderMatchupGrid(): void {
     // than leave half the panel empty beside a fixed little grid.
     const cell = matchupCellSize(scenarios.length);
     table.style.setProperty('--matchup-cell', `${cell}px`);
+    // The hero names stick just inboard of the rail, and hold the edge
+    // themselves when there is no rail to sit beside.
+    table.style.setProperty(
+        '--matchup-wave-rail', groupHeroes ? `${WAVE_RAIL_PX}px` : '0px');
     // Measured against a layout that may not have settled: opening this tab
     // widens the shell, and the first render can run before the browser has
     // applied that. One re-measure after the next frame catches it, guarded so
@@ -822,6 +815,14 @@ function renderMatchupGrid(): void {
         });
     }
     const columns = document.createElement('colgroup');
+    if (groupHeroes) {
+        // A narrow column for the wave names, turned on their side. A band
+        // across the grid cost a row of height per wave and pushed the squares
+        // apart; on its side it costs a little width once.
+        const railColumn = document.createElement('col');
+        railColumn.style.width = `${WAVE_RAIL_PX}px`;
+        columns.appendChild(railColumn);
+    }
     const heroColumn = document.createElement('col');
     heroColumn.style.width = `${HERO_COLUMN_PX}px`;
     columns.appendChild(heroColumn);
@@ -848,7 +849,9 @@ function renderMatchupGrid(): void {
     if (groupScenarios) {
         const boxRow = document.createElement('tr');
         boxRow.className = 'matchup-box-row';
-        boxRow.appendChild(document.createElement('td'));
+        const boxCorner = document.createElement('td');
+        boxCorner.colSpan = groupHeroes ? 2 : 1;
+        boxRow.appendChild(boxCorner);
         for (const run of boxRuns(scenarios.map((s) => ({...s, box: s.box})))) {
             const cell = document.createElement('th');
             cell.className = 'scenario-box';
@@ -863,13 +866,12 @@ function renderMatchupGrid(): void {
         head.appendChild(boxRow);
     }
     const nameRow = document.createElement('tr');
-    nameRow.appendChild(document.createElement('td'));
+    const nameCorner = document.createElement('td');
+    nameCorner.colSpan = groupHeroes ? 2 : 1;
+    nameRow.appendChild(nameCorner);
     scenarios.forEach((scenario, index) => {
         const cell = document.createElement('th');
         cell.className = 'scenario-label';
-        if (boxStarts.has(index)) {
-            cell.classList.add('box-start');
-        }
         cell.scope = 'col';
         const span = document.createElement('span');
         span.textContent = scenario.name;
@@ -893,24 +895,29 @@ ${percent(scenarioCompletion.get(scenario.id) ?? 0)} of heroes have beaten it`;
     table.replaceChildren(columns, head);
 
     const body = document.createElement('tbody');
+    // How many rows each wave covers, so its label can span them.
+    const waveRows = new Map<string, number>();
+    if (groupHeroes) {
+        for (const hero of heroes) {
+            const wave = waveOf(hero);
+            waveRows.set(wave, (waveRows.get(wave) ?? 0) + 1);
+        }
+    }
     let openBox: string | null = null;
     for (const hero of heroes) {
+        const row = document.createElement('tr');
         if (groupHeroes && waveOf(hero) !== openBox) {
             openBox = waveOf(hero);
-            const boxRow = document.createElement('tr');
-            boxRow.className = 'matchup-box-row';
-            const label = document.createElement('th');
-            label.className = 'hero-box';
-            label.scope = 'colgroup';
-            // Spans the grid rather than sitting in the name column alone: a
-            // box is a division of the whole row band, not a label beside one
-            // hero, and a narrow cell would truncate most box names.
-            label.colSpan = scenarios.length + 1;
+            const rail = document.createElement('th');
+            rail.className = 'wave-rail';
+            rail.scope = 'rowgroup';
+            rail.rowSpan = waveRows.get(openBox) ?? 1;
+            rail.title = `${openBox} — ${waveRows.get(openBox) ?? 1} heroes`;
+            const label = document.createElement('span');
             label.textContent = openBox;
-            boxRow.appendChild(label);
-            body.appendChild(boxRow);
+            rail.appendChild(label);
+            row.appendChild(rail);
         }
-        const row = document.createElement('tr');
         const heroCell = document.createElement('th');
         heroCell.className = 'hero-label';
         heroCell.scope = 'row';
@@ -934,9 +941,6 @@ ${percent(heroDone)} of scenarios beaten`;
 
         scenarios.forEach((scenario, index) => {
             const cell = document.createElement('td');
-            if (boxStarts.has(index)) {
-                cell.classList.add('box-start');
-            }
             const data = cellFor(hero, scenario);
             // One square, one claim: the hardest difficulty this pairing has
             // actually been beaten at. Standard, then Expert, then Heroic by
