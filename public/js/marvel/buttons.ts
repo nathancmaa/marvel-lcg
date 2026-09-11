@@ -742,7 +742,7 @@ export class Button{
             onClick: () => {DeckTracker.toggle()}
         })
         Button.createButtonBase(parent_div_right, {
-            text: "Auto Answer",
+            text: "Priority",
             onClick: () => {StandingPanel.toggle()}
         })
         Button.createButtonBase(parent_div_right, {

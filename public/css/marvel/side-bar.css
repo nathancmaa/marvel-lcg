@@ -16,16 +16,13 @@
     transition: .15s linear left;
 }
 #right-side-bar {
-    --width: calc(4 * var(--font-size-out));
-
-    /* Sized by the longest label rather than by a guess at it. Counting
-       characters against a multiplier put the width half a character short of
-       a word and spilled it out of its button; --width is the floor now, not
-       the answer. Safe here and not on .side-bar, because this bar parks with
-       a transform: the left one still computes its own offset from --width,
-       so its declared width has to stay its real one. */
-    width: max-content;
-    min-width: var(--width);
+    /* Measured, not counted: the face here is proportional, so character
+       counts lie about it -- "Answers" was wider than the longer "Priority".
+       At five font-sizes the widest label takes about seven tenths of its
+       button. Check a new label by measuring it rather than counting it.
+       Sizing to content fits any label but makes the drawer as wide as the
+       longest one, which is too much bar for one word. */
+    --width: calc(5 * var(--font-size-out));
     /* How far in from the edge the bar can be reached, and so how big a target
        there is to open it with. It is the reach that is this wide, not the bar:
        parking part of the bar on screen instead left the buttons permanently
