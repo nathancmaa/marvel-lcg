@@ -1412,6 +1412,23 @@ export class Cards {
         }
     }
 
+    /**
+     * How many copies of a printed card are in this game.
+     *
+     * Counted across everything the client knows about -- deck, hand, play and
+     * discard alike -- so it answers "how many does the deck hold", not "how
+     * many are on the table".
+     */
+    static countByCardId(card_id: string): number {
+        let count = 0
+        for( const key in Cards.cards ) {
+            if( Cards.cards[key]?.card_id === card_id ) {
+                count += 1
+            }
+        }
+        return count
+    }
+
     static getSpanTextHelp(object_id: string, card_id: string, name: string): string {
         const p1 = object_id
         const p2 = card_id

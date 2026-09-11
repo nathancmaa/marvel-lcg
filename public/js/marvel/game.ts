@@ -6,9 +6,18 @@ import { HoverCard } from './hover.js';
 import { withCardImageRevision } from '../card_image_url.js';
 
 
-// Define the structure for the statistics data
-interface PlayerStats {
+/**
+ * What a game recorded about one card.
+ *
+ * The server keys these by object id -- one entry per physical copy -- so two
+ * copies of the same card arrive as two entries with nothing to say they are
+ * the same card. They are merged here: `id` is the object id of the first copy,
+ * kept because the picture is fetched with it, and `copies` says how many were
+ * folded together.
+ */
+interface CardStats {
     id: number;
+    copies: number;
     damage_dealt: number;
     damage_taken: number;
     thwarted_threat: number;
@@ -17,7 +26,7 @@ interface PlayerStats {
 }
 
 class GameStatistics {
-    static currentStats: PlayerStats[] = [];
+    static currentStats: CardStats[] = [];
     static sortKey: string | null = null;
     static sortDirection: 'asc' | 'desc' = 'asc';
 
@@ -37,10 +46,11 @@ class GameStatistics {
             
             // Convert the backend dictionary {player_id: stats_dict} 
             // into an array [{id: player_id, ...stats}]
-            GameStatistics.currentStats = Object.entries(rawData).map(([id, stats]) => ({
-                id: parseInt(id), // Ensure ID is a number
-                ...(stats as Record<string, number>) // Spread the stats
-            })) as PlayerStats[];
+            GameStatistics.currentStats = GameStatistics.mergeCopies(
+                Object.entries(rawData).map(([id, stats]) => ({
+                    id: parseInt(id), // Ensure ID is a number
+                    ...(stats as Record<string, number>) // Spread the stats
+                })) as CardStats[]);
 
             GameStatistics.renderTable();
 
@@ -52,6 +62,51 @@ class GameStatistics {
                 table.innerHTML = '<tr><td colspan="4">Error loading statistics.</td></tr>';
             }
         }
+    }
+
+    /**
+     * One row per card rather than per copy, with the totals added up.
+     *
+     * Two Side Steps that each thwarted 2 is one card that thwarted 4, which is
+     * the number worth reading; as two rows of 2 it looked like a card that
+     * did half as much. Copies that never left the deck are counted too -- the
+     * point of the count is to say what the deck holds, so a card that sat in
+     * it all game still reports the copies you were carrying.
+     *
+     * Anything whose card cannot be resolved is left as its own row instead of
+     * being merged into a guess.
+     */
+    static mergeCopies(rows: CardStats[]): CardStats[] {
+        const byCard = new Map<string, CardStats>();
+        const merged: CardStats[] = [];
+
+        for (const row of rows) {
+            const card = Cards.getCard(row.id);
+            if (!card?.card_id) {
+                merged.push({...row, copies: 1});
+                continue;
+            }
+            const seen = byCard.get(card.card_id);
+            if (!seen) {
+                const entry = {...row, copies: 0};
+                byCard.set(card.card_id, entry);
+                merged.push(entry);
+                continue;
+            }
+            for (const key of Object.keys(row)) {
+                if (key !== 'id' && key !== 'copies') {
+                    seen[key] += row[key];
+                }
+            }
+        }
+
+        // Counted from the cards in the game rather than from the rows above,
+        // so a second copy still in the deck is counted even though it did
+        // nothing worth recording.
+        for (const [card_id, entry] of byCard) {
+            entry.copies = Cards.countByCardId(card_id) || 1;
+        }
+        return merged;
     }
 
     static renderTable() {
@@ -91,7 +146,12 @@ class GameStatistics {
             const row = tbody.insertRow();
             headers.forEach(key => {
                 const cell = row.insertCell();
-                if (key === 'id') {
+                if (key === 'copies') {
+                    // Reads as a quantity next to the card, the way a deck
+                    // list writes it, rather than as another statistic.
+                    cell.textContent = `x${stats.copies}`;
+                }
+                else if (key === 'id') {
                     const card = Cards.getCard(stats.id);
                     if (card && card.pic_id !== undefined) {
                         const img = document.createElement('img');
@@ -117,6 +177,10 @@ class GameStatistics {
      * Utility function to format the header text (e.g., 'damage_dealt' to 'Damage Dealt').
      */
     static formatHeader(text: string): string {
+        // The id column shows the card, not a number, so it says so.
+        if (text === 'id') {
+            return 'Card';
+        }
         return text.replace(/_/g, ' ')
                 .replace(/\b\w/g, char => char.toUpperCase());
     }
