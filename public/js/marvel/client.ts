@@ -519,10 +519,7 @@ export class Client {
                     }
                     else {
                         UI.prompt.setPromptText(Client.clean_render_info(div_prompt_text))
-                        HistoryLog.addText(
-                            Game.world_descriptor.render_id,
-                            Client.clean_render_info(prompt_text),
-                            Game.world_descriptor.phase)
+                        HistoryLog.addText(Game.world_descriptor.render_id, Client.clean_render_info(prompt_text))
                     }
                 }
 

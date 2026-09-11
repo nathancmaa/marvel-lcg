@@ -30,33 +30,6 @@
     opacity: .85;
 }
 
-/* Where one phase gives way to the next. The log is a long column of
-   near-identical lines, and what you are usually hunting in it is "what
-   happened during the villain phase" rather than one particular line, so the
-   boundaries are worth drawing. Spans both columns, belonging to neither the
-   id nor the text. */
-#history-text .log-phase {
-    grid-column: 1 / -1;
-    display: flex;
-    align-items: center;
-    gap: calc(0.5 * var(--font-size));
-    margin: calc(0.5 * var(--font-size)) 0 calc(0.2 * var(--font-size));
-    color: #d8f1ff;
-    font-size: calc(0.75 * var(--font-size));
-    font-weight: bold;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    white-space: nowrap;
-}
-
-#history-text .log-phase::before,
-#history-text .log-phase::after {
-    content: "";
-    flex: 1;
-    height: 1px;
-    background: rgba(216, 241, 255, 0.35);
-}
-
 #history-text .log-id {
     background-color: slategray;
     /* width: calc(0.8 * var(--width)); */
