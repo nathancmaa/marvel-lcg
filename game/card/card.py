@@ -40,6 +40,14 @@ def AbilityAsksThePlayer(ability: 'Ability') -> bool:
     the table stack it out of the way.
     """
     flags = ability.flags
+    # is_check_pay is the one that is not about being offered a choice: it
+    # marks a card that can be spent to pay for another, which is a click on
+    # that card whatever else it does. It is declared forced -- the game checks
+    # it rather than asking -- so the not-forced test below would drop it, and
+    # dropping it stacked Web-Shooter, Expert Marksman and every other
+    # resource-generating upgrade out of reach behind its neighbours.
+    if flags.is_check_pay:
+        return True
     return AbilityIsAnswerable(ability) or (
         not flags.is_forced and (flags.is_action or flags.is_resource))
 

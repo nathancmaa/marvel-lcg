@@ -35,11 +35,17 @@ class PassiveUpgradeTests(unittest.TestCase):
                 self.assertTrue(self.IsPassive(name))
 
     def test_a_card_you_spend_is_not_passive(self):
-        # Their only ability is a Resource -- Fury's Watch a plain one, Jet
-        # Belt a Hero Resource. Spending a card to pay for another is a click
-        # on that card, so neither is text you only read, and neither belongs
-        # stacked out of reach behind its neighbours.
-        for name in ["Fury's Watch", "Jet Belt"]:
+        # Spending a card to pay for another is a click on that card, so none
+        # of these is text you only read and none belongs stacked out of reach.
+        #
+        # Nearly all of them say so with a CheckResource ability rather than a
+        # Resource one, and CheckResource is declared forced -- the game tests
+        # it rather than offering it. Reading only the unforced abilities is
+        # what collapsed Web-Shooter and forty-eight others; Fury's Watch and
+        # Jet Belt are the two that carry a Resource ability outright, which is
+        # why they alone looked like the whole problem.
+        for name in ["Fury's Watch", "Jet Belt", "Web-Shooter", "Expert Marksman",
+                     "God of Thunder", "Clarity of Purpose"]:
             with self.subTest(name):
                 self.assertFalse(self.IsPassive(name))
 
