@@ -14,7 +14,22 @@
                 <h1>Campaign</h1>
                 <p>Start a campaign or continue the one saved in this browser.</p>
             </div>
-            <a class="back-link" href="/main">← Main menu</a>
+            <div class="header-right">
+                <!-- Fixed at one hero. Shown rather than left out so the
+                     answer to "how many am I playing" is in the same place on
+                     both screens, and so a campaign says plainly that it is a
+                     one-hero affair here rather than leaving you to find out
+                     by looking for a second tab. -->
+                <div class="mode-switch locked" role="group"
+                     aria-label="How many heroes you are playing"
+                     title="Campaigns are played with one hero">
+                    <button type="button" class="mode-option" aria-pressed="true"
+                            disabled>1P</button>
+                    <button type="button" class="mode-option" aria-pressed="false"
+                            disabled>2P</button>
+                </div>
+                <a class="back-link" href="/main">← Main menu</a>
+            </div>
         </header>
 
         <nav class="mode-nav" aria-label="Game mode">

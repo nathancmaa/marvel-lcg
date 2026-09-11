@@ -185,8 +185,19 @@ input {
     color: #d8f1ff;
 }
 
-.mode-option:hover:not([aria-pressed="true"]) {
+.mode-option:hover:not([aria-pressed="true"]):not(:disabled) {
     color: #d8f1ff;
+}
+
+/* Shown, but not a control: a campaign is played with one hero, and saying so
+   beats leaving the question unanswered on this screen. Dimmed as a whole so
+   it reads as a statement rather than as a switch that is refusing to move. */
+.mode-switch.locked {
+    opacity: 0.65;
+}
+
+.mode-switch.locked .mode-option {
+    cursor: default;
 }
 
 .heading-right {

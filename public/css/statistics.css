@@ -884,23 +884,40 @@ tbody tr:last-child td {
    that axis is in box order, so the bracket always describes the order the
    grid is actually in. */
 .matchup-box-row th {
-    padding: 0.2rem 0.4rem;
+    padding: 0;
     color: #9fd7f5;
     font-size: 0.7rem;
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 /* A bracket under the label, so a run of columns reads as one span rather
-   than as a word floating above the middle of it. */
+   than as a word floating above the middle of it.
+
+   The label itself is positioned out of the flow, the way the rotated
+   scenario names below it are. The table is sized to max-content, so a cell
+   wide enough to hold "The Once and Future Kang" without wrapping made the
+   table wider than the columns it spans and the slack landed unevenly across
+   them -- square, but not the same square twice. Out of the flow it asks for
+   no width at all, and the group clips whatever will not fit. */
 .matchup-table .scenario-box {
+    position: relative;
+    height: 1.1rem;
     border-bottom: 2px solid rgba(120, 210, 255, 0.45);
-    text-align: center;
     vertical-align: bottom;
+}
+
+.matchup-table .scenario-box span {
+    position: absolute;
+    left: 0.15rem;
+    right: 0.15rem;
+    bottom: 0.1rem;
+    overflow: hidden;
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .matchup-table .scenario-box + .scenario-box {
@@ -910,9 +927,13 @@ tbody tr:last-child td {
 /* A band across the grid before the first hero of each box. Left-aligned and
    sticky with the hero column, so the name stays readable while the grid is
    scrolled sideways. */
+/* Spans the whole row, so it is measured against the grid's full width rather
+   than against one column -- but it still wraps rather than insisting, since
+   "played only" can narrow the grid to a handful of columns. */
 .matchup-table .hero-box {
     position: sticky;
     left: 0;
+    padding: 0.2rem 0.4rem;
     text-align: left;
     background: rgba(16, 28, 40, 0.97);
     border-top: 1px solid rgba(120, 210, 255, 0.3);
