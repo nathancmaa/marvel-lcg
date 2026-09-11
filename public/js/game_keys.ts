@@ -12,17 +12,7 @@ export type BoundKey = {
     does: string;
 };
 
-/**
- * The keys that answer an ask, in the order its options are shown.
- *
- * The home row, left to right, because the row below it already holds the
- * three answers that are always available -- OK, cancel and undo -- and a
- * choice between named options is the other thing the table asks for often.
- * They reach only the options actually on screen, so they are free the rest
- * of the time; f is the one that overlaps something, and it turns the
- * previewed card whenever fewer than four options are up.
- */
-export const OPTION_KEYS: readonly string[] = ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'];
+import { UserSettings } from './user_settings.js';
 
 export const BOUND_KEYS: readonly BoundKey[] = [
     {key: 'Enter', does: 'OK'},
@@ -53,10 +43,6 @@ export const BOUND_KEYS: readonly BoundKey[] = [
     {key: 'y', ctrl: true, does: 'replay'},
     {key: 'q', ctrl: true, does: 'run to the end'},
     {key: 'e', ctrl: true, does: 'replay'},
-    ...OPTION_KEYS.map((key, at) => ({
-        key,
-        does: `take option ${at + 1} while the game is asking`,
-    })),
 ];
 
 /**
@@ -69,7 +55,15 @@ export function whatKeyDoes(key: string): string | null {
     if (!key) {
         return null;
     }
+    const wanted = key.toLowerCase();
+    // Option keys are configurable, so they are read rather than listed --
+    // a list would go stale the moment somebody changed one.
+    const option = UserSettings.getOptionKeys().findIndex(
+        (entry) => entry && entry.toLowerCase() === wanted);
+    if (option >= 0) {
+        return `take option ${option + 1} while the game is asking`;
+    }
     const bound = BOUND_KEYS.find(
-        (entry) => !entry.ctrl && entry.key.toLowerCase() === key.toLowerCase());
+        (entry) => !entry.ctrl && entry.key.toLowerCase() === wanted);
     return bound ? bound.does : null;
 }

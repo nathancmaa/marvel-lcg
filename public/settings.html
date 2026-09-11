@@ -145,16 +145,16 @@
             margin-bottom: 0;
         }
 
+        /* A row per action on one grid, so the labels, the boxes and the
+           clears line up down the page. Laid out as flex rows they wrapped
+           wherever each row happened to run out of width, which put Undo
+           under OK and nothing under anything. */
         .answer-keys {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.75rem 1.5rem;
-        }
-
-        .answer-key {
-            display: flex;
+            display: grid;
+            grid-template-columns: max-content max-content max-content;
+            gap: 0.4rem 0.75rem;
             align-items: center;
-            gap: 0.5rem;
+            justify-content: start;
         }
 
         .answer-key-label {
@@ -162,8 +162,10 @@
             font-size: 0.9rem;
         }
 
+        /* Holds one character, so it is sized for one. */
         .key-box {
-            width: 5.5rem;
+            width: 2.6rem;
+            padding: 0.4rem 0.3rem;
             text-align: center;
             font-weight: 700;
             text-transform: uppercase;
@@ -175,9 +177,47 @@
             color: #ffe7a3;
         }
 
-        .key-clear {
-            padding: 0.4rem 0.7rem;
+        /* Clearing a key is a small correction, not a call to action: the
+           filled blue buttons were the loudest thing in the section. */
+        .key-clear,
+        .key-reset {
+            min-height: 0;
+            padding: 0.3rem 0.55rem;
+            border-color: #3b5568;
+            background: none;
+            color: #8fa3b4;
             font-size: 0.85rem;
+            line-height: 1.2;
+        }
+
+        .key-clear:hover,
+        .key-reset:hover {
+            border-color: #78d2ff;
+            color: #d8f1ff;
+        }
+
+        .key-clear {
+            padding: 0.3rem 0.5rem;
+        }
+
+        .option-keys {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .option-slot {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.2rem;
+        }
+
+        .option-slot-number {
+            color: #7d8b97;
+            font-size: 0.75rem;
+            font-variant-numeric: tabular-nums;
         }
 
         .answer-key-warning {
@@ -312,26 +352,27 @@
             <span class="setting-title">Answer keys</span>
             <p class="setting-description">A second key for OK, for cancel and for undo, beside Enter, Escape and ctrl+z, for a hand that is already on the keyboard. Click a box and press the key you want. Leave one empty to turn it off; the originals keep working either way. A key that the table already uses for something else is yours once you set it here.</p>
             <div class="answer-keys">
-                <label class="answer-key">
-                    <span class="answer-key-label">OK</span>
-                    <input type="text" id="confirm-key" class="key-box" readonly
-                           autocomplete="off" placeholder="press a key">
-                    <button type="button" class="key-clear" data-clears="confirm-key">Clear</button>
-                </label>
-                <label class="answer-key">
-                    <span class="answer-key-label">Cancel or skip</span>
-                    <input type="text" id="deny-key" class="key-box" readonly
-                           autocomplete="off" placeholder="press a key">
-                    <button type="button" class="key-clear" data-clears="deny-key">Clear</button>
-                </label>
-                <label class="answer-key">
-                    <span class="answer-key-label">Undo</span>
-                    <input type="text" id="undo-key" class="key-box" readonly
-                           autocomplete="off" placeholder="press a key">
-                    <button type="button" class="key-clear" data-clears="undo-key">Clear</button>
-                </label>
+                <label class="answer-key-label" for="confirm-key">OK</label>
+                <input type="text" id="confirm-key" class="key-box" readonly autocomplete="off">
+                <button type="button" class="key-clear" data-clears="confirm-key">Clear</button>
+
+                <label class="answer-key-label" for="deny-key">Cancel or skip</label>
+                <input type="text" id="deny-key" class="key-box" readonly autocomplete="off">
+                <button type="button" class="key-clear" data-clears="deny-key">Clear</button>
+
+                <label class="answer-key-label" for="undo-key">Undo</label>
+                <input type="text" id="undo-key" class="key-box" readonly autocomplete="off">
+                <button type="button" class="key-clear" data-clears="undo-key">Clear</button>
             </div>
             <p id="answer-key-warning" class="answer-key-warning" role="status" aria-live="polite"></p>
+        </section>
+
+        <section class="setting">
+            <span class="setting-title">Option keys</span>
+            <p class="setting-description">When the game offers a choice &mdash; Attack, Thwart, Change Form &mdash; these take them in the order they are shown, and each key is drawn on its option at the table. Click a box and press the key you want, or leave one empty to give that position no key.</p>
+            <div class="option-keys" id="option-keys"></div>
+            <button type="button" id="option-keys-reset" class="key-reset">Reset to the home row</button>
+            <p id="option-key-warning" class="answer-key-warning" role="status" aria-live="polite"></p>
         </section>
 
         <section class="setting">

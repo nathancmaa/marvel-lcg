@@ -13,7 +13,7 @@ import { BtnOk } from './btn_ok.js'
 import { HoverCard } from './hover.js'
 import { AutoActivate } from './auto_activate.js'
 import { StandingAnswers } from './standing_answers.js'
-import { OPTION_KEYS } from '../game_keys.js'
+import { UserSettings } from '../user_settings.js'
 import { Command } from './command.js'
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -931,8 +931,9 @@ export class Effect {
     private static assignOptionKeys(): void {
         const buttons = Effect.options_button_div.querySelectorAll<HTMLButtonElement>(
             '.button:not(.disable)')
+        const keys = UserSettings.getOptionKeys()
         buttons.forEach((button, at) => {
-            const key = OPTION_KEYS[at]
+            const key = keys[at]
             if( !key ) {
                 return
             }
@@ -955,7 +956,7 @@ export class Effect {
             return false
         }
         const key = event.key.toLowerCase()
-        if( !OPTION_KEYS.includes(key) ) {
+        if( !key || !UserSettings.getOptionKeys().includes(key) ) {
             return false
         }
         // Target selection has taken the overlay out of reach for the mouse;

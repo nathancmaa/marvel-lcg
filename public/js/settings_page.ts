@@ -1,5 +1,6 @@
 import {
     ANIMATION_TIME_DEFAULT,
+    DEFAULT_OPTION_KEYS,
     UserSettings,
 } from './user_settings.js'
 import { whatKeyDoes } from './game_keys.js'
@@ -11,6 +12,41 @@ const twoHandedSolo = document.getElementById('two-handed-solo') as HTMLInputEle
 const confirmKey = document.getElementById('confirm-key') as HTMLInputElement
 const denyKey = document.getElementById('deny-key') as HTMLInputElement
 const undoKey = document.getElementById('undo-key') as HTMLInputElement
+const optionKeysRow = document.getElementById('option-keys') as HTMLElement
+const optionKeysReset = document.getElementById('option-keys-reset') as HTMLButtonElement
+const optionKeyWarning = document.getElementById('option-key-warning') as HTMLElement
+
+/**
+ * The boxes for the option keys, one per position, built to match storage.
+ *
+ * Declared up here with the other elements rather than beside the code that
+ * reads it: updateKeyWarning runs from the init block below, and a const is
+ * not hoisted the way a function declaration is.
+ */
+const optionKeyBoxes: HTMLInputElement[] = DEFAULT_OPTION_KEYS.map((_, at) => {
+    const slot = document.createElement('span')
+    slot.className = 'option-slot'
+
+    const number = document.createElement('span')
+    number.className = 'option-slot-number'
+    number.textContent = String(at + 1)
+
+    const box = document.createElement('input')
+    box.type = 'text'
+    box.className = 'key-box'
+    box.readOnly = true
+    box.autocomplete = 'off'
+    box.title = `The key for the ${at + 1}${['st', 'nd', 'rd'][at] ?? 'th'} option`
+
+    slot.append(number, box)
+    optionKeysRow.appendChild(slot)
+    return box
+})
+
+function readOptionKeys(): string[] {
+    return optionKeyBoxes.map((box) => box.value)
+}
+
 const answerKeyWarning = document.getElementById('answer-key-warning') as HTMLElement
 const bgStatsPlayer = document.getElementById('bgstats-player') as HTMLInputElement
 const bgStatsLocation = document.getElementById('bgstats-location') as HTMLInputElement
@@ -276,6 +312,40 @@ function updateKeyWarning(): void {
         }
     }
     answerKeyWarning.textContent = notes.join(' ')
+    updateOptionKeyWarning()
+}
+
+/**
+ * What an option key will lose to, if anything.
+ *
+ * The table tests the three chosen answers before the options, and takes the
+ * first position holding a key when two hold the same one, so both of these
+ * are about which of two things a press will do.
+ */
+function updateOptionKeyWarning(): void {
+    const notes: string[] = []
+    const chosen = [[confirmKey, 'OK'], [denyKey, 'cancel'], [undoKey, 'undo']] as const
+    const keys = readOptionKeys()
+
+    keys.forEach((key, at) => {
+        if( !key ) {
+            return
+        }
+        const answer = chosen.find(([box]) => box.value && box.value === key)
+        if( answer ) {
+            notes.push(
+                `${keyLabel(key)} is your ${answer[1]} key, so option ${at + 1} `
+                + 'will not answer to it.')
+        }
+        const earlier = keys.findIndex((other) => other === key)
+        if( earlier < at ) {
+            notes.push(
+                `${keyLabel(key)} is on options ${earlier + 1} and ${at + 1}, `
+                + `so it will take option ${earlier + 1}.`)
+        }
+    })
+
+    optionKeyWarning.textContent = notes.join(' ')
 }
 
 function bindKeyBox(box: HTMLInputElement, save: (key: string) => void): void {
@@ -309,6 +379,20 @@ function bindKeyBox(box: HTMLInputElement, save: (key: string) => void): void {
 bindKeyBox(confirmKey, (key) => UserSettings.setConfirmKey(key))
 bindKeyBox(denyKey, (key) => UserSettings.setDenyKey(key))
 bindKeyBox(undoKey, (key) => UserSettings.setUndoKey(key))
+
+function paintOptionKeys(keys: readonly string[]): void {
+    optionKeyBoxes.forEach((box, at) => {box.value = keys[at] ?? ''})
+    updateKeyWarning()
+}
+
+paintOptionKeys(UserSettings.getOptionKeys())
+for( const box of optionKeyBoxes ) {
+    bindKeyBox(box, () => UserSettings.setOptionKeys(readOptionKeys()))
+}
+optionKeysReset.addEventListener('click', () => {
+    UserSettings.setOptionKeys(DEFAULT_OPTION_KEYS)
+    paintOptionKeys(DEFAULT_OPTION_KEYS)
+})
 
 for( const button of document.querySelectorAll<HTMLButtonElement>('.key-clear') ) {
     button.addEventListener('click', () => {

@@ -11,6 +11,18 @@ const twoHandedKey = 'marvel_lcg_two_handed_solo'
 const confirmKeyKey = 'marvel_lcg_confirm_key'
 const denyKeyKey = 'marvel_lcg_deny_key'
 const undoKeyKey = 'marvel_lcg_undo_key'
+const optionKeysKey = 'marvel_lcg_option_keys'
+
+/**
+ * The keys that take the options on screen, by position.
+ *
+ * The home row, left to right, because the row below it holds the three
+ * answers that are always available -- OK, cancel and undo -- and a choice
+ * between named options is the other thing the table asks for often. Nine
+ * because that is more options than an ask has ever put up at once.
+ */
+export const DEFAULT_OPTION_KEYS: readonly string[] =
+    ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l']
 
 function readStorage(key: string): string|null {
     try {
@@ -151,5 +163,33 @@ export class UserSettings {
 
     static setUndoKey(key: string) {
         writeStorage(undoKeyKey, key)
+    }
+
+    /**
+     * One key per option position. An empty string leaves that position
+     * without one, which is how a position is turned off.
+     */
+    static getOptionKeys(): string[] {
+        const stored = readStorage(optionKeysKey)
+        if( stored === null ) {
+            return [...DEFAULT_OPTION_KEYS]
+        }
+        try {
+            const keys = JSON.parse(stored) as unknown
+            if( !Array.isArray(keys) ) {
+                return [...DEFAULT_OPTION_KEYS]
+            }
+            // Padded to the full length so a short or hand-edited list cannot
+            // leave later positions reading undefined.
+            return DEFAULT_OPTION_KEYS.map(
+                (_, at) => typeof keys[at] === 'string' ? keys[at] as string : '')
+        } catch( error ) {
+            console.warn('Could not read the option keys', error)
+            return [...DEFAULT_OPTION_KEYS]
+        }
+    }
+
+    static setOptionKeys(keys: readonly string[]) {
+        writeStorage(optionKeysKey, JSON.stringify(keys))
     }
 }
