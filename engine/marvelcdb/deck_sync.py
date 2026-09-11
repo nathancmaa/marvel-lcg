@@ -357,22 +357,73 @@ class MarvelCdbDeckSync:
             raise ValueError(f'{file_path} is not a JSON object')
         return data
 
+    def SyncedDecksOnDisk(self) -> List[Dict[str, str]]:
+        """Every synced deck in the folder, read from the decks themselves.
+
+        This is the roster. A deck is being kept in step with MarvelCDB if its
+        file is here and carries the id it came from -- not if it happens to
+        appear in a list stored alongside. Those two can disagree, and when
+        they did the list was the one that won: typing a single new id into the
+        sync box replaced the whole list, and ninety-odd decks quietly stopped
+        being refreshed while their files sat there looking fine.
+        """
+        decks: List[Dict[str, str]] = []
+        if not FileManager.Exists(self.user_deck_folder):
+            return decks
+
+        for name in sorted(os.listdir(self.user_deck_folder)):
+            if not name.endswith('.json') or name.startswith('.'):
+                continue
+            path = FileManager.JoinPath(self.user_deck_folder, name)
+            try:
+                deck = self._read_json(path)
+            except Exception:
+                continue
+            metadata = deck.get('metadata')
+            if not isinstance(metadata, dict):
+                continue
+            deck_id = str(metadata.get('marvelcdb_id', '')).strip()
+            if not deck_id:
+                continue
+            kind = str(metadata.get('marvelcdb_kind', '')).lower()
+            if kind not in self.DECK_KINDS:
+                kind = ''
+            decks.append({
+                'ref': self.CanonicalRef(kind or None, deck_id),
+                'id': deck_id,
+                'kind': kind,
+                'name': str(deck.get('deck_name') or deck.get('name') or ''),
+                'hero': str(deck.get('name') or ''),
+                'url': str(metadata.get('url') or ''),
+                'file': path,
+            })
+        return decks
+
     def _load_state(self) -> Dict[str, Any]:
         if not FileManager.Exists(self.state_file):
-            return self._default_state()
+            state = self._default_state()
+        else:
+            try:
+                state = self._read_json(self.state_file)
+                # The key keeps its historical name; it now holds canonical
+                # references, and a bare ID is still a valid one.
+                state['deck_ids'] = self.ParseDeckRefs(state.get('deck_ids', []))
+                state.setdefault('version', self.STATE_VERSION)
+                state.setdefault('last_sync', '')
+                state.setdefault('last_result', None)
+            except Exception as exc:
+                Log.Warn(CATEGORY_NAME, f'Could not read MarvelCDB sync state: {exc}')
+                state = self._default_state()
 
-        try:
-            state = self._read_json(self.state_file)
-            # The key keeps its historical name; it now holds canonical
-            # references, and a bare ID is still a valid one.
-            state['deck_ids'] = self.ParseDeckRefs(state.get('deck_ids', []))
-            state.setdefault('version', self.STATE_VERSION)
-            state.setdefault('last_sync', '')
-            state.setdefault('last_result', None)
-            return state
-        except Exception as exc:
-            Log.Warn(CATEGORY_NAME, f'Could not read MarvelCDB sync state: {exc}')
-            return self._default_state()
+        # The decks on disk are the roster, so anything stored is only an
+        # ordering hint. A deck that is here gets refreshed whether or not the
+        # stored list remembers it, which is what stops a list that has been
+        # overwritten from quietly orphaning decks.
+        state['deck_ids'] = self._merge_refs(
+            state.get('deck_ids', []),
+            [deck['ref'] for deck in self.SyncedDecksOnDisk()],
+        )
+        return state
 
     def _save_json(self, data: Dict[str, Any], file_path: str) -> None:
         FileManager.MakeDir(FileManager.GetDirName(file_path))
@@ -614,20 +665,106 @@ class MarvelCdbDeckSync:
         self._save_json(updated, deck_path)
         return {'hero_id': hero_id, 'deck': updated, 'changed': changed}
 
+    @classmethod
+    def _merge_refs(cls, existing: List[str], additions: List[str]) -> List[str]:
+        """Existing references, with genuinely new ones appended.
+
+        Deduplicated by deck id rather than by the reference text: `1130039`
+        and `https://marvelcdb.com/decklist/view/1130039` name one deck, and
+        keeping both would list it twice and sync it twice. Where the same deck
+        arrives under both, the one naming an endpoint wins -- it is the one
+        that does not have to guess which of the two records to fetch.
+        """
+        merged: List[str] = []
+        position: Dict[str, int] = {}
+        for ref in list(existing) + list(additions):
+            try:
+                kind, deck_id = cls.ParseDeckRef(ref)
+            except ValueError:
+                continue
+            if deck_id not in position:
+                position[deck_id] = len(merged)
+                merged.append(ref)
+            elif kind in cls.DECK_KINDS:
+                kept = merged[position[deck_id]]
+                if cls.ParseDeckRef(kept)[0] not in cls.DECK_KINDS:
+                    merged[position[deck_id]] = ref
+        return merged
+
     def GetStatus(self) -> Dict[str, Any]:
         with self._condition:
             state = self._load_state()
-            return copy.deepcopy(state)
+            status = copy.deepcopy(state)
+        # The decks themselves, so the table can name them without waiting for
+        # a sync to report on them. A deck synced last month is still a deck.
+        status['decks'] = self.SyncedDecksOnDisk()
+        return status
+
+    def ForgetDecks(self, deck_ids_value: str|List[str]) -> Dict[str, Any]:
+        """Stop keeping a deck in step, and remove the copy it left behind.
+
+        The deliberate counterpart to adding one. Taking a reference out of the
+        sync box does not do this, and should not: a box you type into is not
+        where a collection should be kept.
+        """
+        deck_refs = self.ParseDeckRefs(deck_ids_value)
+        if not deck_refs:
+            raise ValueError('Name at least one deck to remove.')
+
+        wanted = {self.ParseDeckRef(ref)[1] for ref in deck_refs}
+        removed: List[Dict[str, str]] = []
+
+        with self._sync_lock:
+            for deck in self.SyncedDecksOnDisk():
+                if deck['id'] not in wanted:
+                    continue
+                try:
+                    os.remove(deck['file'])
+                except OSError as exc:
+                    Log.Warn(
+                        CATEGORY_NAME,
+                        f'Could not remove {deck["file"]}: {exc}',
+                    )
+                    continue
+                removed.append({'id': deck['id'], 'name': deck['name']})
+
+            with self._condition:
+                state = self._load_state()
+                # _load_state has already dropped the refs whose files are
+                # gone; what is left is a stored entry for a deck that was
+                # never on disk, which goes too.
+                state['deck_ids'] = [
+                    ref for ref in state['deck_ids']
+                    if self.ParseDeckRef(ref)[1] not in wanted
+                ]
+                self._save_state(state)
+                self._condition.notify_all()
+
+        for deck in removed:
+            Log.Info(
+                CATEGORY_NAME,
+                f'MarvelCDB: stopped syncing deck {deck["id"]} ({deck["name"]}).',
+            )
+        return {'ok': True, 'removed': removed}
 
     def SyncDecks(self, deck_ids_value: str|List[str]) -> Dict[str, Any]:
         deck_refs = self.ParseDeckRefs(deck_ids_value)
-        if not deck_refs:
-            raise ValueError('Enter at least one MarvelCDB deck ID.')
 
         with self._sync_lock:
             with self._condition:
                 state = self._load_state()
-                state['deck_ids'] = deck_refs
+                if not deck_refs:
+                    # Nothing named: refresh everything already being kept in
+                    # step. This is what the Sync button does with an empty box.
+                    deck_refs = list(state['deck_ids'])
+                    if not deck_refs:
+                        raise ValueError('Enter at least one MarvelCDB deck ID.')
+                else:
+                    # Added to the roster, never substituted for it. The box is
+                    # for naming a deck to add, and a deck already here is not
+                    # something the box can take away.
+                    state['deck_ids'] = self._merge_refs(
+                        state['deck_ids'], deck_refs)
                 self._save_state(state)
                 self._condition.notify_all()
 
@@ -702,7 +839,8 @@ class MarvelCdbDeckSync:
             }
             with self._condition:
                 state = self._load_state()
-                state['deck_ids'] = deck_refs
+                state['deck_ids'] = self._merge_refs(
+                    state['deck_ids'], deck_refs)
                 state['last_sync'] = result['synced_at']
                 state['last_result'] = result
                 self._save_state(state)

@@ -4,7 +4,6 @@ export const ANIMATION_TIME_DEFAULT = 0.2
 
 const animationTimeKey = 'marvel_lcg_animation_time'
 const autoSaveReplaysKey = 'marvel_lcg_autosave_replays'
-const marvelCdbDeckIdsKey = 'marvel_lcg_marvelcdb_deck_ids'
 const bgStatsPlayerKey = 'marvel_lcg_bgstats_player'
 const bgStatsLocationKey = 'marvel_lcg_bgstats_location'
 const twoHandedKey = 'marvel_lcg_two_handed_solo'
@@ -84,14 +83,6 @@ export class UserSettings {
 
     static setAutoSaveReplays(enabled: boolean) {
         writeStorage(autoSaveReplaysKey, enabled.toString())
-    }
-
-    static getMarvelCdbDeckIds(): string {
-        return readStorage(marvelCdbDeckIdsKey)?.trim() ?? ''
-    }
-
-    static setMarvelCdbDeckIds(deckIds: string) {
-        writeStorage(marvelCdbDeckIdsKey, deckIds.trim())
     }
 
     /**

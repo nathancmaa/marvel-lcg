@@ -159,7 +159,17 @@ class TestMarvelCdbDeckSync(unittest.TestCase):
             self.assertEqual(output['deck_name'], 'Spider-Man unti Ultron')
             self.assertEqual(output['name'], 'Spider-Man')
             state = service.GetStatus()
-            self.assertEqual(state['deck_ids'], ['1130039'])
+            # Stored as the endpoint it resolved to rather than the bare ID
+            # that was typed: the roster is read back from the deck on disk,
+            # which records the kind it was actually fetched from. A bare ID
+            # would make the next sync probe `deck/1130039` first and risk a
+            # different deck that happens to share the number.
+            self.assertEqual(
+                state['deck_ids'],
+                ['https://marvelcdb.com/decklist/view/1130039'],
+            )
+            self.assertEqual(
+                [deck['id'] for deck in state['decks']], ['1130039'])
             self.assertTrue(state['last_sync'])
 
     def test_unsupported_hero_is_reported_without_writing_a_deck(self):
@@ -311,6 +321,133 @@ class TestUnimplementedCardWarning(unittest.TestCase):
                 result = service.SyncDecks('1130039')
 
             self.assertEqual(result['warnings'], [])
+
+
+class TheRosterIsTheDecksOnDisk(unittest.TestCase):
+    """Syncing one deck must not be a way to lose the others.
+
+    Typing a single ID into the sync box used to replace the stored list
+    outright. The decks stayed on disk and stayed playable, so nothing looked
+    broken -- but the table showed one row and the nightly refresh quietly
+    stopped covering everything else.
+    """
+
+    def service(self, temp_folder: str, deck_ids=('1130039',)):
+        starter_folder = os.path.join(temp_folder, 'starter')
+        user_folder = os.path.join(temp_folder, 'user-decks')
+        os.makedirs(starter_folder, exist_ok=True)
+        Json.Save(
+            SPIDER_MAN_TEMPLATE,
+            os.path.join(starter_folder, 'spider_man.json'),
+        )
+        return MarvelCdbDeckSync(
+            user_deck_folder=user_folder,
+            state_file=os.path.join(user_folder, '.sync-state.json'),
+            starter_deck_folder=starter_folder,
+            fetch_deck=lambda deck_id: create_remote_deck(deck_id),
+        )
+
+    def test_syncing_one_deck_adds_it_and_keeps_the_rest(self):
+        with tempfile.TemporaryDirectory() as temp_folder:
+            service = self.service(temp_folder)
+
+            service.SyncDecks('1130039')
+            service.SyncDecks('1143133')
+
+            ids = sorted(deck['id'] for deck in service.GetStatus()['decks'])
+            self.assertEqual(ids, ['1130039', '1143133'])
+            self.assertEqual(len(service.GetStatus()['deck_ids']), 2)
+
+    def test_the_roster_survives_a_state_file_that_forgot_everything(self):
+        with tempfile.TemporaryDirectory() as temp_folder:
+            service = self.service(temp_folder)
+            service.SyncDecks('1130039')
+            service.SyncDecks('1143133')
+
+            # The shape of the bug: the stored list, overwritten with one entry.
+            state = service.GetStatus()
+            state['deck_ids'] = ['1143133']
+            state.pop('decks', None)
+            service._save_state(state)
+
+            # Read back from the decks themselves, so nothing was orphaned.
+            recovered = service.GetStatus()
+            self.assertEqual(
+                sorted(deck['id'] for deck in recovered['decks']),
+                ['1130039', '1143133'],
+            )
+            self.assertEqual(len(recovered['deck_ids']), 2)
+
+    def test_an_empty_box_refreshes_everything_already_there(self):
+        with tempfile.TemporaryDirectory() as temp_folder:
+            service = self.service(temp_folder)
+            service.SyncDecks('1130039')
+            service.SyncDecks('1143133')
+
+            result = service.SyncDecks('')
+
+            self.assertEqual(
+                sorted(deck['id'] for deck in result['synced']),
+                ['1130039', '1143133'],
+            )
+
+    def test_an_empty_box_with_nothing_to_refresh_still_asks_for_one(self):
+        with tempfile.TemporaryDirectory() as temp_folder:
+            service = self.service(temp_folder)
+            with self.assertRaises(ValueError):
+                service.SyncDecks('')
+
+    def test_one_deck_is_listed_once_however_it_was_named(self):
+        with tempfile.TemporaryDirectory() as temp_folder:
+            service = self.service(temp_folder)
+
+            service.SyncDecks('1130039')
+            service.SyncDecks('https://marvelcdb.com/decklist/view/1130039')
+
+            status = service.GetStatus()
+            self.assertEqual(len(status['decks']), 1)
+            # And the reference kept is the one that names the endpoint, so the
+            # next sync does not have to guess between deck/ and decklist/.
+            self.assertEqual(
+                status['deck_ids'],
+                ['https://marvelcdb.com/decklist/view/1130039'],
+            )
+
+    def test_removing_a_deck_is_a_separate_deliberate_act(self):
+        with tempfile.TemporaryDirectory() as temp_folder:
+            service = self.service(temp_folder)
+            service.SyncDecks('1130039')
+            service.SyncDecks('1143133')
+            user_folder = os.path.join(temp_folder, 'user-decks')
+
+            result = service.ForgetDecks('1130039')
+
+            self.assertTrue(result['ok'])
+            self.assertEqual(
+                [deck['id'] for deck in result['removed']], ['1130039'])
+            self.assertFalse(
+                os.path.exists(
+                    os.path.join(user_folder, 'decklist-1130039.json')))
+            status = service.GetStatus()
+            self.assertEqual(
+                [deck['id'] for deck in status['decks']], ['1143133'])
+            self.assertEqual(len(status['deck_ids']), 1)
+
+    def test_a_deck_that_is_not_from_marvelcdb_is_left_out_of_the_roster(self):
+        with tempfile.TemporaryDirectory() as temp_folder:
+            service = self.service(temp_folder)
+            service.SyncDecks('1130039')
+
+            # A hand-made deck sitting in the same folder.
+            user_folder = os.path.join(temp_folder, 'user-decks')
+            Json.Save(
+                {'name': 'Spider-Man', 'deck_name': 'Made by hand'},
+                os.path.join(user_folder, 'by-hand.json'),
+            )
+
+            status = service.GetStatus()
+            self.assertEqual(
+                [deck['id'] for deck in status['decks']], ['1130039'])
 
 
 if __name__ == '__main__':

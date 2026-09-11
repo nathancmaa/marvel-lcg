@@ -84,6 +84,9 @@ type MarvelCdbSyncStatus = {
     deck_ids: string[];
     last_sync: string;
     last_result: MarvelCdbSyncResult|null;
+    // The decks actually on disk, named from the deck files rather than from
+    // whatever the last sync happened to touch. Older builds do not send it.
+    decks?: SyncedDeck[];
 };
 
 function updateAnimationTime() {
@@ -92,17 +95,32 @@ function updateAnimationTime() {
     UserSettings.setAnimationTime(value)
 }
 
+/** A MarvelCDB deck/decklist page, which is what the box accepts besides an ID. */
+const DECK_URL = /marvelcdb\.com\/(deck|decklist)\/view\/(\d+)/i
+
+/**
+ * What the box names, ready to send.
+ *
+ * A link is as good as an ID here because the server accepts both: rejecting
+ * links in the browser only meant a pasted URL failed in the one place a
+ * person is most likely to paste one.
+ */
 function parseDeckIds(value: string): string[] {
     const deckIds: string[] = []
     for( const part of value.split(',') ) {
-        const deckId = part.trim()
-        if( !deckId ) {
+        const reference = part.trim()
+        if( !reference ) {
             continue
         }
-        if( !/^\d+$/.test(deckId) ) {
-            throw new Error(`Invalid deck ID: ${deckId}`)
+        const link = DECK_URL.exec(reference)
+        const normalized = link
+            ? reference
+            : /^\d+$/.test(reference)
+                ? reference.replace(/^0+(?=\d)/, '')
+                : ''
+        if( !normalized ) {
+            throw new Error(`Invalid deck ID or link: ${reference}`)
         }
-        const normalized = deckId.replace(/^0+(?=\d)/, '')
         if( !deckIds.includes(normalized) ) {
             deckIds.push(normalized)
         }
@@ -110,16 +128,22 @@ function parseDeckIds(value: string): string[] {
     return deckIds
 }
 
+/**
+ * The box is for adding, so an empty one is not an error.
+ *
+ * Sync with nothing typed refreshes everything already in the table; sync with
+ * a deck named adds that one. Neither takes anything away -- the table below
+ * is where a deck is removed, and it says so.
+ */
 function updateMarvelCdbControls(showHint=true): string[] {
     const value = marvelCdbDeckIds.value.trim()
-    UserSettings.setMarvelCdbDeckIds(value)
     try {
         const deckIds = parseDeckIds(value)
-        marvelCdbSync.disabled = deckIds.length === 0
+        marvelCdbSync.disabled = false
         if( showHint ) {
             marvelCdbStatus.textContent = deckIds.length === 0
-                ? 'Enter one or more public MarvelCDB deck IDs.'
-                : `${deckIds.length} deck${deckIds.length === 1 ? '' : 's'} ready to sync.`
+                ? 'Sync refreshes every deck below. Add one by entering its ID or link.'
+                : `${deckIds.length} deck${deckIds.length === 1 ? '' : 's'} to add.`
         }
         return deckIds
     } catch( error ) {
@@ -170,8 +194,16 @@ function cell(text: string, className?: string): HTMLTableCellElement {
 function renderSyncedDecks(status: MarvelCdbSyncStatus): void {
     const result = status.last_result
     const byId = new Map<string, SyncedDeck>()
+    // The decks on disk first, so every one of them is named whether or not
+    // the last sync touched it, then the last result over the top of them
+    // because that is the fresher account of the ones it did touch.
+    for( const deck of status.decks ?? [] ) {
+        byId.set(deck.id, deck)
+    }
+    const syncedNow = new Set<string>()
     for( const deck of result?.synced ?? [] ) {
         byId.set(deck.id, deck)
+        syncedNow.add(deck.id)
     }
     const errorsById = new Map<string, string>()
     for( const error of result?.errors ?? [] ) {
@@ -213,6 +245,9 @@ function renderSyncedDecks(status: MarvelCdbSyncStatus): void {
             state.textContent = error
             state.className = 'synced-deck-failed'
         } else if( byId.has(id) ) {
+            // "Synced" says this deck is here and being kept in step, which is
+            // true of every deck on disk -- not only the ones the last press
+            // of the button happened to cover.
             state.textContent = missingCards
                 ? `Synced · ${missingCards} card${missingCards === 1 ? '' : 's'} not implemented`
                 : 'Synced'
@@ -222,6 +257,17 @@ function renderSyncedDecks(status: MarvelCdbSyncStatus): void {
             state.className = 'synced-deck-pending'
         }
         row.appendChild(state)
+
+        const actions = document.createElement('td')
+        const remove = document.createElement('button')
+        remove.type = 'button'
+        remove.className = 'synced-deck-remove'
+        remove.textContent = 'Remove'
+        remove.title = `Stop syncing ${synced.name || id} and delete this copy`
+        remove.addEventListener('click', () => void forgetDeck(id, synced.name))
+        actions.appendChild(remove)
+        row.appendChild(actions)
+
         rows.push(row)
     }
 
@@ -232,6 +278,39 @@ function renderSyncedDecks(status: MarvelCdbSyncStatus): void {
     marvelCdbDecksPanel.hidden = rows.length === 0
 }
 
+/**
+ * Take a deck out of the table, which is the only thing that takes one out.
+ *
+ * Confirmed first: this deletes the local copy as well as stopping the
+ * refresh, so the deck leaves Quick Game too. It is still on MarvelCDB, and
+ * entering its ID again brings it back.
+ */
+async function forgetDeck(deckId: string, name: string): Promise<void> {
+    const label = name ? `${name} (${deckId})` : deckId
+    if( !window.confirm(`Stop syncing ${label} and delete this installation's copy?`) ) {
+        return
+    }
+    marvelCdbStatus.textContent = `Removing ${label}…`
+    try {
+        const response = await fetch('/forget_marvelcdb_decks', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({deck_ids: [deckId]}),
+        })
+        const result = await response.json() as {removed?: unknown[]; error?: string}
+        if( !response.ok ) {
+            throw new Error(result.error || `${response.status} ${response.statusText}`)
+        }
+        await loadMarvelCdbStatus()
+        marvelCdbStatus.textContent = `Removed ${label}.`
+    } catch( error ) {
+        console.error(error)
+        marvelCdbStatus.textContent = error instanceof Error
+            ? error.message
+            : 'Could not remove the deck.'
+    }
+}
+
 async function loadMarvelCdbStatus(): Promise<void> {
     try {
         const response = await fetch('/marvelcdb_sync_status')
@@ -239,10 +318,10 @@ async function loadMarvelCdbStatus(): Promise<void> {
             throw new Error(`${response.status} ${response.statusText}`)
         }
         const status = await response.json() as MarvelCdbSyncStatus
-        if( status.deck_ids.length ) {
-            marvelCdbDeckIds.value = status.deck_ids.join(',')
-            UserSettings.setMarvelCdbDeckIds(marvelCdbDeckIds.value)
-        }
+        // The box is deliberately left empty. Filling it with the whole roster
+        // was what made it look like the list of decks -- and then editing it
+        // looked like editing that list, which is how ninety-odd decks came to
+        // be dropped by typing one id over them.
         updateMarvelCdbControls(false)
         marvelCdbStatus.textContent = status.last_result
             ? describeLastSync(status.last_sync)
@@ -276,7 +355,8 @@ undoKey.value = UserSettings.getUndoKey()
 updateKeyWarning()
 bgStatsPlayer.value = UserSettings.getBgStatsPlayerName()
 bgStatsLocation.value = UserSettings.getBgStatsLocation()
-marvelCdbDeckIds.value = UserSettings.getMarvelCdbDeckIds()
+// The deck box starts empty and is not remembered. It names decks to add;
+// what is already here is the table, which the server keeps.
 updateMarvelCdbControls()
 
 animationTime.addEventListener('input', updateAnimationTime)
@@ -425,13 +505,15 @@ bgStatsLocation.addEventListener('input', () => {
 marvelCdbDeckIds.addEventListener('input', () => updateMarvelCdbControls())
 marvelCdbSync.addEventListener('click', async () => {
     const deckIds = updateMarvelCdbControls(false)
-    if( !deckIds.length ) {
+    if( marvelCdbSync.disabled ) {
         return
     }
 
     marvelCdbSync.disabled = true
     marvelCdbSync.setAttribute('aria-busy', 'true')
-    marvelCdbStatus.textContent = 'Synchronizing decks from MarvelCDB…'
+    marvelCdbStatus.textContent = deckIds.length
+        ? 'Adding from MarvelCDB…'
+        : 'Refreshing decks from MarvelCDB…'
     try {
         const response = await fetch('/sync_marvelcdb_decks', {
             method: 'POST',
@@ -442,12 +524,12 @@ marvelCdbSync.addEventListener('click', async () => {
         if( !response.ok ) {
             throw new Error(result.error || `${response.status} ${response.statusText}`)
         }
+        // The box has done its job; the table is the list from here.
+        marvelCdbDeckIds.value = ''
+        // Re-read the roster rather than drawing the table from what was just
+        // typed: what was typed is one deck, and the table is all of them.
+        await loadMarvelCdbStatus()
         marvelCdbStatus.textContent = describeLastSync(result.synced_at)
-        renderSyncedDecks({
-            deck_ids: deckIds,
-            last_sync: result.synced_at,
-            last_result: result,
-        })
     } catch( error ) {
         console.error(error)
         marvelCdbStatus.textContent = error instanceof Error

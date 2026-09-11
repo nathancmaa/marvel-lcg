@@ -33,6 +33,26 @@ class GameServerMarvelCdb(GameServerBase):
             )
         return web.json_response(result)
 
+    async def forget_marvelcdb_decks(self, request: web.Request) -> web.Response:
+        try:
+            data = await request.json()
+        except Exception:
+            return web.json_response({'error': 'Expected a JSON request.'}, status=400)
+
+        try:
+            result = await TaskManager.ToThread(
+                self.device_manager.marvelcdb_deck_sync.ForgetDecks,
+                data.get('deck_ids', ''),
+            )
+        except ValueError as exc:
+            return web.json_response({'error': str(exc)}, status=400)
+        except Exception as exc:
+            return web.json_response(
+                {'error': f'Could not remove the deck: {exc}'},
+                status=500,
+            )
+        return web.json_response(result)
+
     async def _json_body(self, request: web.Request) -> dict:
         try:
             data = await request.json()
@@ -113,6 +133,7 @@ class GameServerMarvelCdb(GameServerBase):
             self.marvelcdb_sync_status,
         )
         self.AddPostSecurity('/sync_marvelcdb_decks', self.sync_marvelcdb_decks)
+        self.AddPostSecurity('/forget_marvelcdb_decks', self.forget_marvelcdb_decks)
         self.AddPostSecurity('/resolve_marvelcdb_deck', self.resolve_marvelcdb_deck)
         self.AddPostSecurity('/save_campaign_deck', self.save_campaign_deck)
         self.AddPostSecurity('/refresh_campaign_deck', self.refresh_campaign_deck)

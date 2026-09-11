@@ -587,9 +587,17 @@ class TestSyncPreservesDeckKind(unittest.TestCase):
             result = service.SyncDecks('123')
 
             self.assertEqual(result['errors'], [])
+            # The point of the test: a bare ID gives the fetcher no kind, so it
+            # has to try both endpoints.
             self.assertEqual(asked, [None])
+            # Afterwards it is stored as the endpoint it turned out to be. The
+            # roster is read back from the deck on disk, which records the kind
+            # it was fetched from, so the next sync no longer has to guess.
             with open(os.path.join(folder, '.state.json'), encoding='utf-8') as file:
-                self.assertEqual(json.load(file)['deck_ids'], ['123'])
+                self.assertEqual(
+                    json.load(file)['deck_ids'],
+                    ['https://marvelcdb.com/deck/view/123'],
+                )
 
 
 if __name__ == '__main__':
