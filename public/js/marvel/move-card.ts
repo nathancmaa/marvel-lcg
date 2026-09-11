@@ -25,6 +25,30 @@ export class MoveCard {
 
     static {
         MoveCard.applyCardScale();
+        MoveCard.bindCardScaleSlider();
+    }
+
+    /**
+     * The slider in the button bar, wired to the same setting the settings
+     * page writes -- so the two agree without either knowing about the other.
+     *
+     * Here rather than in ui.ts, which is where the animation slider beside it
+     * is wired: ui.ts would have to import MoveCard, and MoveCard already
+     * imports UI. Everything this needs is in this file already.
+     */
+    private static bindCardScaleSlider(): void {
+        const slider = document.getElementById('card-scale-range') as HTMLInputElement | null;
+        if( !slider ) {
+            return;
+        }
+        slider.value = String(UserSettings.getCardScale());
+        slider.oninput = () => {
+            UserSettings.setCardScale(Number(slider.value));
+            MoveCard.applyCardScale();
+            // Nothing entered or left an area, so the usual relayout has no
+            // work queued; ask for every row directly.
+            MoveCard.doMoveFirstTime();
+        };
     }
 
     /** Total width, in card widths, kept free at the left and right edges of

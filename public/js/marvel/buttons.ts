@@ -739,7 +739,7 @@ export class Button{
 
         const parent_div_right = document.getElementById('right-side-bar') as HTMLElement
         Button.createButtonBase(parent_div_right, {
-            text: "Log",
+            text: "Options",
             onClick: () => {Button.doToggleHistory()}
         })
         Button.createButtonBase(parent_div_right, {

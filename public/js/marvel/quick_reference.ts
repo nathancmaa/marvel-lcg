@@ -7,6 +7,8 @@
 // The icons are the ones the app already draws for card text, so a row shows
 // the same mark you are looking at on the table rather than a picture of one.
 
+import { HistoryLog } from './history.js'
+
 type Entry = {
     name: string;
     /** The app's own icon class, where it draws one. */
@@ -70,6 +72,10 @@ export class QuickReference {
     static toggle(): void {
         QuickReference.panel?.classList.toggle('hide');
         if( QuickReference.isOpen() ) {
+            // The button that opens this lives in the options panel, which
+            // covers half the table -- so opening the reference from there
+            // would otherwise leave one panel behind another.
+            HistoryLog.close();
             QuickReference.build();
             QuickReference.filter?.focus();
         }

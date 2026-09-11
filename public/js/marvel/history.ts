@@ -30,6 +30,19 @@ export class HistoryLog
     static toggle() {
         HistoryLog.history_div?.classList.toggle('hide')
     }
+
+    static {
+        // Its own X, like the deck tracker, the reference and the priority
+        // list. The button in the bar toggles it; this is the way out from
+        // inside, which is where your pointer already is.
+        const close = document.getElementById('history-close')
+        close?.addEventListener('click', () => HistoryLog.close())
+        close?.addEventListener('keydown', (event) => {
+            if( (event as KeyboardEvent).key === 'Enter' ) {
+                HistoryLog.close()
+            }
+        })
+    }
     static addText(id: number, text: string) {
         if( id == HistoryLog.last_id ) {
             return

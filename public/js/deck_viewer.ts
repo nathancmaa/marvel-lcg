@@ -3,6 +3,7 @@ import { buildHeroLabels, compareDeckText, heroKeyOf } from './deck_filters.js';
 import { isFavorite, loadFavorites, onFavoritesChanged, toggleFavorite } from './favorites.js';
 import { CardPaperLike, describeProfile, isSubstitutable, profileCard } from './card_profile.js';
 import { deckAspectCountsOf, isSplashInclude, suggestSubstitutes } from './card_substitution.js';
+import { checkDeck, loadCardPapers } from './deck_legality.js';
 
 type DeckData = {
     name: string;
@@ -84,6 +85,7 @@ const deckCount = document.querySelector<HTMLElement>('#deck-count')!;
 const deckRecord = document.querySelector<HTMLElement>('#deck-record')!;
 const deckAspects = document.querySelector<HTMLElement>('#deck-aspects')!;
 const collectionGap = document.querySelector<HTMLElement>('#collection-gap')!;
+const deckLegality = document.querySelector<HTMLElement>('#deck-legality')!;
 const deckMulligan = document.querySelector<HTMLElement>('#deck-mulligan')!;
 const deckMulliganHead = document.querySelector<HTMLElement>('#deck-mulligan-head')!;
 const deckMulliganChips = document.querySelector<HTMLElement>('#deck-mulligan-chips')!;
@@ -311,6 +313,46 @@ function fillDeckSelect(): void {
         deckSelect.appendChild(group);
     }
     deckSelect.disabled = visible.length === 0;
+}
+
+/**
+ * Say what is questionable about the deck on screen, if anything.
+ *
+ * Started rather than awaited by the render, because it wants the whole card
+ * pool and the deck should be on screen before it arrives. A deck selected
+ * while it is still loading wins: the token is checked on the way back so a
+ * slow answer for a deck you have left cannot overwrite a fast one.
+ */
+let legalityToken = 0;
+
+async function showLegality(choice: DeckChoice): Promise<void> {
+    const token = ++legalityToken;
+    deckLegality.hidden = true;
+    deckLegality.replaceChildren();
+    try {
+        const papers = await loadCardPapers();
+        if (token !== legalityToken) {
+            return;
+        }
+        const warnings = checkDeck({
+            hero: choice.data.hero ?? [],
+            hero_deck: choice.data.hero_deck ?? [],
+            player_deck: choice.data.player_deck ?? [],
+        }, papers);
+        if (warnings.length === 0) {
+            return;
+        }
+        deckLegality.replaceChildren(...warnings.map((warning) => {
+            const row = document.createElement('li');
+            row.textContent = warning.text;
+            return row;
+        }));
+        deckLegality.hidden = false;
+    } catch (error) {
+        // A deck still reads fine without this; the pool is 2.4 MB and a
+        // failed fetch is not worth a message of its own.
+        console.warn('Could not check the deck', error);
+    }
 }
 
 async function buildEntries(cardValues: string[]): Promise<CardEntry[]> {
@@ -1007,6 +1049,8 @@ async function showDeck(choice: DeckChoice): Promise<void> {
         playerCount.textContent = `${choice.data.player_deck.length} cards`;
         encounterCount.textContent = `${related.length} cards`;
         encounterSection.hidden = related.length === 0;
+
+        void showLegality(choice);
 
         const aspects = Array.from(new Set(playerDeck
             .map(entry => entry.paper.desc.Class)

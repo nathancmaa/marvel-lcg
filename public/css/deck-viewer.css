@@ -638,6 +638,27 @@
 /* What to look for in the opening hand, in the deck summary. The author's own
    words and our ranking of their deck are both shown here, and the heading
    colour is what tells them apart -- gold for a person, blue for us. */
+/* Things the deck may be wrong about. Warned rather than enforced, so it
+   reads as a note and not as a refusal: amber, no icon, no border weight
+   beyond what the mulligan block already uses. */
+.deck-legality {
+    list-style: none;
+    margin: 0.75rem 0 0;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid rgba(232, 189, 98, 0.35);
+    border-radius: 0.45rem;
+    background: rgba(46, 36, 22, 0.5);
+    color: #e8bd62;
+    font-size: 0.86rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.deck-legality[hidden] {
+    display: none;
+}
+
 .deck-mulligan {
     margin: 0.75rem 0 0;
     padding: 0.6rem 0.75rem;
