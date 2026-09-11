@@ -44,8 +44,11 @@ class PassiveUpgradeTests(unittest.TestCase):
         # what collapsed Web-Shooter and forty-eight others; Fury's Watch and
         # Jet Belt are the two that carry a Resource ability outright, which is
         # why they alone looked like the whole problem.
+        # The last four were in one game's collapsed stacks when this was
+        # reported, which is how the CheckResource case came to light.
         for name in ["Fury's Watch", "Jet Belt", "Web-Shooter", "Expert Marksman",
-                     "God of Thunder", "Clarity of Purpose"]:
+                     "God of Thunder", "Clarity of Purpose", "Grim Resolve",
+                     "X-Gene", "Prehensile Tail"]:
             with self.subTest(name):
                 self.assertFalse(self.IsPassive(name))
 
