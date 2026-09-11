@@ -880,6 +880,44 @@ tbody tr:last-child td {
 }
 
 /* Scenario names are long and the columns are one cell wide, so they lean. */
+/* Which box a run of columns or a band of rows belongs to. Shown only while
+   that axis is in box order, so the bracket always describes the order the
+   grid is actually in. */
+.matchup-box-row th {
+    padding: 0.2rem 0.4rem;
+    color: #9fd7f5;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* A bracket under the label, so a run of columns reads as one span rather
+   than as a word floating above the middle of it. */
+.matchup-table .scenario-box {
+    border-bottom: 2px solid rgba(120, 210, 255, 0.45);
+    text-align: center;
+    vertical-align: bottom;
+}
+
+.matchup-table .scenario-box + .scenario-box {
+    border-left: 1px solid rgba(120, 210, 255, 0.25);
+}
+
+/* A band across the grid before the first hero of each box. Left-aligned and
+   sticky with the hero column, so the name stays readable while the grid is
+   scrolled sideways. */
+.matchup-table .hero-box {
+    position: sticky;
+    left: 0;
+    text-align: left;
+    background: rgba(16, 28, 40, 0.97);
+    border-top: 1px solid rgba(120, 210, 255, 0.3);
+}
+
 .matchup-table .scenario-label {
     /* Relative, not sticky: the row above does the sticking. This only needs to
        be the containing block the rotated label is positioned against, and it

@@ -698,6 +698,59 @@ function renderMatchupGrid(): void {
 
     const percent = (value: number): string => `${Math.round(value * 100)}%`;
 
+    /**
+     * Runs of neighbouring entries from the same box.
+     *
+     * Only meaningful while the axis is in box order, which is why the caller
+     * checks the sort first: sorted by name, "Core" would appear wherever a
+     * Core card happened to land and the grouping would claim an order the
+     * grid is not in.
+     */
+    const boxRuns = (axis: MatchupAxis[]): Array<{box: string; count: number}> => {
+        const runs: Array<{box: string; count: number}> = [];
+        for (const entry of axis) {
+            const last = runs[runs.length - 1];
+            if (last && last.box === entry.box) {
+                last.count += 1;
+            } else {
+                runs.push({box: entry.box, count: 1});
+            }
+        }
+        return runs;
+    };
+    const groupHeroes = sortHeroes === 'default';
+    const groupScenarios = sortScenarios === 'default';
+
+    /**
+     * The wave each hero belongs to, rather than the box they came in.
+     *
+     * Forty-three of the fifty-four boxes holding a hero hold exactly one, so
+     * labelling every box would put a heading above nearly every row and group
+     * nothing. A wave is a campaign box and the hero packs released after it,
+     * which is the division that has some heroes under it: the big boxes are
+     * the ones bringing more than one hero, and everything between two of them
+     * belongs to the earlier.
+     *
+     * Scenarios need none of this -- a box brings one to five of them -- so
+     * their brackets stay per box.
+     */
+    const waveByHero = ((): Map<string, string> => {
+        const heroesPerBox = new Map<string, number>();
+        for (const hero of matrix.heroes) {
+            heroesPerBox.set(hero.box, (heroesPerBox.get(hero.box) ?? 0) + 1);
+        }
+        const waves = new Map<string, string>();
+        let wave = '';
+        for (const hero of [...matrix.heroes].sort((a, b) => a.box_order - b.box_order)) {
+            if ((heroesPerBox.get(hero.box) ?? 0) > 1 || !wave) {
+                wave = hero.box;
+            }
+            waves.set(hero.id, wave);
+        }
+        return waves;
+    })();
+    const waveOf = (hero: MatchupAxis): string => waveByHero.get(hero.id) ?? hero.box;
+
     // Counted over the full grid whatever is on screen: coverage of what you
     // have filtered down to is not the number anybody wants.
     let played = 0;
@@ -779,6 +832,23 @@ function renderMatchupGrid(): void {
         0);
 
     const head = document.createElement('thead');
+    if (groupScenarios) {
+        const boxRow = document.createElement('tr');
+        boxRow.className = 'matchup-box-row';
+        boxRow.appendChild(document.createElement('td'));
+        for (const run of boxRuns(scenarios.map((s) => ({...s, box: s.box})))) {
+            const cell = document.createElement('th');
+            cell.className = 'scenario-box';
+            cell.scope = 'colgroup';
+            cell.colSpan = run.count;
+            cell.title = `${run.box} — ${run.count} scenarios`;
+            const span = document.createElement('span');
+            span.textContent = run.box;
+            cell.appendChild(span);
+            boxRow.appendChild(cell);
+        }
+        head.appendChild(boxRow);
+    }
     const nameRow = document.createElement('tr');
     nameRow.appendChild(document.createElement('td'));
     for (const scenario of scenarios) {
@@ -807,7 +877,23 @@ ${percent(scenarioCompletion.get(scenario.id) ?? 0)} of heroes have beaten it`;
     table.replaceChildren(columns, head);
 
     const body = document.createElement('tbody');
+    let openBox: string | null = null;
     for (const hero of heroes) {
+        if (groupHeroes && waveOf(hero) !== openBox) {
+            openBox = waveOf(hero);
+            const boxRow = document.createElement('tr');
+            boxRow.className = 'matchup-box-row';
+            const label = document.createElement('th');
+            label.className = 'hero-box';
+            label.scope = 'colgroup';
+            // Spans the grid rather than sitting in the name column alone: a
+            // box is a division of the whole row band, not a label beside one
+            // hero, and a narrow cell would truncate most box names.
+            label.colSpan = scenarios.length + 1;
+            label.textContent = openBox;
+            boxRow.appendChild(label);
+            body.appendChild(boxRow);
+        }
         const row = document.createElement('tr');
         const heroCell = document.createElement('th');
         heroCell.className = 'hero-label';
