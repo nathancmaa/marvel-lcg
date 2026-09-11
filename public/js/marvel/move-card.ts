@@ -2,6 +2,7 @@ import { UI } from "./ui.js";
 import { SCENE_WIDTH_CHANGED } from './scene.js'
 import { ClassName } from './class_name.js'
 import { Cards } from "./cards.js";
+import { Game } from "./game.js";
 import { ButtonSetting, Setting } from "./settings.js";
 import { UserSettings } from "../user_settings.js";
 import { Lib } from "./lib.js";
@@ -185,17 +186,45 @@ export class MoveCard {
         return { padding, padding2 };
     }
 
+    /**
+     * Whether this hand card belongs to the player who is not taking the turn.
+     *
+     * Their hand is worth seeing in a two-handed game -- it is your hand too --
+     * but at full width it takes as much of the row as the hand you are
+     * actually playing from.
+     */
+    private static isCollapsedHandCard(card: any): boolean {
+        return Boolean(ButtonSetting.collapse_other_hand)
+            && Game.total_players > 1
+            && Game.forced_on_player >= 0
+            && card.control_player !== Game.forced_on_player;
+    }
+
     private static buildHandXList(cards_els: HTMLElement[], list_x: number[]) {
-        const show_all_hands = true;
+        // The hand is sorted by player, so each player's cards are already a
+        // run and the one being collapsed needs no gathering first.
+        let collapsing: number | null = null;
         for (let i = 0; i < cards_els.length; i++) {
+            const card = Cards.getCard(Number(cards_els[i].dataset.id!))!;
             let x = MoveCard.cardWidth;
-            if (show_all_hands && i > 0) {
-                let id_a = Number(cards_els[i].dataset.id!);
-                let id_b = Number(cards_els[i - 1].dataset.id!);
-                if (Cards.getCard(id_a)!.control_player !== Cards.getCard(id_b)!.control_player) {
+            if (i > 0) {
+                const previous_card = Cards.getCard(Number(cards_els[i - 1].dataset.id!))!;
+                if (card.control_player !== previous_card.control_player) {
                     list_x.push(-2);
                 }
             }
+
+            const collapse = MoveCard.isCollapsedHandCard(card);
+            if (collapse && collapsing === card.control_player) {
+                // Never the separator: that is only pushed where the player
+                // changes, and a run is one player's cards.
+                const previous = list_x.pop()!;
+                list_x.push(previous > 0
+                    ? Math.min(previous, MoveCard.cardWidth * MoveCard.STACK_PEEK)
+                    : previous);
+            }
+            collapsing = collapse ? card.control_player : null;
+
             list_x.push(x);
         }
     }

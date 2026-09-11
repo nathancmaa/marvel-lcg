@@ -718,6 +718,17 @@ export class Button{
                 Effect.updateHighLight()
             }
         })
+        // Beside H, which is what puts the other hand on screen at all, and
+        // hidden with the rest of these when there is only one hand to show.
+        Button.createButtonBase(parent_div_left, {
+            text: "S",
+            title: "Stack the other player's hand",
+            class_name: "hide",
+            id: 'collapse-other-hand',
+            property: 'collapse_other_hand',
+            cookie_name: 'btn_collapse_other_hand',
+            onClick: () => {MoveCard.doMoveFirstTime()}
+        })
         Button.createButtonBase(parent_div_left, {
             names: ["A", "F", "P"],
             class_name: "hide",

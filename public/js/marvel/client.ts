@@ -442,6 +442,7 @@ export class Client {
                             const hideNoActionCards = document.querySelector(`#hide-no-action-cards`)!
                             const allHandCards = document.querySelector(`#all-hand-cards`)!
                             const alwaysShowMinions = document.querySelector(`#always-show-minions-belong`)!
+                            const collapseOtherHand = document.querySelector(`#collapse-other-hand`)!
 
                             if( Game.total_players > 1 ) {
                                 playersPin.classList.remove('hide');
@@ -452,6 +453,7 @@ export class Client {
                                 hideNoActionCards.classList.remove('hide')
                                 allHandCards.classList.remove('hide');
                                 alwaysShowMinions.classList.remove('hide')
+                                collapseOtherHand.classList.remove('hide')
                                 // playersAllInOneHandCards.classList.remove('hide');
                             } else {
                                 playersPin.classList.add('hide');
@@ -459,6 +461,7 @@ export class Client {
                                 hideNoActionCards.classList.add('hide')
                                 allHandCards.classList.add('hide');
                                 alwaysShowMinions.classList.add('hide')
+                                collapseOtherHand.classList.add('hide')
                                 // playersAllInOneHandCards.classList.add('hide');
                             }
                         }
