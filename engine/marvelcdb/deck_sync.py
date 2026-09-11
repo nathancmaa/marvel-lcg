@@ -401,13 +401,33 @@ class MarvelCdbDeckSync:
 
         try:
             legacy = self._read_json(legacy_path)
-        except Exception:
+        except Exception as exc:
+            Log.Warn(
+                CATEGORY_NAME,
+                f'MarvelCDB: {legacy_path} could not be read, so the deck is '
+                f'listed twice. Delete it by hand if it is the old copy: {exc}',
+            )
             return
 
+        # Declining is said out loud. A legacy file left in place shows the
+        # deck a second time in every picker, and saying nothing about it is
+        # how a duplicate survives sync after sync with no way to tell why.
         metadata = legacy.get('metadata')
         if not isinstance(metadata, dict):
+            Log.Warn(
+                CATEGORY_NAME,
+                f'MarvelCDB: {legacy_path} looks like an older copy of deck '
+                f'{deck_id} but carries no metadata, so it was left alone and '
+                'the deck will be listed twice. Delete it if it is the old copy.',
+            )
             return
         if str(metadata.get('marvelcdb_id', '')) != str(deck_id):
+            Log.Warn(
+                CATEGORY_NAME,
+                f'MarvelCDB: {legacy_path} claims deck '
+                f'{metadata.get("marvelcdb_id", "none")} rather than {deck_id}, '
+                'so it was left alone.',
+            )
             return
 
         try:

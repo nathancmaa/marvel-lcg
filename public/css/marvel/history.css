@@ -1,27 +1,4 @@
 
-/* The log's own way out, matching the corner cross every other panel has.
-   Sits above the log rather than inside it, because #history-text scrolls. */
-#history-close {
-    position: absolute;
-    top: calc(0.2 * var(--font-size-out));
-    right: calc(0.6 * var(--font-size-out));
-    z-index: calc(var(--z-index-history) + 1);
-    padding: 0 0.35rem;
-    color: #cfdae4;
-    font-size: calc(1.4 * var(--font-size-out));
-    line-height: 1;
-    cursor: pointer;
-    user-select: none;
-}
-
-#history-close:hover {
-    color: #d8f1ff;
-}
-
-#history.hide #history-close {
-    display: none;
-}
-
 #history-text {
     --font-size: var(--font-size-out);
 
@@ -105,6 +82,28 @@
     padding: 2px;
     flex-wrap: wrap;
     flex-direction: column;
+}
+
+/* The way out, on the pane that holds the controls rather than over the log
+   text beside it: the log scrolls and is the thing you are reading, and this
+   pane is where your pointer already is when you are done with it.
+
+   Aligned to the end of the column so it sits above the button rows rather
+   than in them -- #ex-buttons is a column of flex rows, and a child that is
+   not one of those rows would otherwise stretch the full width. */
+#history-close {
+    align-self: flex-end;
+    margin: 0 0.15rem;
+    padding: 0 0.3rem;
+    color: #eee;
+    font-size: calc(1.3 * var(--font-size-out));
+    line-height: 1;
+    cursor: pointer;
+    user-select: none;
+}
+
+#history-close:hover {
+    color: #fff;
 }
 
 #ex-buttons div {
