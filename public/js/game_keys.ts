@@ -12,6 +12,18 @@ export type BoundKey = {
     does: string;
 };
 
+/**
+ * The keys that answer an ask, in the order its options are shown.
+ *
+ * The home row, left to right, because the row below it already holds the
+ * three answers that are always available -- OK, cancel and undo -- and a
+ * choice between named options is the other thing the table asks for often.
+ * They reach only the options actually on screen, so they are free the rest
+ * of the time; f is the one that overlaps something, and it turns the
+ * previewed card whenever fewer than four options are up.
+ */
+export const OPTION_KEYS: readonly string[] = ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'];
+
 export const BOUND_KEYS: readonly BoundKey[] = [
     {key: 'Enter', does: 'OK'},
     {key: 'Escape', does: 'cancel, or close the log'},
@@ -41,6 +53,10 @@ export const BOUND_KEYS: readonly BoundKey[] = [
     {key: 'y', ctrl: true, does: 'replay'},
     {key: 'q', ctrl: true, does: 'run to the end'},
     {key: 'e', ctrl: true, does: 'replay'},
+    ...OPTION_KEYS.map((key, at) => ({
+        key,
+        does: `take option ${at + 1} while the game is asking`,
+    })),
 ];
 
 /**

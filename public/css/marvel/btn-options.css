@@ -45,6 +45,30 @@
     pointer-events: all;
 }
 
+/* The key that takes this option. Set apart from the option's own name
+   rather than tucked into it, so the row of them reads as a row of keys. */
+.option-key {
+    display: inline-block;
+    min-width: 1.2em;
+    margin-right: 0.5em;
+    padding: 0 0.15em;
+    border: 1px solid currentColor;
+    border-radius: 0.25em;
+    opacity: 0.65;
+    font-size: 0.75em;
+    line-height: 1.35;
+    text-align: center;
+    text-transform: uppercase;
+    text-shadow: none;
+    vertical-align: middle;
+}
+
+/* A pointer is not going to press it, and the name matters more once the
+   option is the one being resolved. */
+#option-buttons .button.clicked .option-key {
+    opacity: 0.3;
+}
+
 /* Once a choice starts target selection, the prompt already shows the chosen
    effect. Remove the option overlay from both hit-testing and view so cards
    underneath remain selectable on touch screens. */

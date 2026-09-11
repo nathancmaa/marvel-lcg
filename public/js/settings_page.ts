@@ -268,9 +268,11 @@ function updateKeyWarning(): void {
                                [undoKey, 'undo']] as const ) {
         const existing = whatKeyDoes(box.value)
         if( existing ) {
+            // A key you chose wins outright, so say that rather than implying
+            // the table will try to do both.
             notes.push(
-                `${keyLabel(box.value)} already does "${existing}" at the table, `
-                + `and would now also ${role}.`)
+                `${keyLabel(box.value)} already does "${existing}" at the table. `
+                + `Your key wins, so it will ${role} instead.`)
         }
     }
     answerKeyWarning.textContent = notes.join(' ')

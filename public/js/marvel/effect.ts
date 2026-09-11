@@ -13,6 +13,7 @@ import { BtnOk } from './btn_ok.js'
 import { HoverCard } from './hover.js'
 import { AutoActivate } from './auto_activate.js'
 import { StandingAnswers } from './standing_answers.js'
+import { OPTION_KEYS } from '../game_keys.js'
 import { Command } from './command.js'
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -915,7 +916,60 @@ export class Effect {
                 }
                 Effect.options_button_div.appendChild(button)
             }
+            Effect.assignOptionKeys()
         }
+    }
+
+    /**
+     * Letter the options on screen, left to right.
+     *
+     * Only the ones that can actually be taken: a key that lands on a greyed
+     * out option would be a key that does nothing, and the letters would skip
+     * about as options became available. The letter is drawn on the button,
+     * because a shortcut nobody can see is a shortcut nobody uses.
+     */
+    private static assignOptionKeys(): void {
+        const buttons = Effect.options_button_div.querySelectorAll<HTMLButtonElement>(
+            '.button:not(.disable)')
+        buttons.forEach((button, at) => {
+            const key = OPTION_KEYS[at]
+            if( !key ) {
+                return
+            }
+            button.dataset.optionKey = key
+            const hint = document.createElement('span')
+            hint.className = 'option-key'
+            hint.textContent = key
+            button.insertAdjacentElement('afterbegin', hint)
+        })
+    }
+
+    /**
+     * Take the option a key names, and say whether there was one.
+     *
+     * Nothing happens when the options are not on screen, which is what keeps
+     * these letters free for what they do the rest of the time.
+     */
+    static pressOptionKey(event: KeyboardEvent): boolean {
+        if( event.ctrlKey || event.altKey || event.metaKey ) {
+            return false
+        }
+        const key = event.key.toLowerCase()
+        if( !OPTION_KEYS.includes(key) ) {
+            return false
+        }
+        // Target selection has taken the overlay out of reach for the mouse;
+        // the keys go with it rather than clicking through an invisible bar.
+        if( Effect.options_button_div.hasAttribute('inert') ) {
+            return false
+        }
+        const button = Effect.options_button_div.querySelector<HTMLButtonElement>(
+            `.button[data-option-key="${key}"]`)
+        if( !button ) {
+            return false
+        }
+        button.click()
+        return true
     }
 
     /**

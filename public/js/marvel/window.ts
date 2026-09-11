@@ -99,6 +99,79 @@ export class WindowLoad {
         return Boolean(undo) && event.key.toLowerCase() === undo
     }
 
+    /** What Enter does, and what a key chosen for OK does. */
+    static doConfirm(): void {
+        if( !SelectStep.isCard() ) {
+            Button.doBtnOk()
+        }
+    }
+
+    /** What Escape does, and what a key chosen for cancel does. */
+    static doDeny(): void {
+        if( HistoryLog.isOpen() ) {
+            HistoryLog.toggle()
+        }
+        if( DeckTracker.isOpen() ) {
+            DeckTracker.close()
+        }
+        if( StandingPanel.isOpen() ) {
+            StandingPanel.close()
+        }
+        if( HoverCard.center_preview.has_image ) {
+            Button.disablePause()
+        }
+        // else
+        // if( (SelectStep.isTargets() || SelectStep.isCost()) && 
+        //     Effect.select_effect_obj.selected_targets.length > 0 ) {
+        //     Effect.onCancel()
+        // }
+        else
+        if( Effect.isExEffect() && (SelectStep.isTargets() || SelectStep.isCost()) && Effect.select_effect_obj.selected_targets.length > 0 ) {
+            Button.disablePause()
+            Effect.onCancel()
+        }
+        else
+        if( SelectStep.isCard() ||
+            Effect.isExEffect() && (SelectStep.isTargets() || SelectStep.isCost()) && Effect.select_effect_obj.selected_targets.length == 0 ||
+            // Effect.isExEffect() && (SelectStep.isTargets() || SelectStep.isCost()) ||
+            Effect.isExEffect() && SelectStep.isEffect() ||
+            Effect.is_in_event == 'response' ||
+            Effect.is_in_event == 'interrupt'
+        ) {
+            Button.doRedo()
+            // Replay.doReplay(true)
+        }
+        else {
+            Button.doBtnCancel()
+        }
+    }
+
+    /**
+     * A key the player chose themselves, which beats whatever the table would
+     * otherwise do with it.
+     *
+     * Tested before every built-in rather than somewhere in the chain below,
+     * because otherwise the winner depends on where the built-in happens to
+     * sit: OK bound to q would work and OK bound to 1 would open your deck
+     * instead. The settings page warns about the collision; this decides it.
+     */
+    static handleChosenKey(event: KeyboardEvent): boolean {
+        if( WindowLoad.isUndoKey(event) ) {
+            Button.doUndo()
+            return true
+        }
+        const answer = WindowLoad.answerKey(event)
+        if( answer === 'confirm' ) {
+            WindowLoad.doConfirm()
+            return true
+        }
+        if( answer === 'deny' ) {
+            WindowLoad.doDeny()
+            return true
+        }
+        return false
+    }
+
     static onKeyDown(event: KeyboardEvent) {
         if( WindowLoad.isTyping(event) ) {
             return
@@ -121,6 +194,12 @@ export class WindowLoad {
             UI.hold_shift = true
             UI.temp_sorted_deck_div = document.querySelector('.deck.clicked')
             UI.tempSortDeck(true)
+        }
+
+        // Before any built-in, so a chosen key always wins.
+        if( WindowLoad.handleChosenKey(event) ) {
+            event.preventDefault();
+            return
         }
 
         if( event.key == "Pause" ) {
@@ -188,6 +267,13 @@ export class WindowLoad {
             }
         }
         else {
+            // The options on screen answer first: while the game is asking
+            // "Attack, Thwart or Change Form", f picks the fourth of them
+            // rather than turning the previewed card.
+            if( Effect.pressOptionKey(event) ) {
+                event.preventDefault();
+            }
+            else
             if( event.key === "F1"){
                 UI.focusOnPlayer(0)
                 event.preventDefault();
@@ -245,55 +331,13 @@ export class WindowLoad {
                 Replay.doReplay(true, 1, true)
             }
             else
-            if (WindowLoad.isUndoKey(event)) {
-                Button.doUndo()
+            if (event.key === "Enter") {
+                WindowLoad.doConfirm()
                 event.preventDefault();
             }
             else
-            if (event.key === "Enter" || WindowLoad.answerKey(event) === 'confirm') {
-                if( !SelectStep.isCard() ) {
-                    Button.doBtnOk()
-                }
-                event.preventDefault();
-            }
-            else
-            if (event.key === "Escape" || WindowLoad.answerKey(event) === 'deny') {
-                if( HistoryLog.isOpen() ) {
-                    HistoryLog.toggle()
-                }
-                if( DeckTracker.isOpen() ) {
-                    DeckTracker.close()
-                }
-                if( StandingPanel.isOpen() ) {
-                    StandingPanel.close()
-                }
-                if( HoverCard.center_preview.has_image ) {
-                    Button.disablePause()
-                }
-                // else
-                // if( (SelectStep.isTargets() || SelectStep.isCost()) && 
-                //     Effect.select_effect_obj.selected_targets.length > 0 ) {
-                //     Effect.onCancel()
-                // }
-                else
-                if( Effect.isExEffect() && (SelectStep.isTargets() || SelectStep.isCost()) && Effect.select_effect_obj.selected_targets.length > 0 ) {
-                    Button.disablePause()
-                    Effect.onCancel()
-                }
-                else
-                if( SelectStep.isCard() ||
-                    Effect.isExEffect() && (SelectStep.isTargets() || SelectStep.isCost()) && Effect.select_effect_obj.selected_targets.length == 0 ||
-                    // Effect.isExEffect() && (SelectStep.isTargets() || SelectStep.isCost()) ||
-                    Effect.isExEffect() && SelectStep.isEffect() ||
-                    Effect.is_in_event == 'response' ||
-                    Effect.is_in_event == 'interrupt'
-                ) {
-                    Button.doRedo()
-                    // Replay.doReplay(true)
-                }
-                else {
-                    Button.doBtnCancel()
-                }
+            if (event.key === "Escape") {
+                WindowLoad.doDeny()
                 event.preventDefault();
             }
             else
