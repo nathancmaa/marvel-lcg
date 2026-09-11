@@ -1,6 +1,6 @@
 # Marvel Champions Digital: Cerebro Changelog
 
-> Current release version: 0.7.9
+> Current release version: 0.7.10
 
 This document records the user-visible and development changes made in this
 fork after it diverged from the original
@@ -15,6 +15,70 @@ Versions 0.7.2 and 0.7.3 were briefly published as 0.8.0 and 0.8.1 and were
 renumbered onto the 0.7 line. Their tags and releases carry the new numbers
 and point at the same commits; the commits that cut them still name the old
 ones.
+
+## Version 0.7.10 (2026-09-11)
+
+The rules to hand, the cards at your own size, and a deck that says what is
+wrong with it.
+
+- **A quick reference for the keywords and the icons.** **Reference** in the
+  options panel opens the 26 keywords and 13 icons the game puts on the
+  board -- Guard, Peril, Steady, Uses, the acceleration and hazard marks -- in
+  the official reference's own wording rather than a paraphrase, because a
+  rules reference that is nearly right is worse than none. Each icon row draws
+  the app's own mark, so you are looking at the same thing that is on the
+  card. Type in the filter to cut the list down; the X closes it. Opening it
+  closes the options panel behind it.
+- **The cards can be made smaller.** A slider in Settings, and a second one in
+  the right-hand pane so it can be moved mid-game, takes every card from full
+  size down to half in steps of five percent. It is a per-device setting and
+  stays in the browser: an ultrawide and a laptop want different answers, and
+  a size chosen on one should not follow you to the other. A card's contents
+  scale with its frame -- text, stat lines, icons -- which they did not at
+  first, and a shrunken scheme spilling its text past its own edge is what
+  said so.
+- **A deck says what is wrong with it, and still plays.** The deck viewer now
+  reads a deck against the rules and prints what it finds: under forty cards
+  counting signature cards, more copies of a card than it allows, cards from
+  more than one aspect, cards gated on an identity trait this hero does not
+  have, and cards this installation has not implemented. None of it refuses
+  anything. This is a solo table, the rules are yours to bend, and a netdeck
+  built around a card that is not here may be worth trying anyway -- what
+  costs a game is finding out mid-turn.
+- **Stacking, rebuilt around what a card can do.** The stack a character's
+  passive upgrades collapse into is now one stack rather than one per card,
+  sits in front of the character rather than behind whatever happened to be
+  exhausted, and does not take cards in and out as the board changes. What
+  stays out of it is the important part: a card you might spend for its
+  resources is a card you need to reach, and the index the first attempt
+  trusted reports four such cards where the printed text says fifty-nine. The
+  rule now reads the Resource line off the card itself. Encounter cards never
+  collapse.
+- **An option key answers the question.** The home-row keys that pick from a
+  prompt -- Attack, Thwart, Change Form -- now confirm the choice as well as
+  make it, so the common answer is one key rather than a key and then z. A
+  choice that still needs a target picked stops and lets you pick it. There is
+  also a second confirm button directly beneath the options, for the prompts
+  that open far enough from the bar to make the trip worth saving.
+- **One hero or two, where the choosing happens.** The two-handed setting is a
+  1P/2P switch at the top of the Settings pane instead of a checkbox in a
+  list. Quick Game rolls for the standard, expert, or heroic set from a die
+  beside the dropdown. In two-handed play the other player's hand collapses
+  out of the way from the left pane, and a matchup's details name both decks
+  rather than one.
+- **The end-of-game card statistics are one row per card.** Three copies of
+  Energy were three rows saying a third of the story each; they are now one
+  row, totalled, saying how many of that card the deck held.
+- **The matchup grid is grouped by product.** Heroes run in their box's order
+  under a label on its side down the left edge, villains under a bracket
+  across the top, and both labels disappear when the grid is re-sorted by
+  completion, where they would be lying about the order. The column headers
+  stagger so the box name is still readable once the page has scrolled.
+- **Smaller things.** The log menu is now **Options** and closes from an X on
+  its own pane rather than from inside the log window. The deck sync says so
+  in the log when it declines to prune a file, instead of declining in
+  silence. The README no longer claims a new device loses the list of decks
+  you have imported -- that list is on the server and comes back on its own.
 
 ## Version 0.7.9 (2026-09-10)
 
