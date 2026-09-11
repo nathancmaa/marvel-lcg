@@ -15,11 +15,6 @@ body.no-auto-activate .auto-activate-btn {
     display: none;
 }
 
-body.hide-auto-activate .auto-activate-btn {
-    pointer-events: none;
-    border-radius: 50% !important;
-}
-
 .card:not(.auto-activate) .auto-activate-btn {
     color: beige;
 }
@@ -49,7 +44,7 @@ body {
     --display-auto-activate: 0;
 }
 
-body:not(.hide-auto-activate) .area {
+body:not(.no-auto-activate) .area {
     --display-auto-activate: 1;
 }
 

@@ -293,24 +293,17 @@ export class Button{
         })
     }
 
+    /**
+     * The whole feature, on or off.
+     *
+     * This was two switches -- one that let marked cards answer for
+     * themselves, another that decided whether the tick was on the cards at
+     * all -- and the second was off by default, which left the first with no
+     * way to mark anything. Off now means no ticks and no answers.
+     */
     private static doToggleAutoActivate(e: HTMLElement) {
-        // HistoryLog.close()
-        const class_name = 'no-auto-activate'
-        if( e.classList.contains('clicked') ) {
-            document.body.classList.remove(class_name)
-        } else {
-            document.body.classList.add(class_name)
-        }
-    }
-
-    private static doToggleAutoActivateCheckbox(e: HTMLElement) {
-        // HistoryLog.close()
-        const class_name = 'hide-auto-activate'
-        if( e.classList.contains('clicked') ) {
-            document.body.classList.remove(class_name)
-        } else {
-            document.body.classList.add(class_name)
-        }
+        document.body.classList.toggle(
+            'no-auto-activate', !e.classList.contains('clicked'))
     }
 
     static doSave(slot: number) {
@@ -603,18 +596,11 @@ export class Button{
             cookie_name: 'btn_auto_targeting'
         })
         Button.createButtonBase(parent_div4, {
-            text: "Auto Activate",
+            text: "Auto Answer",
             property: "auto_activate",
             onClick: Button.doToggleAutoActivate,
             callWhenInit: true,
             cookie_name: 'btn_auto_activate'
-        })
-        Button.createButtonBase(parent_div4, {
-            text: "Show Auto Activate Checkbox",
-            property: "show_auto_activate",
-            onClick: Button.doToggleAutoActivateCheckbox,
-            callWhenInit: true,
-            cookie_name: 'btn_show_aa_checkbox'
         })
         Button.createButtonBase(parent_div4, {
             text: "Stack Passives",
@@ -756,7 +742,7 @@ export class Button{
             onClick: () => {DeckTracker.toggle()}
         })
         Button.createButtonBase(parent_div_right, {
-            text: "Answers",
+            text: "Auto Answer",
             onClick: () => {StandingPanel.toggle()}
         })
         Button.createButtonBase(parent_div_right, {

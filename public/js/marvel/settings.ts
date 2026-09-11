@@ -105,7 +105,6 @@ export class ButtonSetting {
     static collapse_upgrades = 1
     static players_pin = 1
 
-    static show_auto_activate = 0
     static auto_activate = 1
 
     static pause_when_reveal_or_boost = 1

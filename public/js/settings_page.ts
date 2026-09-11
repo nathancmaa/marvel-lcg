@@ -10,6 +10,7 @@ const autoSaveReplays = document.getElementById('autosave-replays') as HTMLInput
 const twoHandedSolo = document.getElementById('two-handed-solo') as HTMLInputElement
 const confirmKey = document.getElementById('confirm-key') as HTMLInputElement
 const denyKey = document.getElementById('deny-key') as HTMLInputElement
+const undoKey = document.getElementById('undo-key') as HTMLInputElement
 const answerKeyWarning = document.getElementById('answer-key-warning') as HTMLElement
 const bgStatsPlayer = document.getElementById('bgstats-player') as HTMLInputElement
 const bgStatsLocation = document.getElementById('bgstats-location') as HTMLInputElement
@@ -224,6 +225,7 @@ autoSaveReplays.checked = UserSettings.getAutoSaveReplays()
 twoHandedSolo.checked = UserSettings.getTwoHandedSolo()
 confirmKey.value = UserSettings.getConfirmKey()
 denyKey.value = UserSettings.getDenyKey()
+undoKey.value = UserSettings.getUndoKey()
 updateKeyWarning()
 bgStatsPlayer.value = UserSettings.getBgStatsPlayerName()
 bgStatsLocation.value = UserSettings.getBgStatsLocation()
@@ -251,10 +253,19 @@ function keyLabel(key: string): string {
 /** Say what a chosen key already does at the table, without refusing it. */
 function updateKeyWarning(): void {
     const notes: string[] = []
-    if( confirmKey.value && confirmKey.value === denyKey.value ) {
-        notes.push('OK and cancel are the same key, so only cancel will happen.')
+    // Undo is tested first at the table, so it is the one that happens.
+    const pairs = [
+        [confirmKey, denyKey, 'OK and cancel', 'cancel'],
+        [confirmKey, undoKey, 'OK and undo', 'undo'],
+        [denyKey, undoKey, 'Cancel and undo', 'undo'],
+    ] as const
+    for( const [a, b, both, wins] of pairs ) {
+        if( a.value && a.value === b.value ) {
+            notes.push(`${both} are the same key, so only ${wins} will happen.`)
+        }
     }
-    for( const [box, role] of [[confirmKey, 'confirm'], [denyKey, 'cancel']] as const ) {
+    for( const [box, role] of [[confirmKey, 'confirm'], [denyKey, 'cancel'],
+                               [undoKey, 'undo']] as const ) {
         const existing = whatKeyDoes(box.value)
         if( existing ) {
             notes.push(
@@ -295,6 +306,7 @@ function bindKeyBox(box: HTMLInputElement, save: (key: string) => void): void {
 
 bindKeyBox(confirmKey, (key) => UserSettings.setConfirmKey(key))
 bindKeyBox(denyKey, (key) => UserSettings.setDenyKey(key))
+bindKeyBox(undoKey, (key) => UserSettings.setUndoKey(key))
 
 for( const button of document.querySelectorAll<HTMLButtonElement>('.key-clear') ) {
     button.addEventListener('click', () => {
@@ -302,6 +314,8 @@ for( const button of document.querySelectorAll<HTMLButtonElement>('.key-clear') 
         box.value = ''
         if( box === confirmKey ) {
             UserSettings.setConfirmKey('')
+        } else if( box === undoKey ) {
+            UserSettings.setUndoKey('')
         } else {
             UserSettings.setDenyKey('')
         }

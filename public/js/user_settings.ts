@@ -10,6 +10,7 @@ const bgStatsLocationKey = 'marvel_lcg_bgstats_location'
 const twoHandedKey = 'marvel_lcg_two_handed_solo'
 const confirmKeyKey = 'marvel_lcg_confirm_key'
 const denyKeyKey = 'marvel_lcg_deny_key'
+const undoKeyKey = 'marvel_lcg_undo_key'
 
 function readStorage(key: string): string|null {
     try {
@@ -135,5 +136,20 @@ export class UserSettings {
 
     static setDenyKey(key: string) {
         writeStorage(denyKeyKey, key)
+    }
+
+    /**
+     * A bare key for undo, beside ctrl+z.
+     *
+     * Undo is the most pressed key at the table after the two answers, and it
+     * was the only one of the three still needing both hands. Defaults to c,
+     * which nothing else uses and which sits next to the z and x that answer.
+     */
+    static getUndoKey(): string {
+        return readStorage(undoKeyKey) ?? 'c'
+    }
+
+    static setUndoKey(key: string) {
+        writeStorage(undoKeyKey, key)
     }
 }

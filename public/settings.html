@@ -310,7 +310,7 @@
 
         <section class="setting">
             <span class="setting-title">Answer keys</span>
-            <p class="setting-description">A second key for OK and for cancel, beside Enter and Escape, for a hand that is already on the keyboard. Click a box and press the key you want. Leave one empty to turn it off; Enter and Escape keep working either way.</p>
+            <p class="setting-description">A second key for OK, for cancel and for undo, beside Enter, Escape and ctrl+z, for a hand that is already on the keyboard. Click a box and press the key you want. Leave one empty to turn it off; the originals keep working either way.</p>
             <div class="answer-keys">
                 <label class="answer-key">
                     <span class="answer-key-label">OK</span>
@@ -323,6 +323,12 @@
                     <input type="text" id="deny-key" class="key-box" readonly
                            autocomplete="off" placeholder="press a key">
                     <button type="button" class="key-clear" data-clears="deny-key">Clear</button>
+                </label>
+                <label class="answer-key">
+                    <span class="answer-key-label">Undo</span>
+                    <input type="text" id="undo-key" class="key-box" readonly
+                           autocomplete="off" placeholder="press a key">
+                    <button type="button" class="key-clear" data-clears="undo-key">Clear</button>
                 </label>
             </div>
             <p id="answer-key-warning" class="answer-key-warning" role="status" aria-live="polite"></p>

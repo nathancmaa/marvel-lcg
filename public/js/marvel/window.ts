@@ -90,6 +90,15 @@ export class WindowLoad {
         return null
     }
 
+    /** The player's own key for undo, if they have one. ctrl+z is unchanged. */
+    static isUndoKey(event: KeyboardEvent): boolean {
+        if( event.ctrlKey || event.altKey || event.metaKey ) {
+            return false
+        }
+        const undo = UserSettings.getUndoKey().toLowerCase()
+        return Boolean(undo) && event.key.toLowerCase() === undo
+    }
+
     static onKeyDown(event: KeyboardEvent) {
         if( WindowLoad.isTyping(event) ) {
             return
@@ -234,6 +243,11 @@ export class WindowLoad {
             if( event.key == "+" ) {
                 event.preventDefault();
                 Replay.doReplay(true, 1, true)
+            }
+            else
+            if (WindowLoad.isUndoKey(event)) {
+                Button.doUndo()
+                event.preventDefault();
             }
             else
             if (event.key === "Enter" || WindowLoad.answerKey(event) === 'confirm') {
