@@ -1,6 +1,6 @@
 # Marvel Champions Digital: Cerebro Changelog
 
-> Current release version: 0.7.10
+> Current release version: 0.7.11
 
 This document records the user-visible and development changes made in this
 fork after it diverged from the original
@@ -15,6 +15,52 @@ Versions 0.7.2 and 0.7.3 were briefly published as 0.8.0 and 0.8.1 and were
 renumbered onto the 0.7 line. Their tags and releases carry the new numbers
 and point at the same commits; the commits that cut them still name the old
 ones.
+
+## Version 0.7.11 (2026-09-11)
+
+Three products that had been out for a while and were not here.
+
+- **Jessica Jones is finished.** The pack's hero half has been playable since
+  0.7.9; its other half — Captain Marvel, Spider-Woman, Squirrel Girl,
+  Grapnel Launcher, Entrapment, Shakedown, Echo as an ally, the three Innate
+  upgrades — was not here at all, so any netdeck reaching for them found them
+  missing, which in true solo announces itself in the middle of a turn. All
+  twenty are in. Three of them are reprints and point at the printing that
+  already carries the rules rather than repeating it. **Run Them to Ground**
+  needed the engine to learn to skip a villain phase, which nothing had asked
+  for before: a skipped phase still opens and closes, and what it loses is its
+  contents, so end-of-phase cleanups do not go missing with it. Also fixed:
+  the Luke Cage ally's printed wild icon was written "W", which is not a
+  resource code — the parser counts r, b, y and g and ignores the rest — so
+  the card had been showing no icon at all since the pack landed.
+- **Luke Cage.** Thirty-eight cards, the pack's own published Leadership deck
+  as his starter, and Cottonmouth's Serpent Society as his nemesis set. The
+  whole pack is built on tough status cards, and the engine already knew how
+  to hold more than one of them. What it did not have was **unpreventable
+  damage** — Luke Cage's own forced response and Internal Injury both print
+  the word, and without it Metal Bracer, in the same deck, would have shrugged
+  off the damage that is meant to be the price of his skin.
+- **Synthezoid Smackdown**, played the way this app already plays Civil War's
+  four leaders: you fight She-Hulk or Vision, their main scheme is the one
+  threatening you, and the other team is simply not on the table. Two
+  scenarios with expert variants, eight modular sets, both leaders' own sets.
+  The pack is written for two teams playing against each other and that half
+  is not here — the eight cards belonging to the leader's own player say "your
+  leader" or "the enemy leader's main scheme", and a hero has neither, so they
+  are left out rather than shipped inert.
+- **Card art for the two hero packs** comes from Hall of Heroes, which is the
+  only place publishing scans of them; Cerebro and MarvelCDB have nothing in
+  the 61xxx and 62xxx ranges yet. The mapping ships as a script,
+  `tools/fetch_pack_images.py`, and the images themselves do not: this
+  installation has always fetched card art rather than carried it. Run it once
+  against a deployment and the pictures stay put. Three cards have no scan
+  anywhere and fall back to a readable text face. Synthezoid needs none of
+  this — Cerebro carries the whole 57xxx range.
+- **A deck name gets the room it always had.** The heading beside the hero
+  grid puts the step number on the left and the selected deck on the right and
+  never claimed the space between them, so a deck called "Nein Freund" was cut
+  to "Nei..." with a thousand pixels of nothing beside it. A name longer than
+  the whole row still ends in an ellipsis, which is what that was for.
 
 ## Version 0.7.10 (2026-09-11)
 
