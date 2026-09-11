@@ -206,6 +206,9 @@ are per-device and are **not** in any server-side backup:
   the server. Keep a copy of the IDs somewhere if they matter to you.
 - BG Stats player name and location, animation speed, replay autosaving, and
   the deck and scenario filter preferences.
+- **Card size.** Per-device on purpose: a laptop and an ultrawide want
+  different answers, and one shared setting would mean changing it every time
+  you moved between them.
 - The keys chosen for OK, cancel, undo and the options on screen, and whether
   Quick Game is set up for two heroes.
 - The Priority list of standing answers. This one is per game as well as per
