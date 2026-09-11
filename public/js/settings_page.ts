@@ -11,7 +11,6 @@ const animationTimeValue = document.getElementById('animation-time-value') as HT
 const cardScale = document.getElementById('card-scale') as HTMLInputElement
 const cardScaleValue = document.getElementById('card-scale-value') as HTMLOutputElement
 const autoSaveReplays = document.getElementById('autosave-replays') as HTMLInputElement
-const twoHandedSolo = document.getElementById('two-handed-solo') as HTMLInputElement
 const confirmKey = document.getElementById('confirm-key') as HTMLInputElement
 const denyKey = document.getElementById('deny-key') as HTMLInputElement
 const undoKey = document.getElementById('undo-key') as HTMLInputElement
@@ -271,7 +270,6 @@ animationTimeValue.value = `${ANIMATION_TIME_DEFAULT.toFixed(1)} s`
 updateAnimationTime()
 
 autoSaveReplays.checked = UserSettings.getAutoSaveReplays()
-twoHandedSolo.checked = UserSettings.getTwoHandedSolo()
 confirmKey.value = UserSettings.getConfirmKey()
 denyKey.value = UserSettings.getDenyKey()
 undoKey.value = UserSettings.getUndoKey()
@@ -284,9 +282,6 @@ updateMarvelCdbControls()
 animationTime.addEventListener('input', updateAnimationTime)
 autoSaveReplays.addEventListener('change', () => {
     UserSettings.setAutoSaveReplays(autoSaveReplays.checked)
-})
-twoHandedSolo.addEventListener('change', () => {
-    UserSettings.setTwoHandedSolo(twoHandedSolo.checked)
 })
 
 /**

@@ -226,6 +226,10 @@ type PlayerSlot = {
     deckLabel: string;
 };
 
+const handModeButtons = [
+    document.querySelector<HTMLButtonElement>('#hand-mode-1')!,
+    document.querySelector<HTMLButtonElement>('#hand-mode-2')!,
+];
 const playerTabs = document.querySelector<HTMLElement>('#hero-player-tabs')!;
 const playerTabButtons = [
     document.querySelector<HTMLButtonElement>('#player-tab-0')!,
@@ -1138,8 +1142,10 @@ async function initialize(): Promise<void> {
         },
     });
 
-    twoHanded = UserSettings.getTwoHandedSolo();
-    paintPlayerTabs();
+    setHandMode(UserSettings.getTwoHandedSolo());
+    handModeButtons.forEach((button, at) => {
+        button.addEventListener('click', () => setHandMode(at === 1));
+    });
     for (const button of playerTabButtons) {
         button.addEventListener('click', () => {
             switchToPlayer(Number(button.dataset.player));
@@ -1240,6 +1246,32 @@ function restoreSlot(slot: PlayerSlot): void {
     if (slot.source === 'marvelcdb' && slot.marvelCdbDeck) {
         deckSourceController?.setDeck(slot.marvelCdbDeck, '');
     }
+    updatePlayButton();
+}
+
+/**
+ * One hero or two, applied to the screen rather than only remembered.
+ *
+ * Taking effect here and not on the next load is the point of moving it: the
+ * question it answers -- who am I choosing for -- is the question this screen
+ * is asking, so the answer has to change the screen.
+ *
+ * The hero on screen stays selected either way. Switching to one hero does not
+ * discard what the other tab holds; it simply stops asking for it, and the
+ * slot is still there if you switch back.
+ */
+function setHandMode(wanted: boolean): void {
+    twoHanded = wanted;
+    UserSettings.setTwoHandedSolo(wanted);
+    handModeButtons.forEach((button, at) => {
+        button.setAttribute('aria-pressed', String((at === 1) === wanted));
+    });
+    if (wanted) {
+        // What is on screen belongs to whichever tab is open, and until it is
+        // in that slot the summary has nothing to name for this player.
+        captureActiveSlot();
+    }
+    paintPlayerTabs();
     updatePlayButton();
 }
 

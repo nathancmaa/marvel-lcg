@@ -150,6 +150,45 @@ input {
    every time the selection does -- with the tabs before it, that moved them
    sideways on every click, and a control that will not hold still is hard to
    aim at. The text grows leftward into the space instead. */
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+/* One hero or two, switched where the choosing happens rather than on the
+   settings page: it changes what this screen asks you for, so it belongs on
+   this screen. Built like the P1/P2 tabs below it so the two read as the same
+   kind of control -- this one says how many, those say which. */
+.mode-switch {
+    display: inline-flex;
+    padding: 0.15rem;
+    border: 1px solid rgba(120, 210, 255, 0.35);
+    border-radius: 0.5rem;
+    background: rgba(16, 28, 40, 0.9);
+}
+
+.mode-option {
+    min-height: 0;
+    padding: 0.3rem 0.7rem;
+    border: 0;
+    border-radius: 0.35rem;
+    background: transparent;
+    color: #aebbc6;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.mode-option[aria-pressed="true"] {
+    background: rgba(120, 210, 255, 0.18);
+    color: #d8f1ff;
+}
+
+.mode-option:hover:not([aria-pressed="true"]) {
+    color: #d8f1ff;
+}
+
 .heading-right {
     display: flex;
     align-items: center;

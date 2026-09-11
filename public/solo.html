@@ -14,7 +14,16 @@
                 <h1>Quick Game</h1>
                 <p>Choose a hero, scenario, and difficulty.</p>
             </div>
-            <a class="back-link" href="/main">← Main menu</a>
+            <div class="header-right">
+                <div id="hand-mode" class="mode-switch" role="group"
+                     aria-label="How many heroes you are playing">
+                    <button type="button" id="hand-mode-1" class="mode-option"
+                            aria-pressed="true">1P</button>
+                    <button type="button" id="hand-mode-2" class="mode-option"
+                            aria-pressed="false">2P</button>
+                </div>
+                <a class="back-link" href="/main">← Main menu</a>
+            </div>
         </header>
 
         <nav class="mode-nav" aria-label="Game mode">
