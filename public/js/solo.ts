@@ -215,6 +215,15 @@ type PlayerSlot = {
     deck: HeroData | null;
     source: DeckSource;
     marvelCdbDeck: MarvelCdbDeckData | null;
+    /**
+     * What the summary calls this slot's deck.
+     *
+     * Kept as text rather than worked out again later: composeHeroDeck keeps
+     * an aspect or universal deck's cards and not its name, so the slot has
+     * no way back to "Team Tactics (aspect deck)" once the pickers have moved
+     * on to the other player.
+     */
+    deckLabel: string;
 };
 
 const playerTabs = document.querySelector<HTMLElement>('#hero-player-tabs')!;
@@ -224,7 +233,7 @@ const playerTabButtons = [
 ];
 
 function emptySlot(): PlayerSlot {
-    return {hero: null, deck: null, source: 'precon', marvelCdbDeck: null};
+    return {hero: null, deck: null, source: 'precon', marvelCdbDeck: null, deckLabel: ''};
 }
 
 let twoHanded = false;
@@ -295,12 +304,31 @@ async function fetchJson<T>(url: string): Promise<T> {
  * rather than chosen, which is exactly when it is worth checking. This says
  * it in one place, at the point of no return.
  */
-function updateMatchupSummary(): void {
-    const hero = selectedHero;
+/**
+ * The deck the pickers are currently pointing at, named as the summary names
+ * it -- which is not always the tile that looks selected, since an aspect deck
+ * or a loaded netdeck replaces it.
+ */
+function currentDeckLabel(hero: HeroChoice): string {
     const source = deckSourceController?.getSource();
     const aspectDeck = source === 'aspect' ? aspectDeckPicker?.getDeck() ?? null : null;
     const universalDeck = currentUniversalDeck();
     const resolved = source === 'marvelcdb' ? deckSourceController?.getDeck() ?? null : null;
+    return aspectDeck
+        ? `${aspectDeck.name} (aspect deck)`
+        : universalDeck
+            ? `${universalDeck.name} (${universalDeck.aspect})`
+            : source === 'universal'
+                ? 'No universal deck for this hero'
+                : resolved
+                    ? String(resolved.deck_name ?? resolved.name ?? 'MarvelCDB deck')
+                    : hero.isUserDeck
+                        ? hero.name
+                        : `${hero.name} (precon)`;
+}
+
+function updateMatchupSummary(): void {
+    const hero = selectedHero;
 
     if (twoHanded) {
         const names = playerSlots.map((slot, player) => {
@@ -317,21 +345,21 @@ function updateMatchupSummary(): void {
     }
     summaryHeroImage.hidden = !hero;
 
-    // Which deck is actually going to the table, which is not always the tile
-    // that looks selected -- an aspect deck or a loaded netdeck replaces it.
-    summaryDeck.textContent = !hero
-        ? '—'
-        : aspectDeck
-            ? `${aspectDeck.name} (aspect deck)`
-            : universalDeck
-                ? `${universalDeck.name} (${universalDeck.aspect})`
-                : source === 'universal'
-                    ? 'No universal deck for this hero'
-                    : resolved
-                        ? String(resolved.deck_name ?? resolved.name ?? 'MarvelCDB deck')
-                        : hero.isUserDeck
-                            ? hero.name
-                            : `${hero.name} (precon)`;
+    // Which deck is actually going to the table. Two-handed names both, the
+    // way the hero line does: the deck for the player whose tab is not open is
+    // just as much part of the game about to start, and reading only the
+    // active one made the summary look like a one-hero game.
+    if (twoHanded) {
+        const decks = playerSlots.map((slot, player) => {
+            if (player === activePlayer) {
+                return hero ? currentDeckLabel(hero) : 'not chosen';
+            }
+            return slot.hero ? (slot.deckLabel || slot.hero.name) : 'not chosen';
+        });
+        summaryDeck.textContent = `P1 ${decks[0]} · P2 ${decks[1]}`;
+    } else {
+        summaryDeck.textContent = hero ? currentDeckLabel(hero) : '—';
+    }
 
     summaryScenario.textContent = selectedScenario
         ? selectedScenario.name + (selectedUnderling ? ` · ${selectedUnderling.name}` : '')
@@ -1187,6 +1215,7 @@ function captureActiveSlot(): void {
         marvelCdbDeck: source === 'marvelcdb'
             ? deckSourceController?.getDeck() ?? null
             : null,
+        deckLabel: selectedHero ? currentDeckLabel(selectedHero) : '',
     };
     paintPlayerTabs();
 }
