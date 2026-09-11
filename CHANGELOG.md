@@ -16,6 +16,35 @@ renumbered onto the 0.7 line. Their tags and releases carry the new numbers
 and point at the same commits; the commits that cut them still name the old
 ones.
 
+## Version 0.7.11.1 (2026-09-11)
+
+The stand-in card art stops needing a person, and starts replacing itself.
+
+- **Nothing to run.** 0.7.11 shipped the Jessica Jones and Luke Cage art as a
+  script to be run by hand against each installation. It is gone. The mapping
+  it carried is `data/card_images.json`, and the image cache reads it as what
+  it always was — a source, tried after every server in `launch.json` and only
+  when none of them has the card. The pictures arrive the first time a card is
+  looked at, the same way every other pack's do.
+- **And it can improve now.** The script wrote into `assets/pics/`, which is
+  the folder for art you supply yourself and therefore beats everything, for
+  good. Fan sites publish scans of a new pack months before Cerebro and
+  MarvelCDB do, so that was the wrong shelf: those files would still have been
+  the ones on screen a year after the official ones appeared. They go to the
+  ordinary download cache instead, and each is noted in a small index beside
+  it.
+- **The sync thread does the asking.** It is the one thing here that already
+  wakes on a timer, so it offers every card in that index back to the image
+  servers — once on the way in, and after each deck sync. The first server
+  that answers replaces the file and forgets the entry, so the index empties
+  itself as the official art catches up and a table that is fully covered does
+  no work at all. A server refusing a card it has not published yet is the
+  expected answer and is logged as one; seventy-odd cards refusing twice a day
+  is not a log worth keeping.
+- If you ran the old script against a deployment, the files it left in
+  `assets/pics/` will still win. Deleting the `61` and `62` images from that
+  folder hands the job back to the cache.
+
 ## Version 0.7.11 (2026-09-11)
 
 Three products that had been out for a while and were not here.
