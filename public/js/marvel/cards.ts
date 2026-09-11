@@ -306,6 +306,15 @@ class CardRender {
             const aIsStatus = a.card_type === "StatusCard";
             const bIsStatus = b.card_type === "StatusCard";
             if (aIsStatus !== bIsStatus) return aIsStatus ? -1 : 1;
+            // Collapsible upgrades go last within a character's own cards, so
+            // they form one stack at the end of that character's run instead
+            // of tucking behind whichever neighbour they happened to be
+            // played next to. They arrive interleaved with the upgrades that
+            // carry abilities, and collapsing in play order produced a comb:
+            // two tucked, three at full width, no pattern to read.
+            const aStacks = MoveCard.isStackedUpgrade(a);
+            const bStacks = MoveCard.isStackedUpgrade(b);
+            if (aStacks !== bStacks) return aStacks ? 1 : -1;
             if (b.is_dealt_card) return 1;
             if (b.card_type === "Hero" || b.card_type === "AlterEgo") return 1;
             if (a.is_face_up === b.is_face_up && a.is_face_up === false) return 0;

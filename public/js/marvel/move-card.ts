@@ -220,7 +220,7 @@ export class MoveCard {
      * to click stays where you can click it; an ally can carry either kind,
      * which is why this asks the card rather than the row it sits in.
      */
-    private static isStackedUpgrade(card: any): boolean {
+    static isStackedUpgrade(card: any): boolean {
         if (!ButtonSetting.collapse_upgrades) return false;
         if (!card.is_face_up || card.card_type !== 'Upgrade') return false;
         if (!card.is_passive || !card.bind_object_id) return false;
