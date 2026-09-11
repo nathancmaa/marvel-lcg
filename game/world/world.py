@@ -90,6 +90,11 @@ class World(WorldAction, WorldFind):
 
         self.round_id = 0
         self.phase_id = 0
+
+        # Villain phases owed a skip, from cards that say "skip the next
+        # villain phase". A counter rather than a flag: two of them in one
+        # round should skip two phases, not the same one twice.
+        self.skip_villain_phase_count = 0
         self.event_manager = EventManager(self)
         self.buff_manager = BuffManager(self)
         # self.on_event_manager = OnEventManager(self)
@@ -598,7 +603,15 @@ class World(WorldAction, WorldFind):
             phase_begin("Villain")
             if self.is_game_over:
                 return
-            self.VillainPhase()
+            # A skipped villain phase still opens and closes. Its contents
+            # -- threat, activations, encounter cards -- are what the card
+            # removes; the phase boundary stays so that end-of-phase
+            # cleanups and the phase counter do not go missing with it.
+            if self.skip_villain_phase_count > 0:
+                self.skip_villain_phase_count -= 1
+                Message.TextRender("\n--- Villain Phase Skipped ---", self)
+            else:
+                self.VillainPhase()
             if self.is_game_over:
                 return
             phase_end("Villain")

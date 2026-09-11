@@ -64226,7 +64226,7 @@
                 "HP": "3",
                 "ATK": "2**",
                 "THW": "2**",
-                "RES": "W",
+                "RES": "G",
                 "Class": "Hero",
                 "Toughness": "1",
                 "MaxPerDeck": "1"
@@ -64410,6 +64410,196 @@
             "text": "<b>Action</b>: If this card is in your play area, attach it to a non-permanent encounter side scheme.\n<b>Interrupt</b>: When a character thwarts attached scheme, that thwart removes 2 additional threat. If that thwart defeats attached scheme, place 2 evidence counters on Alias Investigations."
         },
         {
+            "card_id": "61015",
+            "type": "Ally",
+            "name": "* Captain Marvel",
+            "subtitle": "Carol Danvers",
+            "desc": {
+                "Cost": "4",
+                "HP": "3",
+                "ATK": "3**",
+                "THW": "2*",
+                "RES": "Y",
+                "Class": "Justice"
+            },
+            "traits": [
+                "AERIAL",
+                "AVENGER"
+            ],
+            "set_name": "",
+            "text": "<b>Response</b>: After Captain Marvel enters play, discard the top 4 cards of your deck. If you discard a printed [energy] resource, remove 2 threat from a scheme. If you discard more than one printed [energy] resource, also confuse an enemy."
+        },
+        {
+            "card_id": "61016",
+            "type": "Ally",
+            "name": "* Spider-Woman",
+            "subtitle": "Mattie Franklin",
+            "desc": {
+                "Cost": "4",
+                "HP": "3",
+                "ATK": "2**",
+                "THW": "2**",
+                "RES": "R",
+                "Class": "Justice"
+            },
+            "traits": [
+                "WEB-WARRIOR"
+            ],
+            "set_name": "",
+            "text": "<b>Response</b>: After a character you control thwarts, place 1 limb counter here (to a maximum of 8). You may discard Spider-Woman to deal 1 damage to an enemy for each limb counter here."
+        },
+        {
+            "card_id": "61017",
+            "type": "Ally",
+            "name": "* Squirrel Girl",
+            "subtitle": "Doreen Green",
+            "desc": {
+                "Cost": "2",
+                "HP": "2",
+                "ATK": "1*",
+                "THW": "1*",
+                "RES": "B",
+                "Class": "Justice"
+            },
+            "traits": [
+                "AVENGER"
+            ],
+            "set_name": "",
+            "text": "<b>Response</b>: After you play Squirrel Girl from your hand, place 1 squirrel counter here for each card in your hand (to a maximum of 4).\n<b>Action</b>: Remove 1 squirrel counter from here \u2192 remove 1 threat from a scheme."
+        },
+        {
+            "card_id": "61018",
+            "full_link": "12031"
+        },
+        {
+            "card_id": "61019",
+            "type": "Event",
+            "name": "Strategy Session",
+            "subtitle": "",
+            "desc": {
+                "Cost": "1",
+                "RES": "Y",
+                "Class": "Justice"
+            },
+            "traits": [
+                "TACTIC",
+                "THWART"
+            ],
+            "set_name": "",
+            "text": "<b>Alter-Ego Action</b>: Choose a player to search their deck for a player side scheme and add it to their hand.\n<b>Hero Action</b> <i>(thwart)</i>: Remove 3 threat from a player side scheme."
+        },
+        {
+            "card_id": "61020",
+            "type": "PlayerSideScheme",
+            "name": "* Run Them to Ground",
+            "subtitle": "",
+            "desc": {
+                "Cost": "0",
+                "RES": "R",
+                "StartingThreat": "4*",
+                "Class": "Justice",
+                "Victory": "0"
+            },
+            "traits": [],
+            "set_name": "",
+            "text": "Victory 0.\n<b>When Defeated</b>: Resolve each of the following:\n\u2022 Skip the next villain phase.\n\u2022 Deal each player 1 facedown encounter card <i>(immediately)</i>.\n\u2022 The villain cannot take damage until the start of the next <i>(unskipped)</i> villain phase."
+        },
+        {
+            "card_id": "61021",
+            "full_link": "41016"
+        },
+        {
+            "card_id": "61022",
+            "full_link": "21052"
+        },
+        {
+            "card_id": "61023",
+            "type": "Upgrade",
+            "name": "Grapnel Launcher",
+            "subtitle": "",
+            "desc": {
+                "Cost": "2",
+                "RES": "Y",
+                "Restricted": "1",
+                "Class": "Justice"
+            },
+            "traits": [
+                "ITEM"
+            ],
+            "set_name": "",
+            "text": "Restricted.\n<b>Hero Action</b>: Discard this card \u2192 make a basic thwart without exhausting <i>(even if you are exhausted)</i>. For this thwart, your hero gets +1 THW and ignores the patrol keyword and any crisis icons <i>([crisis])</i> in play."
+        },
+        {
+            "card_id": "61024",
+            "type": "Upgrade",
+            "name": "Entrapment",
+            "subtitle": "",
+            "desc": {
+                "Cost": "1",
+                "RES": "B",
+                "MaxPerUnit": "1",
+                "Class": "Justice"
+            },
+            "traits": [
+                "PREPARATION"
+            ],
+            "set_name": "",
+            "text": "Max 1 per player.\n<b>Alter-Ego Response</b> <i>(attack)</i>: After the villain schemes, change to hero form and discard this card \u2192 deal damage to the villain equal to the amount of threat placed by that activation."
+        },
+        {
+            "card_id": "61025",
+            "type": "Ally",
+            "name": "* Hellcat",
+            "subtitle": "Patsy Walker",
+            "desc": {
+                "Cost": "4",
+                "HP": "3",
+                "ATK": "2*",
+                "THW": "2*",
+                "RES": "R",
+                "Class": "Basic"
+            },
+            "traits": [
+                "DEFENDER",
+                "MARTIAL ARTIST"
+            ],
+            "set_name": "",
+            "text": "If your identity has the [[DEFENDER]] trait, this card gains: \"<b>Action</b>: Put Hellcat into play from your hand. At the end of the phase, discard her.\""
+        },
+        {
+            "card_id": "61026",
+            "type": "Event",
+            "name": "Joys of Life",
+            "subtitle": "",
+            "desc": {
+                "Cost": "0",
+                "RES": "Y",
+                "Class": "Basic",
+                "Alliance": "1"
+            },
+            "traits": [],
+            "set_name": "",
+            "text": "Alliance.\n<b>Action</b>: Choose:\n\u2022 Exhaust a [[CIVILIAN]] alter-ego \u2192 ready a hero or ally.\n\u2022 Exhaust a hero or ally \u2192 ready a [[CIVILIAN]] alter-ego."
+        },
+        {
+            "card_id": "61027",
+            "type": "Event",
+            "name": "Unbreakable Bond",
+            "subtitle": "",
+            "desc": {
+                "Cost": "1",
+                "RES": "R",
+                "MaxPerDeck": "1",
+                "TeamUp": "Jessica Jones;Luke Cage",
+                "Class": "Basic"
+            },
+            "traits": [
+                "THWART"
+            ],
+            "set_name": "",
+            "text": "Team-Up <i>(Jessica Jones and Luke Cage)</i>. Max 1 per deck.\n<b>Hero Action</b> <i>(thwart)</i>: Remove 3 threat from a scheme. Heal a total of 3 damage from among Jessica Jones and Luke Cage."
+        },
+        {
             "card_id": "61028",
             "type": "PlayerSideScheme",
             "name": "Second Chance",
@@ -64424,6 +64614,23 @@
             "traits": [],
             "set_name": "",
             "text": "Victory 0.\n<b>When Defeated</b>: Each player may shuffle all of their identity-specific cards from their discard pile into their deck."
+        },
+        {
+            "card_id": "61029",
+            "type": "PlayerSideScheme",
+            "name": "* Defend Our City",
+            "subtitle": "",
+            "desc": {
+                "Cost": "0",
+                "RES": "R",
+                "StartingThreat": "3*",
+                "Class": "Basic",
+                "Hinder": "1*",
+                "Victory": "0"
+            },
+            "traits": [],
+            "set_name": "",
+            "text": "[star] Hinder 1[per_hero].\nPrerequisite ([[DEFENDER]]). Victory 0.\n<b>When Defeated</b>: Each player may search their deck and discard pile for a Team-Up card and add it to their hand. Until the end of the phase, reduce the cost to play each Team-Up card by 1."
         },
         {
             "card_id": "61030",
@@ -64513,6 +64720,88 @@
             "text": "Uses (3 pheromone counters).\n<b>Forced Action</b>: Exhaust this card and remove 1 pheromone counter from it \u2192 choose to either play a card that has a printed [physical] resource icon <i>(paying its costs)</i> or add 2 threat to the main scheme."
         },
         {
+            "card_id": "61034",
+            "type": "Upgrade",
+            "name": "Innate Aggression",
+            "subtitle": "",
+            "desc": {
+                "Cost": "2",
+                "Class": "Aggression"
+            },
+            "traits": [
+                "CONDITION"
+            ],
+            "set_name": "",
+            "text": "Starting. <i>(You may add this card to your hand before drawing your starting hand.)</i>\nYour hero gets +1 ATK."
+        },
+        {
+            "card_id": "61035",
+            "type": "Upgrade",
+            "name": "Shakedown",
+            "subtitle": "",
+            "desc": {
+                "Cost": "1",
+                "RES": "R",
+                "MaxPerUnit": "1",
+                "Class": "Aggression"
+            },
+            "traits": [
+                "TACTIC"
+            ],
+            "set_name": "",
+            "text": "Play under any player's control. Max 1 per player.\n<b>Response</b>: After you attack and exactly defeat a minion, exhaust this card \u2192 remove threat from a scheme equal to that minion's base SCH."
+        },
+        {
+            "card_id": "61036",
+            "type": "Upgrade",
+            "name": "Innate Perception",
+            "subtitle": "",
+            "desc": {
+                "Cost": "2",
+                "Class": "Justice"
+            },
+            "traits": [
+                "CONDITION"
+            ],
+            "set_name": "",
+            "text": "Starting. <i>(You may add this card to your hand before drawing your starting hand.)</i>\nYour hero gets +1 THW."
+        },
+        {
+            "card_id": "61037",
+            "type": "Upgrade",
+            "name": "Innate Inspiration",
+            "subtitle": "",
+            "desc": {
+                "Cost": "2",
+                "Class": "Leadership"
+            },
+            "traits": [
+                "CONDITION"
+            ],
+            "set_name": "",
+            "text": "Starting. <i>(You may add this card to your hand before drawing your starting hand.)</i>\nEach ally you control gets +1 hit point."
+        },
+        {
+            "card_id": "61038",
+            "type": "Ally",
+            "name": "* Echo",
+            "subtitle": "Maya Lopez",
+            "desc": {
+                "Cost": "3",
+                "HP": "3",
+                "ATK": "1*",
+                "THW": "1*",
+                "RES": "R",
+                "Class": "Protection"
+            },
+            "traits": [
+                "DEFENDER",
+                "MARTIAL ARTIST"
+            ],
+            "set_name": "",
+            "text": "Reduce the amount of damage Echo takes from each enemy attack by your hero's DEF."
+        },
+        {
             "card_id": "61039",
             "type": "PlayerSideScheme",
             "name": "Lay Low",
@@ -64527,7 +64816,23 @@
             "traits": [],
             "set_name": "",
             "text": "Victory 0.\n<b>When Defeated</b>: Each player may change to alter-ego form. Heal damage from each alter-ego equal to its REC."
+        },
+        {
+            "card_id": "61040",
+            "type": "Upgrade",
+            "name": "Mitigated Threat",
+            "subtitle": "",
+            "desc": {
+                "Cost": "0",
+                "RES": "R",
+                "Class": "Protection"
+            },
+            "traits": [
+                "CONDITION"
+            ],
+            "set_name": "",
+            "text": "Attach to a card. Attached card loses each [acceleration], [amplify], [crisis], and [hazard] icon.\n<b>Forced Response</b>: At the end of the round, each player may spend 1 resource of any type. If any player does not, discard this card."
         }
     ],
-    "checksum": "cb64087b9ee00eb6781f5567ec07e7fa7039cef3cded344c2c18eb565382272a"
+    "checksum": "6b2ef061da2e73ad4ea6a182c8e9448a7e45758cf7818cd340e7864f251bdfc3"
 }

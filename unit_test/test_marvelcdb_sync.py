@@ -241,8 +241,8 @@ class TestUnimplementedCardWarning(unittest.TestCase):
         import cards.database
         with patch.object(cards.database, 'CardsDB', self._fake_db({'01001', '01002'})):
             unknown = MarvelCdbDeckSync.UnimplementedCards(
-                ['01001', '61015', '01002', '61015', '61017'])
-        self.assertEqual(unknown, ['61015', '61017'])
+                ['01001', '99991', '01002', '99991', '99992'])
+        self.assertEqual(unknown, ['99991', '99992'])
 
     def test_nothing_is_reported_when_every_card_is_known(self):
         import cards.database
@@ -256,7 +256,7 @@ class TestUnimplementedCardWarning(unittest.TestCase):
         import cards.database
         with patch.object(cards.database, 'CardsDB', self._fake_db(set())):
             self.assertEqual(
-                MarvelCdbDeckSync.UnimplementedCards(['01001', '61015']), [])
+                MarvelCdbDeckSync.UnimplementedCards(['01001', '99991']), [])
 
     def test_the_warning_reaches_the_sync_result(self):
         with tempfile.TemporaryDirectory() as temp_folder:
@@ -276,7 +276,7 @@ class TestUnimplementedCardWarning(unittest.TestCase):
 
             with patch.object(
                 MarvelCdbDeckSync, 'UnimplementedCards',
-                staticmethod(lambda card_ids: ['61015']),
+                staticmethod(lambda card_ids: ['99991']),
             ):
                 result = service.SyncDecks('1130039')
 
@@ -284,7 +284,7 @@ class TestUnimplementedCardWarning(unittest.TestCase):
             self.assertEqual(len(result['warnings']), 1)
             warning = result['warnings'][0]
             self.assertEqual(warning['id'], '1130039')
-            self.assertEqual(warning['cards'], ['61015'])
+            self.assertEqual(warning['cards'], ['99991'])
             # A deck with missing cards still syncs; it is playable up to a point.
             self.assertEqual(len(result['synced']), 1)
 

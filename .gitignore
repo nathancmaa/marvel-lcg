@@ -1,4 +1,5 @@
 /.vscode/**
+/.claude/
 /.venv/
 /docker-compose.override.yaml
 /.env

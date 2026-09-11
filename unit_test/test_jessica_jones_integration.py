@@ -33,15 +33,24 @@ ROOT = Path(__file__).resolve().parents[1]
 JESSICA_JONES_CARDS = [
     "61001a,61001b",
     *[f"610{number:02d}" for number in range(2, 15)],
-    "61028",
+    # The aspect and basic half of the pack.
+    *[f"610{number:02d}" for number in range(15, 30)],
     "61030",
     "61031",
     "61032",
     "61033a",
     "61033b",
     "61033c",
-    "61039",
+    *[f"610{number:02d}" for number in range(34, 41)],
 ]
+
+# Cards printed again in this pack under a new number. Each one is the same
+# card, so it links to the printing that already carries the rules.
+JESSICA_JONES_REPRINTS = {
+    "61018": "12031",   # Lay Down the Law
+    "61021": "41016",   # Lay the Trap
+    "61022": "21052",   # Determination
+}
 
 
 def load_card(module: str):
@@ -184,6 +193,61 @@ class JessicaJonesIntegrationTests(unittest.TestCase):
     def test_jessica_specific_counter_names_are_registered(self):
         self.assertIn("evidence", CardFace.COUNTER_LIST)
         self.assertIn("pheromone", CardFace.COUNTER_LIST)
+        # Spider-Woman's and Squirrel Girl's. A counter name that is not on
+        # this list places nothing.
+        self.assertIn("limb", CardFace.COUNTER_LIST)
+        self.assertIn("squirrel", CardFace.COUNTER_LIST)
+
+    def test_the_pack_is_complete(self):
+        pack = json.loads(
+            (ROOT / "data/cards.json").read_text(encoding="utf-8")
+        )["jj"]
+        ids = {card["card_id"] for card in pack}
+
+        # 61001 has two faces; everything from 61002 to 61040 is one card.
+        expected = {"61001a", "61001b"}
+        expected |= {f"610{number:02d}" for number in range(2, 33)}
+        expected |= {"61033a", "61033b", "61033c"}
+        expected |= {f"610{number:02d}" for number in range(34, 41)}
+
+        self.assertEqual(ids, expected)
+
+    def test_reprints_link_to_their_first_printing(self):
+        pack = json.loads(
+            (ROOT / "data/cards.json").read_text(encoding="utf-8")
+        )["jj"]
+        by_id = {card["card_id"]: card for card in pack}
+
+        for card_id, first_printing in JESSICA_JONES_REPRINTS.items():
+            with self.subTest(card_id=card_id):
+                self.assertEqual(by_id[card_id].get("full_link"), first_printing)
+
+        self.assertEqual(
+            CardsDB.papers["61022"].name,
+            CardsDB.papers["21052"].name,
+        )
+
+    def test_the_luke_cage_ally_prints_a_wild_resource(self):
+        # It was written as "W", which is not a resource code: ResRBYG.FromText
+        # counts r/b/y/g and ignores everything else, so the printed icon was
+        # parsing as no icon at all.
+        paper = CardsDB.papers["61003"]
+        self.assertEqual(paper.desc["RES"], "G")
+
+    def test_aspect_cards_carry_the_aspect_they_are_printed_in(self):
+        expected = {
+            "61015": "Justice", "61016": "Justice", "61017": "Justice",
+            "61019": "Justice", "61020": "Justice", "61023": "Justice",
+            "61024": "Justice", "61036": "Justice",
+            "61025": "Basic", "61026": "Basic", "61027": "Basic",
+            "61029": "Basic",
+            "61034": "Aggression", "61035": "Aggression",
+            "61037": "Leadership",
+            "61038": "Protection", "61040": "Protection",
+        }
+        for card_id, aspect in expected.items():
+            with self.subTest(card_id=card_id):
+                self.assertEqual(CardsDB.papers[card_id].desc["Class"], aspect)
 
     def test_piecing_it_all_together_does_not_count_toward_limit(self):
         paper = Mock(card_id="61007")
@@ -302,6 +366,138 @@ class JessicaJonesIntegrationTests(unittest.TestCase):
             2,
             effect,
         )
+
+    def test_captain_marvel_counts_only_printed_energy(self):
+        module = load_card("cards.pack.jj.61015")
+        operation = module.GetAbilities()[0].operation
+
+        def run(energy_cards):
+            effect = Mock()
+            effect.targets = ["a scheme"]
+            effect.targets2 = ["an enemy"]
+            initiator = effect.GetInitiator.return_value
+            initiator.DiscardDeckTopCards.return_value = ["four", "cards"]
+            with (
+                patch.object(module, "CardFinder") as card_finder,
+                patch.object(module, "Faces") as faces,
+            ):
+                card_finder.return_value.Checks.return_value = energy_cards
+                operation(effect, Mock())
+            initiator.DiscardDeckTopCards.assert_called_once_with(4, effect)
+            # A wild icon is not an energy icon here, which is what
+            # convert_green_res=False inside the finder is for.
+            self.assertEqual(card_finder.call_args.kwargs, {"has_printed_res": "Y"})
+            return effect.this.CastTo.return_value.RemoveThreatFromSchemes, faces.GiveStatus
+
+        removed, confused = run([])
+        removed.assert_not_called()
+        confused.assert_not_called()
+
+        removed, confused = run(["one energy"])
+        removed.assert_called_once()
+        self.assertEqual(removed.call_args.args[1], 2)
+        confused.assert_not_called()
+
+        removed, confused = run(["one energy", "two energy"])
+        removed.assert_called_once()
+        confused.assert_called_once()
+        self.assertEqual(confused.call_args.args[1], "Confused")
+
+    def test_shakedown_only_answers_an_attack_that_left_nothing_over(self):
+        module = load_card("cards.pack.jj.61035")
+        with patch.object(module.AbilityFactory, "AfterUnitDefeatedUnit") as factory:
+            module.GetAbilities()
+
+        self.assertTrue(factory.call_args.kwargs["is_from_attack"])
+        self.assertFalse(factory.call_args.kwargs["has_excess_damage"])
+        self.assertIs(factory.call_args.args[2], module.Minion)
+
+    def test_echo_reduces_damage_by_her_controllers_hero_defense(self):
+        module = load_card("cards.pack.jj.61038")
+        operation = module.GetAbilities()[0].operation
+
+        effect = Mock()
+        message = Mock()
+        identity = SimpleNamespace(defense=3)
+        effect.this.CastTo.return_value.GetOwnerPlayer.return_value.GetIdentity.return_value = identity
+
+        with patch.object(module.Hero, "IsType", return_value=True):
+            operation(effect, message)
+        message.ReduceDamage.assert_called_once_with(3, effect)
+
+        # In alter-ego form there is no hero DEF to read, and GetHero() would
+        # assert rather than return nothing.
+        message.ReduceDamage.reset_mock()
+        with patch.object(module.Hero, "IsType", return_value=False):
+            operation(effect, message)
+        message.ReduceDamage.assert_not_called()
+
+    def test_run_them_to_ground_owes_the_table_one_villain_phase(self):
+        module = load_card("cards.pack.jj.61020")
+        operation = module.GetAbilities()[0].operation
+
+        effect = Mock()
+        effect.world = SimpleNamespace(skip_villain_phase_count=0)
+        players = [Mock(), Mock()]
+
+        with (
+            patch.object(module.Players, "ForEachPlayer",
+                         side_effect=lambda _effect, action: [action(p) for p in players]),
+            patch.object(module.Worlds, "FindVillain") as find_villain,
+        ):
+            operation(effect, Mock())
+
+        self.assertEqual(effect.world.skip_villain_phase_count, 1)
+        for player in players:
+            player.DealEncounterCards.assert_called_once_with(1, effect)
+
+        # The immunity and its release are both hung on the villain, which is
+        # still in play -- the scheme that granted them is not.
+        villain = find_villain.return_value
+        self.assertEqual(villain.effect.RegisterTemp.call_count, 2)
+
+    def test_a_world_owes_no_skipped_villain_phases_to_begin_with(self):
+        self.assertEqual(self.make_world().skip_villain_phase_count, 0)
+
+    def test_mitigated_threat_puts_the_icons_back_when_it_comes_off(self):
+        module = load_card("cards.pack.jj.61040")
+        with patch.object(module.AbilityFactory, "GiveKeywordToAttached",
+                          return_value=[]) as give_keyword:
+            module.GetAbilities()
+        apply = give_keyword.call_args.kwargs["apply"]
+
+        effect = Mock()
+        face = Mock()
+        apply(effect, face, +1)
+        self.assertEqual(
+            [call.args[1] for call in face.SetIgnoreKeyword.call_args_list],
+            ["Acceleration", "Amplify", "Crisis", "Hazard"],
+        )
+        self.assertTrue(all(
+            call.args[0] == +1 for call in face.SetIgnoreKeyword.call_args_list
+        ))
+
+        face.SetIgnoreKeyword.reset_mock()
+        apply(effect, face, -1)
+        self.assertTrue(all(
+            call.args[0] == -1 for call in face.SetIgnoreKeyword.call_args_list
+        ))
+
+    def test_grapnel_launcher_thwarts_for_one_more_without_exhausting(self):
+        module = load_card("cards.pack.jj.61023")
+        ability = module.GetAbilities()[0]
+
+        effect = Mock()
+        effect.targets = ["the main scheme"]
+        hero = effect.GetInitiator.return_value.GetHero.return_value
+        ability.operation(effect, Mock())
+
+        hero.BasicThwart.assert_called_once()
+        property = hero.BasicThwart.call_args.kwargs["property"]
+        self.assertTrue(property.is_basic_power)
+        self.assertEqual(property.additional_value, 1)
+        self.assertIn("Crisis", ability.ignore.keyword)
+        self.assertIn("Patrol", ability.ignore.keyword)
 
     def test_missing_art_is_rendered_as_a_readable_text_card(self):
         image_data = ImageCreator.CreateNoImage("61004")
