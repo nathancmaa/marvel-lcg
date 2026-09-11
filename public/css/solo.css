@@ -200,8 +200,15 @@ input {
     cursor: default;
 }
 
+/* Takes the rest of the heading row rather than only what its own content
+   asks for. Without the grow, the row's `space-between` left a thousand pixels
+   of nothing in the middle while the deck name beside it was cut to "Nei..." --
+   `min-width: 0` let this side collapse, and nothing told it to claim the room
+   that was already there. The min-width stays: a name longer than the whole
+   row should still end in an ellipsis rather than push the tabs off. */
 .heading-right {
     display: flex;
+    flex: 1 1 auto;
     align-items: center;
     justify-content: flex-end;
     gap: 0.75rem;
