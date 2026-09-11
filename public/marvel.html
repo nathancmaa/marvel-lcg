@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="/public/css/marvel/history.css">
     <link rel="stylesheet" href="/public/css/marvel/deck-tracker.css">
     <link rel="stylesheet" href="/public/css/marvel/standing-answers.css">
+    <link rel="stylesheet" href="/public/css/marvel/quick-reference.css">
     <link rel="stylesheet" href="/public/css/marvel/prompt.css">
     <link rel="stylesheet" href="/public/css/marvel/phase.css">
     <link rel="stylesheet" href="/public/css/marvel/target-arrow.css">
@@ -190,6 +191,17 @@
         </div>
         <div class='image-preview-name'></div>
         <div class="image-preview-debug-text debug-only"></div>
+    </div>
+
+    <div id="quick-reference" class="hide">
+        <div id="quick-reference-head">
+            <span id="quick-reference-title">Quick reference</span>
+            <input type="text" id="quick-reference-filter" autocomplete="off"
+                   placeholder="Filter" aria-label="Filter the reference">
+            <span id="quick-reference-close" role="button" tabindex="0"
+                  title="Close">&times;</span>
+        </div>
+        <div id="quick-reference-body"></div>
     </div>
 
     <div id="standing-answers" class="hide">

@@ -1,6 +1,7 @@
 import { DeckTracker } from './deck_tracker.js'
 import { MoveCard } from './move-card.js'
 import { StandingPanel } from './standing_panel.js'
+import { QuickReference } from './quick_reference.js'
 import { Lib } from './lib.js'
 import { Setting, ButtonSetting } from './settings.js'
 import { Game } from './game.js'
@@ -521,6 +522,10 @@ export class Button{
             text: "Card Text",
             property: 'show_image_text',
             cookie_name: 'btn_image_text'
+        })
+        Button.createButtonBase(parent_div2, {
+            text: "Reference",
+            onClick: () => {QuickReference.toggle()}
         })
         Button.createButtonBase(parent_div2, {
             text: "Preview",

@@ -1,0 +1,149 @@
+/* The quick reference panel.
+   Built on the standing answers panel so the two read as the same kind of
+   thing, but wider and taller: this one is read rather than operated, and the
+   entries are sentences instead of card names. */
+
+#quick-reference {
+    position: absolute;
+    top: 3rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 60;
+    width: min(46rem, 92vw);
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    padding: 0.75rem 0.9rem 0.9rem;
+    border: 1px solid rgba(120, 210, 255, 0.4);
+    border-radius: 0.6rem;
+    background: rgba(10, 18, 28, 0.97);
+    box-shadow: 0 1rem 2.5rem rgba(0, 0, 0, 0.55);
+    color: #e6eef6;
+    font-size: 0.9rem;
+}
+
+#quick-reference.hide {
+    display: none;
+}
+
+#quick-reference-head {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(143, 190, 224, 0.35);
+}
+
+#quick-reference-title {
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+/* Pushed to the right of the title and kept narrow: 39 entries is enough to
+   scroll past, and few enough that a filter is a convenience rather than the
+   only way in. */
+#quick-reference-filter {
+    flex: 1;
+    min-width: 0;
+    max-width: 14rem;
+    margin-left: auto;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid rgba(120, 210, 255, 0.3);
+    border-radius: 0.3rem;
+    background: rgba(16, 28, 40, 0.9);
+    color: #e6eef6;
+    font: inherit;
+}
+
+#quick-reference-filter:focus {
+    outline: none;
+    border-color: #78d2ff;
+}
+
+#quick-reference-close {
+    cursor: pointer;
+    padding: 0 0.35rem;
+    color: #aebbc6;
+    font-size: 1.1rem;
+    line-height: 1;
+}
+
+#quick-reference-close:hover {
+    color: #d8f1ff;
+}
+
+#quick-reference-body {
+    overflow-y: auto;
+    padding-right: 0.2rem;
+}
+
+.reference-section[hidden] {
+    display: none;
+}
+
+.reference-section h3 {
+    position: sticky;
+    top: 0;
+    margin: 0.8rem 0 0.4rem;
+    padding: 0.2rem 0;
+    background: rgba(10, 18, 28, 0.97);
+    color: #78d2ff;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.reference-section:first-child h3 {
+    margin-top: 0.4rem;
+}
+
+.reference-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+/* Name and text on one line at width, stacked when there is not room for
+   both: the name column is what makes this scannable, so it holds until it
+   would squeeze the sentence beside it into a column of single words. */
+.reference-row {
+    display: grid;
+    grid-template-columns: 11rem minmax(0, 1fr);
+    gap: 0.2rem 0.8rem;
+    padding: 0.35rem 0.45rem;
+    border-radius: 0.35rem;
+    background: rgba(22, 36, 50, 0.9);
+}
+
+.reference-row[hidden] {
+    display: none;
+}
+
+.reference-name {
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    font-weight: 600;
+    color: #d8f1ff;
+}
+
+/* The app's own mark, at the size of the text beside it. */
+.reference-icon {
+    font-size: 1.05em;
+    line-height: 1;
+}
+
+.reference-text {
+    color: #c3d0dc;
+    line-height: 1.4;
+}
+
+@media (max-width: 44rem) {
+    .reference-row {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
