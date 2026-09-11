@@ -1129,6 +1129,39 @@ input {
     font-weight: 700;
 }
 
+/* The select and its die, kept in one grid cell so the row stays two columns
+   and the description below it still spans as it did. */
+.set-with-dice {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    justify-self: start;
+}
+
+.dice-button {
+    min-height: 2.4rem;
+    padding: 0.3rem 0.6rem;
+    border: 1px solid rgba(143, 190, 224, 0.4);
+    border-radius: 0.45rem;
+    background: rgba(120, 210, 255, 0.08);
+    color: #9fd7f5;
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.dice-button:hover:not(:disabled),
+.dice-button:focus-visible:not(:disabled) {
+    background: rgba(120, 210, 255, 0.16);
+    border-color: rgba(143, 190, 224, 0.75);
+}
+
+.dice-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
 .standard-set-option select {
     min-height: 2.4rem;
     justify-self: start;

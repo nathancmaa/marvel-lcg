@@ -168,11 +168,16 @@
             </div>
             <div class="standard-set-option">
                 <label for="standard-set">Standard set</label>
-                <select id="standard-set">
-                    <option value="standard">Standard I</option>
-                    <option value="standard_ii">Standard II</option>
-                    <option value="standard_iii">Standard III</option>
-                </select>
+                <div class="set-with-dice">
+                    <select id="standard-set">
+                        <option value="standard">Standard I</option>
+                        <option value="standard_ii">Standard II</option>
+                        <option value="standard_iii">Standard III</option>
+                    </select>
+                    <button type="button" id="randomize-standard-set" class="dice-button"
+                            title="Pick a Standard set at random"
+                            aria-label="Pick a Standard set at random">&#127922;</button>
+                </div>
                 <small id="standard-set-description">The baseline encounter cards every scenario is dealt.</small>
             </div>
             <label class="expert-option" for="expert-mode">

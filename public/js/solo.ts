@@ -142,6 +142,7 @@ const difficultyStepNumber = document.querySelector<HTMLElement>('#difficulty-st
 const standardSet = document.querySelector<HTMLSelectElement>('#standard-set')!;
 const heroicLevel = document.querySelector<HTMLSelectElement>('#heroic-level')!;
 const standardSetDescription = document.querySelector<HTMLElement>('#standard-set-description')!;
+const randomizeStandardSet = document.querySelector<HTMLButtonElement>('#randomize-standard-set')!;
 const heroSection = document.querySelector<HTMLElement>('#hero-section')!;
 const aspectHero = document.querySelector<HTMLSelectElement>('#aspect-hero')!;
 const underlingSection = document.querySelector<HTMLElement>('#underling-section')!;
@@ -478,6 +479,8 @@ function updateDifficulty(): void {
         ? (selectedScenario.data.encounter_sets ?? []).some(isStandardSet)
         : true;
     standardSet.disabled = !dealt;
+    // Nothing to roll for when the scenario is dealt no Standard set at all.
+    randomizeStandardSet.disabled = !dealt;
     standardSetDescription.textContent = dealt
         ? 'Standard II and III stand in for Standard I rather than stacking on it.'
         : 'This scenario is played without a Standard encounter set.';
@@ -1424,6 +1427,18 @@ expertMode.addEventListener('change', updateDifficulty);
 standardSet.addEventListener('change', () => {
     localStorage.setItem(standardSetStorageKey, standardSet.value);
     updateDifficulty();
+});
+randomizeStandardSet.addEventListener('click', () => {
+    // Every set, including the one already chosen: a die that cannot land on
+    // the face it is showing is not a die, and rerolling until it changes
+    // would quietly make Standard I likelier the more often you use it.
+    const options = [...standardSet.options];
+    const pick = options[Math.floor(Math.random() * options.length)];
+    if (!pick) {
+        return;
+    }
+    standardSet.value = pick.value;
+    standardSet.dispatchEvent(new Event('change', {bubbles: true}));
 });
 heroicLevel.addEventListener('change', () => {
     localStorage.setItem(heroicLevelStorageKey, heroicLevel.value);
