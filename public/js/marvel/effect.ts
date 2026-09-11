@@ -970,7 +970,34 @@ export class Effect {
             return false
         }
         button.click()
+
+        // Answer it too. Choosing an option and then reaching for OK is two
+        // presses for one decision, which is most of what the key was for.
+        // Pressing the same key again deselects, and a deselection is not a
+        // decision to confirm.
+        if( button.classList.contains('clicked') && !Effect.needsTargetChoice() ) {
+            Button.doBtnOk()
+        }
         return true
+    }
+
+    /**
+     * Whether the player still has targets to pick for the chosen option.
+     *
+     * Auto-targeting fills them in where the choice is forced, so this asks
+     * what is still outstanding rather than whether the option takes targets
+     * at all -- "attack with this ally" needs a target and never asks for one
+     * when there is a single enemy.
+     */
+    private static needsTargetChoice(): boolean {
+        const effect = Effect.select_effect_obj
+        if( !effect || effect.target_num_range[1] <= 0 ) {
+            return false
+        }
+        if( effect.all_legal_targets.length === 0 ) {
+            return false
+        }
+        return effect.selected_targets.length < effect.target_num_range[0]
     }
 
     /**
