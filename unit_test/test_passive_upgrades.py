@@ -5,7 +5,11 @@ from engine import Engine
 
 from cards.database import CardsDB
 from engine.lib.version import Ver
-from game.card.card import AbilityAsksThePlayer, AbilityIsAnswerable
+from game.card.card import (
+    AbilityAsksThePlayer,
+    AbilityIsAnswerable,
+    CardPrintsAResourceAbility,
+)
 
 
 class PassiveUpgradeTests(unittest.TestCase):
@@ -22,10 +26,17 @@ class PassiveUpgradeTests(unittest.TestCase):
             CardsDB.Initialize()
 
     def IsPassive(self, name: str) -> bool:
+        """The same two tests the card descriptor makes, in the same order.
+
+        The printed line has to be one of them. Asking the abilities alone
+        cannot see a resource: at runtime every card carries a CheckResource
+        effect, because any card can be discarded for the icons printed on it,
+        so that question comes back yes for everything.
+        """
         for card_id, paper in CardsDB.papers.items():
             if paper.name == name and paper.type == 'Upgrade':
                 abilities = CardsDB.FindAbilities(card_id, paper.pack, paper.set_name)
-                return not any(AbilityAsksThePlayer(x) for x in abilities)
+                return not any(AbilityAsksThePlayer(x) for x in abilities)                     and not CardPrintsAResourceAbility(paper.text)
         self.fail(f"no upgrade named {name} in this installation")
 
     def test_upgrades_that_only_change_a_stat_are_passive(self):

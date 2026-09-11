@@ -1,3 +1,4 @@
+import re
 from typing import Final
 from core import *
 from game.card.states import CardIsStates, CardCanStates
@@ -12,6 +13,20 @@ from game.message import *
 from game.world.game_area import *
 from game.world import *
 from game.render.descriptor.card import CardDescriptor
+
+
+# A card that prints its own Resource line: "Resource: Exhaust this card and
+# take 1 damage -> generate a wild resource". Read from the text because the
+# abilities cannot tell us: at runtime every card in play carries a
+# CheckResource effect, since any card can be spent for the icons printed on
+# it, so asking the effects makes every card look spendable. The printed line
+# is also what the player is reading when they reach for the card.
+RESOURCE_LINE = re.compile(r'<b>\s*(?:Hero |Alter-Ego )?Resource\s*</b>', re.IGNORECASE)
+
+
+def CardPrintsAResourceAbility(text: str) -> bool:
+    """Whether this card offers a resource of its own, rather than its icons."""
+    return bool(RESOURCE_LINE.search(text or ''))
 
 
 def AbilityIsAnswerable(ability: 'Ability') -> bool:
@@ -40,14 +55,6 @@ def AbilityAsksThePlayer(ability: 'Ability') -> bool:
     the table stack it out of the way.
     """
     flags = ability.flags
-    # is_check_pay is the one that is not about being offered a choice: it
-    # marks a card that can be spent to pay for another, which is a click on
-    # that card whatever else it does. It is declared forced -- the game checks
-    # it rather than asking -- so the not-forced test below would drop it, and
-    # dropping it stacked Web-Shooter, Expert Marksman and every other
-    # resource-generating upgrade out of reach behind its neighbours.
-    if flags.is_check_pay:
-        return True
     return AbilityIsAnswerable(ability) or (
         not flags.is_forced and (flags.is_action or flags.is_resource))
 
@@ -1066,7 +1073,7 @@ class Card(Object):
             is_action           = any(x for x in self.face.effects if x.ability.flags.is_action), #  or x.ability.type.is_resource
             is_passive          = not any(
                 AbilityAsksThePlayer(x.ability) for x in self.face.effects
-            ),
+            ) and not CardPrintsAResourceAbility(self.face.paper.text),
             has_response        = any(
                 AbilityIsAnswerable(x.ability) for x in self.face.effects
             ),
