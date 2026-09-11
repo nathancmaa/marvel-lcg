@@ -792,6 +792,25 @@
         ],
         "max_id": "56214"
     },
+    "57. Synthezoid Smackdown": {
+        "name": "synthezoid",
+        "scenarios": [
+            "she_hulk",
+            "vision"
+        ],
+        "heroes": [],
+        "encounters": [
+            "deadly_duo",
+            "moon_knight",
+            "royal_guard",
+            "scarlet_twins",
+            "shield_ops",
+            "taskmaster",
+            "thunderbolts",
+            "young_avengers"
+        ],
+        "max_id": "57081"
+    },
     "58. Wonder Man": {
         "name": "wonder_man",
         "scenarios": [],
@@ -900,5 +919,5 @@
         "heroes": [],
         "encounters": []
     },
-    "checksum": "8acfd7d2815f89bc6bfba6cc2a0a1462f0cf5ce602d6df11bb8152c5c6e10d1c"
+    "checksum": "53be51e0ff09936bb3c8c61295d5bd423d6c5b3eaeebfb9281a1fa4c457442ff"
 }

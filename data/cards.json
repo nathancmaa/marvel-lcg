@@ -65404,5 +65404,1109 @@
             "text": "Play only if any player controls a [[MARTIAL ARTIST]] card.\nAttach to a friendly character. Max 1 per character.\nAttached character gets +1 hit point and gains the [[MARTIAL ARTIST]] trait."
         }
     ],
-    "checksum": "93be190436fd3661bab5b90bc9bb064106f213c66ab3cc8d4603172d8906ca51"
+    "synthezoid": [
+        {
+            "card_id": "57001",
+            "type": "Leader",
+            "name": "* She-Hulk",
+            "subtitle": "",
+            "desc": {
+                "HP": "16*",
+                "ATK": "2",
+                "SCH": "1",
+                "Stage": "I"
+            },
+            "traits": [
+                "AVENGER",
+                "GAMMA"
+            ],
+            "set_name": "She-Hulk",
+            "text": "<b>Setup</b>: The enemy team finds a copy of Superhuman Strength and attaches it to She-Hulk.\n<b>Forced Response</b>: After an alter-ego changes to hero form, deal 1 damage to that hero."
+        },
+        {
+            "card_id": "57002",
+            "type": "Leader",
+            "name": "* She-Hulk",
+            "subtitle": "",
+            "desc": {
+                "HP": "20*",
+                "ATK": "3",
+                "SCH": "1",
+                "Steady": "1",
+                "Stage": "II"
+            },
+            "traits": [
+                "AVENGER",
+                "GAMMA"
+            ],
+            "set_name": "She-Hulk",
+            "text": "Steady.\n<b>When Revealed</b>: Deal each player an encounter card. She-Hulk cannot take damage this phase.\n<b>Forced Response</b>: After an alter-ego changes to hero form, deal 1 damage to that hero."
+        },
+        {
+            "card_id": "57003",
+            "type": "Leader",
+            "name": "* She-Hulk",
+            "subtitle": "",
+            "desc": {
+                "HP": "20*",
+                "ATK": "3",
+                "SCH": "1",
+                "Stage": "III"
+            },
+            "traits": [
+                "AVENGER",
+                "GAMMA"
+            ],
+            "set_name": "She-Hulk",
+            "text": "<b>Setup</b>: The enemy team finds a copy of Superhuman Strength and attaches it to She-Hulk.\n<b>Forced Response</b>: After an alter-ego changes to hero form, deal 1 damage to that hero."
+        },
+        {
+            "card_id": "57004",
+            "type": "Leader",
+            "name": "* She-Hulk",
+            "subtitle": "",
+            "desc": {
+                "HP": "24*",
+                "ATK": "3",
+                "SCH": "2",
+                "Steady": "1",
+                "Stage": "IV"
+            },
+            "traits": [
+                "AVENGER",
+                "GAMMA"
+            ],
+            "set_name": "She-Hulk",
+            "text": "Steady.\n<b>When Revealed</b>: Deal each player an encounter card. She-Hulk cannot take damage this phase.\n<b>Forced Response</b>: After an alter-ego changes to hero form, deal 1 damage to that hero."
+        },
+        {
+            "card_id": "57005a",
+            "type": "MainScheme",
+            "name": "Superhero Registration Act",
+            "subtitle": "",
+            "desc": {
+                "Stage": "1A"
+            },
+            "traits": [],
+            "set_name": "Registration",
+            "text": "<b>Contents</b>: Chosen leader I and II <i>(III and IV for expert mode)</i>. Chosen leader's set, Standard set, and 3\u20134 modular sets.\n<b>Setup</b>: In competitive mode, the enemy team finds the Choosing Sides side scheme and your team reveals it. In cooperative mode, find the chosen leader's side scheme and reveal it.",
+            "ability_link": "56063a"
+        },
+        {
+            "card_id": "57005b",
+            "type": "MainScheme",
+            "name": "Enforce the Law",
+            "subtitle": "",
+            "desc": {
+                "StartingThreat": "0",
+                "TargetThreat": "7*",
+                "EscalationThreat": "1*",
+                "Stage": "1B"
+            },
+            "traits": [],
+            "set_name": "Registration",
+            "text": "If there is more than 1 player on your team, this stage gains hinder 2[per_hero].\nThe enemy leader gains steady."
+        },
+        {
+            "card_id": "57006a",
+            "type": "MainScheme",
+            "name": "Pro-Registration Tactics",
+            "subtitle": "",
+            "desc": {
+                "Stage": "2A"
+            },
+            "traits": [],
+            "set_name": "Registration",
+            "text": ""
+        },
+        {
+            "card_id": "57006b",
+            "type": "MainScheme",
+            "name": "Mighty Avengers",
+            "subtitle": "",
+            "desc": {
+                "StartingThreat": "0",
+                "TargetThreat": "9*",
+                "EscalationThreat": "1*",
+                "Stage": "2B"
+            },
+            "traits": [],
+            "set_name": "Registration",
+            "text": "While the enemy leader is attacking, it gets +1 ATK (+2 ATK instead if the attack is undefended).\n<b>If this stage is completed, the players lose the game.</b>",
+            "ability_link": "56142b"
+        },
+        {
+            "card_id": "57007",
+            "type": "Attachment",
+            "name": "Superhuman Strength",
+            "subtitle": "",
+            "desc": {
+                "ATK+": "2"
+            },
+            "traits": [
+                "SUPERPOWER"
+            ],
+            "set_name": "She-Hulk",
+            "text": "Attach to She-Hulk.\n[star] <b>Forced Interrupt</b>: When She-Hulk attacks, this attack gains overkill. Discard this card after this attack.\n[star] <b>Boost</b>: Reveal this card."
+        },
+        {
+            "card_id": "57008",
+            "type": "Attachment",
+            "name": "Focused Rage",
+            "subtitle": "",
+            "desc": {
+                "SCH+": "1"
+            },
+            "traits": [
+                "SUPERPOWER"
+            ],
+            "set_name": "She-Hulk",
+            "text": "Attach to She-Hulk.\nShe-Hulk gains stalwart.\n[star] <b>Forced Response</b>: After She-Hulk schemes, discard this card.\n[star] <b>Boost</b>: Reveal this card."
+        },
+        {
+            "card_id": "57009",
+            "type": "Treachery",
+            "name": "One-Two Punch",
+            "subtitle": "",
+            "desc": {
+                "Boost": "2"
+            },
+            "traits": [],
+            "set_name": "She-Hulk",
+            "text": "<b>When Revealed (Alter-Ego)</b>: She-Hulk schemes. Give her a tough status card.\n<b>When Revealed (Hero)</b>: She-Hulk attacks you. Give her a tough status card."
+        },
+        {
+            "card_id": "57010",
+            "type": "Treachery",
+            "name": "Ground Stomp",
+            "subtitle": "",
+            "desc": {
+                "Boost": "0*"
+            },
+            "traits": [],
+            "set_name": "She-Hulk",
+            "text": "<b>When Revealed</b>: Exhaust each character you control. If no character was exhausted this way, this card gains surge.\n[star] <b>Boost</b>: Exhaust a character you control."
+        },
+        {
+            "card_id": "57011",
+            "type": "Treachery",
+            "name": "Gamma Slam",
+            "subtitle": "",
+            "desc": {
+                "Boost": "3"
+            },
+            "traits": [],
+            "set_name": "She-Hulk",
+            "text": "<b>When Revealed</b>: Discard the highest-cost ally or support you control. Place threat on the main scheme equal to that card's cost. If no threat is placed on the main scheme this way, this card gains surge."
+        },
+        {
+            "card_id": "57012",
+            "type": "SideScheme",
+            "name": "Legal Practice",
+            "subtitle": "",
+            "desc": {
+                "Boost": "3",
+                "Acceleration": "1",
+                "StartingThreat": "3*"
+            },
+            "traits": [],
+            "set_name": "She-Hulk",
+            "text": "Threat cannot be removed from this scheme by heroes or allies.\n<b>Alter-Ego Response</b>: After you change form, exhaust your identity \u2192 remove 3 threat from this scheme."
+        },
+        {
+            "card_id": "57013",
+            "type": "Minion",
+            "name": "S.H.I.E.L.D. Operator",
+            "subtitle": "",
+            "desc": {
+                "HP": "3",
+                "ATK": "2",
+                "SCH": "2",
+                "Boost": "2",
+                "Patrol": "1"
+            },
+            "traits": [
+                "S.H.I.E.L.D"
+            ],
+            "set_name": "S.H.I.E.L.D. Ops",
+            "text": "Patrol.\n<b>When Revealed</b>: Place 2 threat on the main scheme."
+        },
+        {
+            "card_id": "57014",
+            "type": "Treachery",
+            "name": "Strategic Overwatch",
+            "subtitle": "",
+            "desc": {
+                "Boost": "0*"
+            },
+            "traits": [],
+            "set_name": "S.H.I.E.L.D. Ops",
+            "text": "<b>When Revealed</b>: Give the enemy leader and each minion a tough status card.\n[star] <b>Boost</b>: Give the activating enemy a tough status card."
+        },
+        {
+            "card_id": "57015",
+            "type": "Treachery",
+            "name": "Rapid Response",
+            "subtitle": "",
+            "desc": {
+                "Boost": "1"
+            },
+            "traits": [],
+            "set_name": "S.H.I.E.L.D. Ops",
+            "text": "<b>When Revealed</b>: Discard cards from the encounter deck until a minion is discarded. If you are in:\n\u2022 Alter-ego form, place threat on the main scheme equal to that minion's SCH.\n\u2022 Hero form, deal damage to your hero equal to that minion's ATK.",
+            "ability_link": "56110"
+        },
+        {
+            "card_id": "57016",
+            "type": "SideScheme",
+            "name": "Homeland Security",
+            "subtitle": "",
+            "desc": {
+                "Boost": "3",
+                "Acceleration": "1",
+                "StartingThreat": "3",
+                "Hinder": "1*"
+            },
+            "traits": [],
+            "set_name": "S.H.I.E.L.D. Ops",
+            "text": "Hinder 1[per_hero].\nThe first minion revealed each round gains surge."
+        },
+        {
+            "card_id": "57017",
+            "type": "Minion",
+            "name": "* Atlas",
+            "subtitle": "",
+            "desc": {
+                "HP": "4",
+                "ATK": "2",
+                "SCH": "1",
+                "Boost": "0*"
+            },
+            "traits": [
+                "GIANT",
+                "THUNDERBOLT"
+            ],
+            "set_name": "Thunderbolts",
+            "text": "<b>When Revealed</b>: Stun your leader. Otherwise, you are stunned.\n[star] <b>Boost</b>: Stun your leader. Otherwise, you are stunned."
+        },
+        {
+            "card_id": "57018",
+            "type": "Minion",
+            "name": "* Songbird",
+            "subtitle": "",
+            "desc": {
+                "HP": "3",
+                "ATK": "1",
+                "SCH": "2",
+                "Boost": "0*"
+            },
+            "traits": [
+                "AERIAL",
+                "THUNDERBOLT"
+            ],
+            "set_name": "Thunderbolts",
+            "text": "<b>When Revealed</b>: Confuse your leader. Otherwise, you are confused.\n[star] <b>Boost</b>: Confuse your leader. Otherwise, you are confused."
+        },
+        {
+            "card_id": "57019",
+            "type": "Minion",
+            "name": "* Penance",
+            "subtitle": "",
+            "desc": {
+                "HP": "4",
+                "ATK": "2",
+                "SCH": "2",
+                "Boost": "0*"
+            },
+            "traits": [
+                "THUNDERBOLT"
+            ],
+            "set_name": "Thunderbolts",
+            "text": "<b>When Revealed</b>: Deal 2 damage to your leader. Otherwise, deal 2 damage to a character you control.\n[star] <b>Boost</b>: Deal 2 damage to your leader. Otherwise, deal 1 damage to a character you control."
+        },
+        {
+            "card_id": "57020",
+            "type": "Treachery",
+            "name": "Justice Like Lightning",
+            "subtitle": "",
+            "desc": {
+                "Boost": "1"
+            },
+            "traits": [],
+            "set_name": "Thunderbolts",
+            "text": "<b>When Revealed</b>: Each minion activates against the player it is engaged with. Otherwise, the enemy leader activates against you. Do not give it a boost card for this activation.",
+            "ability_link": "56089"
+        },
+        {
+            "card_id": "57021",
+            "type": "SideScheme",
+            "name": "The Thunderbolts",
+            "subtitle": "",
+            "desc": {
+                "Boost": "2",
+                "Hazard": "1",
+                "StartingThreat": "3",
+                "Hinder": "1*"
+            },
+            "traits": [],
+            "set_name": "Thunderbolts",
+            "text": "Hinder 1[per_hero].\nThreat cannot be removed from this scheme while a [[THUNDERBOLT]] minion is in play."
+        },
+        {
+            "card_id": "57022",
+            "type": "Minion",
+            "name": "* Taskmaster",
+            "subtitle": "",
+            "desc": {
+                "HP": "6",
+                "ATK": "1",
+                "SCH": "1",
+                "Boost": "3",
+                "Toughness": "1",
+                "Retaliate": "1",
+                "Villainous": "1"
+            },
+            "traits": [
+                "ELITE",
+                "THUNDERBOLT"
+            ],
+            "set_name": "Taskmaster",
+            "text": "Retaliate 1. Toughness. Villainous.\n<b>When Revealed</b>: Taskmaster activates against you."
+        },
+        {
+            "card_id": "57023",
+            "type": "Attachment",
+            "name": "* Taskmaster's Sword",
+            "subtitle": "",
+            "desc": {
+                "Boost": "1",
+                "ATK+": "1"
+            },
+            "traits": [
+                "WEAPON"
+            ],
+            "set_name": "Taskmaster",
+            "text": "Attach to Taskmaster. Otherwise, attach to the enemy leader.\n[star] Attached character's attacks gain piercing.\n<b>Hero Action</b>: Spend [mental] [physical] resources \u2192 discard this card."
+        },
+        {
+            "card_id": "57024",
+            "type": "Attachment",
+            "name": "* Taskmaster's Shield",
+            "subtitle": "",
+            "desc": {
+                "Boost": "1",
+                "SCH+": "1"
+            },
+            "traits": [
+                "ARMOR"
+            ],
+            "set_name": "Taskmaster",
+            "text": "Attach to Taskmaster. Otherwise, attach to the enemy leader.\n<b>Forced Interrupt</b>: When attached character would take any amount of damage, reduce that amount by 1.\n<b>Hero Action</b>: Spend [mental] [physical] resources \u2192 discard this card."
+        },
+        {
+            "card_id": "57025",
+            "type": "Treachery",
+            "name": "Mimicked Move",
+            "subtitle": "",
+            "desc": {
+                "Boost": "1*"
+            },
+            "traits": [],
+            "set_name": "Taskmaster",
+            "text": "<b>When Revealed</b>: If Taskmaster is in play, he attacks your leader. Otherwise, give the enemy leader a tough status card and a facedown boost card.\n[star] <b>Boost</b>: Give the activating enemy an additional boost card."
+        },
+        {
+            "card_id": "57026",
+            "type": "SideScheme",
+            "name": "Taskmaster's Academy",
+            "subtitle": "",
+            "desc": {
+                "Boost": "2",
+                "Amplify": "1",
+                "StartingThreat": "3",
+                "Hinder": "1*"
+            },
+            "traits": [],
+            "set_name": "Taskmaster",
+            "text": "Hinder 1[per_hero].\n<b>When Defeated</b>: Give the enemy leader a tough status card and a facedown boost card."
+        },
+        {
+            "card_id": "57027",
+            "type": "Minion",
+            "name": "* Jester",
+            "subtitle": "",
+            "desc": {
+                "HP": "3",
+                "ATK": "2",
+                "SCH": "1",
+                "Boost": "2"
+            },
+            "traits": [
+                "THUNDERBOLT"
+            ],
+            "set_name": "Deadly Duo",
+            "text": "<b>When Revealed</b>: Discard the top 3 cards of your deck. Take 1 indirect damage for each different card type discarded this way."
+        },
+        {
+            "card_id": "57028",
+            "type": "Minion",
+            "name": "* Jack O'Lantern",
+            "subtitle": "",
+            "desc": {
+                "HP": "3",
+                "ATK": "1",
+                "SCH": "2",
+                "Boost": "2"
+            },
+            "traits": [
+                "THUNDERBOLT"
+            ],
+            "set_name": "Deadly Duo",
+            "text": "<b>When Revealed</b>: Discard the top 3 cards of your deck. Place 1 threat on the main scheme for each different card type discarded this way."
+        },
+        {
+            "card_id": "57029",
+            "type": "Attachment",
+            "name": "* Mad Jack's Platform",
+            "subtitle": "",
+            "desc": {
+                "Boost": "0*",
+                "ATK+": "1",
+                "SCH+": "1"
+            },
+            "traits": [
+                "TECH"
+            ],
+            "set_name": "Deadly Duo",
+            "text": "Attach to a minion of the enemy team's choice. Otherwise, this card gains surge.\nAttached minion gets +4 hit points and gains stalwart.\n[star] <b>Boost</b>: Attach this card to a minion engaged with you."
+        },
+        {
+            "card_id": "57030",
+            "type": "Treachery",
+            "name": "Jester's Yo-Yo",
+            "subtitle": "",
+            "desc": {
+                "Boost": "0*"
+            },
+            "traits": [],
+            "set_name": "Deadly Duo",
+            "text": "<b>When Revealed</b>: Discard the highest-cost card you control. Otherwise, this card gains surge.\n[star] <b>Boost</b>: Discard an upgrade you control."
+        },
+        {
+            "card_id": "57031",
+            "type": "SideScheme",
+            "name": "Deadly Duo",
+            "subtitle": "",
+            "desc": {
+                "Boost": "2",
+                "Crisis": "1",
+                "StartingThreat": "3",
+                "Hinder": "1*"
+            },
+            "traits": [],
+            "set_name": "Deadly Duo",
+            "text": "Hinder 1[per_hero].\n<b>When Defeated</b>: Each player discards the top 8 cards of their deck."
+        },
+        {
+            "card_id": "57036",
+            "full_link": "56125"
+        },
+        {
+            "card_id": "57037",
+            "full_link": "56126"
+        },
+        {
+            "card_id": "57038",
+            "full_link": "56127"
+        },
+        {
+            "card_id": "57039a",
+            "full_link": "56128a"
+        },
+        {
+            "card_id": "57039b",
+            "full_link": "56128b"
+        },
+        {
+            "card_id": "57040",
+            "type": "Leader",
+            "name": "* Vision",
+            "subtitle": "",
+            "desc": {
+                "HP": "14*",
+                "ATK": "1",
+                "SCH": "1",
+                "Stage": "I"
+            },
+            "traits": [
+                "AERIAL",
+                "AVENGER"
+            ],
+            "set_name": "Vision",
+            "text": "<b>Setup</b>: The enemy team finds Vision's mass form attachment and attaches it to Vision, Dense side faceup.\n<b>Forced Response</b>: After resolving step 1 of the villain phase, flip Vision's mass form attachment."
+        },
+        {
+            "card_id": "57041",
+            "type": "Leader",
+            "name": "* Vision",
+            "subtitle": "",
+            "desc": {
+                "HP": "18*",
+                "ATK": "2",
+                "SCH": "1",
+                "Steady": "1",
+                "Stage": "II"
+            },
+            "traits": [
+                "AERIAL",
+                "AVENGER"
+            ],
+            "set_name": "Vision",
+            "text": "Steady.\n<b>When Revealed</b>: Deal each player an encounter card. Vision cannot take damage this phase.\n<b>Forced Response</b>: After resolving step 1 of the villain phase, flip Vision's mass form attachment."
+        },
+        {
+            "card_id": "57042",
+            "type": "Leader",
+            "name": "* Vision",
+            "subtitle": "",
+            "desc": {
+                "HP": "18*",
+                "ATK": "2",
+                "SCH": "1",
+                "Stage": "III"
+            },
+            "traits": [
+                "AERIAL",
+                "AVENGER"
+            ],
+            "set_name": "Vision",
+            "text": "<b>Setup</b>: The enemy team finds Vision's mass form attachment and attaches it to Vision, Dense side faceup.\n<b>Forced Response</b>: After resolving step 1 of the villain phase, flip Vision's mass form attachment."
+        },
+        {
+            "card_id": "57043",
+            "type": "Leader",
+            "name": "* Vision",
+            "subtitle": "",
+            "desc": {
+                "HP": "22*",
+                "ATK": "2",
+                "SCH": "2",
+                "Steady": "1",
+                "Stage": "IV"
+            },
+            "traits": [
+                "AERIAL",
+                "AVENGER"
+            ],
+            "set_name": "Vision",
+            "text": "Steady.\n<b>When Revealed</b>: Deal each player an encounter card. Vision cannot take damage this phase.\n<b>Forced Response</b>: After resolving step 1 of the villain phase, flip Vision's mass form attachment."
+        },
+        {
+            "card_id": "57044a",
+            "type": "MainScheme",
+            "name": "Superhero Resistance",
+            "subtitle": "",
+            "desc": {
+                "Stage": "1A"
+            },
+            "traits": [],
+            "set_name": "Resistance",
+            "text": "<b>Contents</b>: Chosen leader I and II <i>(III and IV for expert mode)</i>. Chosen leader's set, Standard set, and 3\u20134 modular sets.\n<b>Setup</b>: In competitive mode, the enemy team finds the Choosing Sides side scheme and your team reveals it. In cooperative mode, find the chosen leader's side scheme and reveal it.",
+            "ability_link": "56063a"
+        },
+        {
+            "card_id": "57044b",
+            "type": "MainScheme",
+            "name": "Protect Secret Identities",
+            "subtitle": "",
+            "desc": {
+                "StartingThreat": "0",
+                "TargetThreat": "7*",
+                "EscalationThreat": "1*",
+                "Stage": "1B"
+            },
+            "traits": [],
+            "set_name": "Resistance",
+            "text": "If there is more than 1 player on your team, this stage gains hinder 2[per_hero].\n[star] <b>Forced Response</b>: After resolving step 1 of the villain phase, each player discards the top 3 cards of their deck."
+        },
+        {
+            "card_id": "57045a",
+            "type": "MainScheme",
+            "name": "Resistance Tactics",
+            "subtitle": "",
+            "desc": {
+                "Stage": "2A"
+            },
+            "traits": [],
+            "set_name": "Resistance",
+            "text": ""
+        },
+        {
+            "card_id": "57045b",
+            "type": "MainScheme",
+            "name": "Expose Overreach",
+            "subtitle": "",
+            "desc": {
+                "StartingThreat": "0",
+                "TargetThreat": "9*",
+                "EscalationThreat": "1*",
+                "Stage": "2B"
+            },
+            "traits": [],
+            "set_name": "Resistance",
+            "text": "Allies enter play exhausted.\n<b>If this stage is completed, the players lose the game.</b>"
+        },
+        {
+            "card_id": "57046a",
+            "type": "Attachment",
+            "name": "Dense",
+            "subtitle": "",
+            "desc": {
+                "ATK+": "1",
+                "Permanent": "1"
+            },
+            "traits": [
+                "SUPERPOWER"
+            ],
+            "set_name": "Vision",
+            "text": "Permanent. Mass form."
+        },
+        {
+            "card_id": "57046b",
+            "type": "Attachment",
+            "name": "Intangible",
+            "subtitle": "",
+            "desc": {
+                "SCH+": "1",
+                "Permanent": "1"
+            },
+            "traits": [
+                "SUPERPOWER"
+            ],
+            "set_name": "Vision",
+            "text": "Permanent. Mass form.\n<b>Forced Interrupt</b>: When Vision would take any amount of damage, reduce that amount by 1."
+        },
+        {
+            "card_id": "57047",
+            "type": "Attachment",
+            "name": "* Solar Gem",
+            "subtitle": "",
+            "desc": {
+                "Boost": "0*",
+                "SCH+": "1"
+            },
+            "traits": [
+                "ITEM"
+            ],
+            "set_name": "Vision",
+            "text": "Attach to Vision.\nVision gains stalwart.\n<b>Hero Response</b>: After you make a basic attack against Vision, spend [energy] [physical] resources \u2192 discard this card and flip Vision's mass form attachment.\n[star] <b>Boost</b>: Reveal this card."
+        },
+        {
+            "card_id": "57048",
+            "type": "Attachment",
+            "name": "* Vision's Cape",
+            "subtitle": "",
+            "desc": {
+                "Boost": "0*",
+                "ATK+": "1"
+            },
+            "traits": [
+                "ITEM"
+            ],
+            "set_name": "Vision",
+            "text": "Attach to Vision.\nVision gains retaliate 1.\n<b>Hero Response</b>: After you make a basic attack against Vision, spend [energy] [mental] resources \u2192 discard this card and flip Vision's mass form attachment.\n[star] <b>Boost</b>: Reveal this card."
+        },
+        {
+            "card_id": "57049",
+            "type": "Attachment",
+            "name": "Mass Increase",
+            "subtitle": "",
+            "desc": {
+                "Boost": "2"
+            },
+            "traits": [
+                "SUPERPOWER"
+            ],
+            "set_name": "Vision",
+            "text": "Attach to Vision.\n<b>Forced Interrupt</b>: When a character attacks Vision while the Dense attachment is in play, prevent all damage from that attack and stun the attacking character. Discard this card."
+        },
+        {
+            "card_id": "57050",
+            "type": "Attachment",
+            "name": "Density Control",
+            "subtitle": "",
+            "desc": {
+                "Boost": "3",
+                "Surge": "1"
+            },
+            "traits": [
+                "SUPERPOWER"
+            ],
+            "set_name": "Vision",
+            "text": "Surge. Attach to Vision.\n<b>Forced Interrupt</b>: When Vision activates, if this activation is:\n\u2022 A scheme, flip Vision's mass form attachment to Intangible.\n\u2022 An attack, flip Vision's mass form attachment to Dense.\nThen, if Vision's mass form attachment flipped, discard this card."
+        },
+        {
+            "card_id": "57051",
+            "type": "Treachery",
+            "name": "Solar Beam",
+            "subtitle": "",
+            "desc": {
+                "Boost": "1"
+            },
+            "traits": [],
+            "set_name": "Vision",
+            "text": "<b>When Revealed (Alter-Ego)</b>: Vision schemes. If the Intangible attachment is in play, Vision gets +1 SCH for this scheme.\n<b>When Revealed (Hero)</b>: Vision attacks you. If the Dense attachment is in play, Vision gets +1 ATK for this attack."
+        },
+        {
+            "card_id": "57052",
+            "type": "Treachery",
+            "name": "Superdense Strike",
+            "subtitle": "",
+            "desc": {
+                "Boost": "2"
+            },
+            "traits": [],
+            "set_name": "Vision",
+            "text": "<b>When Revealed</b>: Exhaust a character you control. If the Dense attachment is in play, deal 2 damage to that character. If the Intangible attachment is in play, flip that attachment."
+        },
+        {
+            "card_id": "57053",
+            "type": "Treachery",
+            "name": "Phase Disruption",
+            "subtitle": "",
+            "desc": {
+                "Boost": "2"
+            },
+            "traits": [],
+            "set_name": "Vision",
+            "text": "<b>When Revealed</b>: The enemy team exhausts an upgrade you control. If the Intangible attachment is in play, discard that upgrade instead. If the Dense attachment is in play, flip that attachment."
+        },
+        {
+            "card_id": "57054",
+            "type": "SideScheme",
+            "name": "Just Passing Through",
+            "subtitle": "",
+            "desc": {
+                "Boost": "3",
+                "Hazard": "1",
+                "StartingThreat": "3*"
+            },
+            "traits": [],
+            "set_name": "Vision",
+            "text": "<b>When Defeated</b>: The player who defeated this scheme confuses their identity. Otherwise, they stun their identity."
+        },
+        {
+            "card_id": "57055",
+            "type": "Minion",
+            "name": "* Patriot",
+            "subtitle": "",
+            "desc": {
+                "HP": "4",
+                "ATK": "2",
+                "SCH": "2",
+                "Boost": "1",
+                "Toughness": "1"
+            },
+            "traits": [
+                "YOUNG AVENGER"
+            ],
+            "set_name": "Young Avengers",
+            "text": "Toughness.\n<b>When Revealed</b>: Give the enemy leader a tough status card."
+        },
+        {
+            "card_id": "57056",
+            "type": "Minion",
+            "name": "* Hawkeye",
+            "subtitle": "",
+            "desc": {
+                "HP": "3",
+                "ATK": "2",
+                "SCH": "2",
+                "Boost": "1"
+            },
+            "traits": [
+                "YOUNG AVENGER"
+            ],
+            "set_name": "Young Avengers",
+            "text": "[star] Hawkeye's attacks gain piercing and ranged.\n<b>When Revealed</b>: Discard an upgrade you control."
+        },
+        {
+            "card_id": "57057",
+            "type": "Minion",
+            "name": "* Stature",
+            "subtitle": "",
+            "desc": {
+                "HP": "5",
+                "ATK": "2",
+                "SCH": "1",
+                "Boost": "1",
+                "Guard": "1"
+            },
+            "traits": [
+                "GIANT",
+                "YOUNG AVENGER"
+            ],
+            "set_name": "Young Avengers",
+            "text": "Guard.\n<b>When Revealed</b>: Discard a support you control."
+        },
+        {
+            "card_id": "57058",
+            "type": "Treachery",
+            "name": "Teenage Superheroes",
+            "subtitle": "",
+            "desc": {
+                "Boost": "2"
+            },
+            "traits": [],
+            "set_name": "Young Avengers",
+            "text": "<b>When Revealed</b>: Resolve the \"<b>When Revealed</b>\" ability of each minion in play. If no \"<b>When Revealed</b>\" abilities were resolved this way, this card gains surge."
+        },
+        {
+            "card_id": "57059",
+            "type": "SideScheme",
+            "name": "Young Avengers",
+            "subtitle": "",
+            "desc": {
+                "Boost": "2",
+                "Acceleration": "1",
+                "StartingThreat": "3",
+                "Hinder": "1*"
+            },
+            "traits": [],
+            "set_name": "Young Avengers",
+            "text": "Hinder 1[per_hero].\nThe first minion revealed each round gains surge."
+        },
+        {
+            "card_id": "57060",
+            "type": "Minion",
+            "name": "* Speed",
+            "subtitle": "",
+            "desc": {
+                "HP": "3",
+                "ATK": "2",
+                "SCH": "1",
+                "Boost": "2",
+                "Quickstrike": "1"
+            },
+            "traits": [
+                "YOUNG AVENGER"
+            ],
+            "set_name": "Scarlet Twins",
+            "text": "Quickstrike.\n<b>When Revealed</b>: You are stunned. Otherwise, deal 2 damage to your identity."
+        },
+        {
+            "card_id": "57061",
+            "type": "Minion",
+            "name": "* Wiccan",
+            "subtitle": "",
+            "desc": {
+                "HP": "3",
+                "ATK": "1",
+                "SCH": "2",
+                "Boost": "2",
+                "Incite": "1"
+            },
+            "traits": [
+                "YOUNG AVENGER"
+            ],
+            "set_name": "Scarlet Twins",
+            "text": "Incite 1.\n<b>When Revealed</b>: You are confused. Otherwise, place 2 threat on the main scheme."
+        },
+        {
+            "card_id": "57062",
+            "type": "Treachery",
+            "name": "Superspeed",
+            "subtitle": "",
+            "desc": {
+                "Boost": "0*"
+            },
+            "traits": [],
+            "set_name": "Scarlet Twins",
+            "text": "<b>When Revealed</b>: Discard 1 random card from your hand. Take indirect damage equal to its cost.\n[star] <b>Boost</b>: Discard 1 card from your hand."
+        },
+        {
+            "card_id": "57063",
+            "type": "Obligation",
+            "name": "Spellcasting",
+            "subtitle": "",
+            "desc": {
+                "Boost": "1"
+            },
+            "traits": [],
+            "set_name": "Scarlet Twins",
+            "text": "<b>Forced Interrupt</b>: When you play a card, cancel its effects and discard it. Then, discard this card."
+        },
+        {
+            "card_id": "57064",
+            "type": "SideScheme",
+            "name": "Superpowered Siblings",
+            "subtitle": "",
+            "desc": {
+                "Boost": "2",
+                "Amplify": "1",
+                "StartingThreat": "3",
+                "Hinder": "1*"
+            },
+            "traits": [],
+            "set_name": "Scarlet Twins",
+            "text": "Hinder 1[per_hero].\n<b>When Defeated</b>: The player who defeated this scheme discards 1 card from their hand."
+        },
+        {
+            "card_id": "57065",
+            "type": "Minion",
+            "name": "* Moon Knight",
+            "subtitle": "",
+            "desc": {
+                "HP": "5",
+                "ATK": "2",
+                "SCH": "2",
+                "Boost": "2",
+                "Toughness": "1",
+                "Retaliate": "2"
+            },
+            "traits": [
+                "DEFENDER",
+                "ELITE"
+            ],
+            "set_name": "Moon Knight",
+            "text": "Retaliate 2. Toughness.\n<b>When Revealed</b>: Resolve the <b>\"When Revealed\"</b> ability of the topmost treachery in the encounter discard pile."
+        },
+        {
+            "card_id": "57066",
+            "type": "Attachment",
+            "name": "Crescent Dart",
+            "subtitle": "",
+            "desc": {
+                "Boost": "1",
+                "ATK+": "2"
+            },
+            "traits": [
+                "WEAPON"
+            ],
+            "set_name": "Moon Knight",
+            "text": "Attach to Moon Knight. Otherwise, attach to the enemy leader.\n[star] <b>Forced Interrupt</b>: When attached character attacks, this attack gains piercing and ranged. Discard this card after this attack."
+        },
+        {
+            "card_id": "57067",
+            "type": "Treachery",
+            "name": "Fist of Khonshu",
+            "subtitle": "",
+            "desc": {
+                "Boost": "0*"
+            },
+            "traits": [],
+            "set_name": "Moon Knight",
+            "text": "<b>When Revealed</b>: Exhaust your identity and deal 2 damage to it.\n[star] <b>Boost</b>: Exhaust your identity."
+        },
+        {
+            "card_id": "57068",
+            "type": "SideScheme",
+            "name": "Khonshu's Avatar",
+            "subtitle": "",
+            "desc": {
+                "Boost": "2",
+                "Hazard": "1",
+                "StartingThreat": "3",
+                "Hinder": "1*"
+            },
+            "traits": [],
+            "set_name": "Moon Knight",
+            "text": "Hinder 1[per_hero].\n<b>When Defeated</b>: Discard cards from the top of the encounter deck until a treachery is discarded. Resolve that card's \"<b>When Revealed</b>\" ability."
+        },
+        {
+            "card_id": "57069",
+            "type": "Minion",
+            "name": "* Janus",
+            "subtitle": "",
+            "desc": {
+                "HP": "3",
+                "ATK": "3",
+                "SCH": "1",
+                "Boost": "2"
+            },
+            "traits": [
+                "ATLANTIS"
+            ],
+            "set_name": "Royal Guard",
+            "text": "<b>When Revealed</b>: If you have the [[HUNTED]] trait, Janus activates against you. Otherwise, discard the top 2 cards of your deck."
+        },
+        {
+            "card_id": "57070",
+            "type": "Minion",
+            "name": "* Amir",
+            "subtitle": "",
+            "desc": {
+                "HP": "3",
+                "ATK": "2",
+                "SCH": "2",
+                "Boost": "2"
+            },
+            "traits": [
+                "ATLANTIS"
+            ],
+            "set_name": "Royal Guard",
+            "text": "<b>When Revealed</b>: If you have the [[HUNTED]] trait, Amir activates against you. Otherwise, discard the top 2 cards of your deck."
+        },
+        {
+            "card_id": "57071",
+            "type": "Treachery",
+            "name": "Atlanteans",
+            "subtitle": "",
+            "desc": {
+                "Boost": "2"
+            },
+            "traits": [],
+            "set_name": "Royal Guard",
+            "text": "<b>When Revealed</b>: Discard the top 3 cards of your deck. If you are in:\n\u2022 Alter-ego form, place 1 threat on the main scheme for each different card type discarded this way.\n\u2022 Hero form, take 1 indirect damage for each different card type discarded this way.",
+            "ability_link": "56166"
+        },
+        {
+            "card_id": "57072",
+            "type": "Obligation",
+            "name": "Blood Debt",
+            "subtitle": "",
+            "desc": {
+                "Boost": "1"
+            },
+            "traits": [],
+            "set_name": "Royal Guard",
+            "text": "You gain the [[HUNTED]] trait.\n<b>Alter-Ego Action</b>: Discard the top 8 cards of your deck \u2192 discard this card."
+        },
+        {
+            "card_id": "57073",
+            "type": "SideScheme",
+            "name": "The Royal Guard",
+            "subtitle": "",
+            "desc": {
+                "Boost": "2",
+                "Crisis": "1",
+                "StartingThreat": "3",
+                "Hinder": "1*"
+            },
+            "traits": [],
+            "set_name": "Royal Guard",
+            "text": "Hinder 1[per_hero].\n<b>When Defeated</b>: The enemy team searches the encounter deck and discard pile for a copy of Blood Debt and deals it to the player who defeated this scheme as a facedown encounter card."
+        },
+        {
+            "card_id": "57078",
+            "full_link": "56125"
+        },
+        {
+            "card_id": "57079",
+            "full_link": "56126"
+        },
+        {
+            "card_id": "57080",
+            "full_link": "56127"
+        },
+        {
+            "card_id": "57081a",
+            "full_link": "56128a"
+        },
+        {
+            "card_id": "57081b",
+            "full_link": "56128b"
+        }
+    ],
+    "checksum": "7226e858d5ea04aefdf5df4efd42ec3570d4a2e0c6e0db28fd0f02185f768c17"
 }
