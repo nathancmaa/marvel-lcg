@@ -777,6 +777,12 @@ class CardRender {
             card_div.classList.remove(ClassName.exhausted)
         }
 
+        // Only a card with a Response or Interrupt can carry a standing
+        // answer, so only that card offers the tick. Set per render rather
+        // than when the div is built, because a card that flips is a
+        // different face with different abilities.
+        card_div.classList.toggle(ClassName.can_answer, card.has_response)
+
         // if( object_id == 8 ) {
         //     let a = 1
         // }

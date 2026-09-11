@@ -688,6 +688,20 @@ export class Effect {
         }
     }
 
+    /**
+     * Whether the game has stopped to offer something, rather than simply
+     * listing what a card can do.
+     *
+     * Asks carry the timing they came from: a character's actions and basic
+     * powers arrive as 'Normal', and forced triggers as ForcedResponse or
+     * ForcedInterrupt, which are never put to the player at all. Only these
+     * two are a question a standing answer is an answer to.
+     */
+    static isAnswerWindow(): boolean {
+        const ability_type = Effect.response_json_ask.ability_type
+        return ability_type == 'Response' || ability_type == 'Interrupt'
+    }
+
     private static isResponse(name: string) {
         return Effect.response_json_ask.ability_type == "Response"
         return ["Response", "Hero Response", "Alter-Ego Response",
@@ -796,9 +810,19 @@ export class Effect {
                     }
                 } else {
                     SelectStep.setTargets(false)
-                    if( AutoEffect.isAutoEffectTargeting() ) {
+                    // isAutoEffectTargeting is false whenever the ask carried
+                    // more than one option, which is exactly the case a
+                    // standing answer is for. Without the second test the
+                    // answer was chosen for you and then left sitting on the
+                    // OK button, which is most of what it was meant to save.
+                    if( AutoEffect.isAutoEffectTargeting() || can_auto_activate ) {
                         SelectStep.setCost(true)
-                        if( AutoActivate.isAutoActivate2(Cards.getDiv(option.bind_id)!) ) {
+                        // The window is tested here and not around setCost,
+                        // which pays for ordinary auto-targeted asks too. Only
+                        // the posting is the standing answer's business, and
+                        // only in a window that asked something.
+                        if( Effect.isAnswerWindow() &&
+                            AutoActivate.isAutoActivate2(Cards.getDiv(option.bind_id)!) ) {
                             Button.doPost(false)
                         }
                     }
@@ -906,6 +930,14 @@ export class Effect {
      */
     static firstStandingAnswer(options: EffectDescriptor[]): EffectDescriptor | null {
         if( ButtonSetting.is_replay || !ButtonSetting.auto_activate ) {
+            return null
+        }
+        // Only a window the game stopped to offer. The same ask machinery
+        // presents a character's actions and basic powers under 'Normal', and
+        // a standing answer is not consent to attack with an ally every time
+        // you click one. Forced responses arrive as ForcedResponse and are
+        // never asked about at all.
+        if( !Effect.isAnswerWindow() ) {
             return null
         }
         let best: EffectDescriptor | null = null

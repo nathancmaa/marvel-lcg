@@ -23,4 +23,5 @@ export class ClassName {
     static exhausted = 'exhausted'
 
     static auto_activate = 'auto-activate'
+    static can_answer = 'can-answer'
 }

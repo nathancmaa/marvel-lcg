@@ -14,17 +14,28 @@ from game.world import *
 from game.render.descriptor.card import CardDescriptor
 
 
+def AbilityIsAnswerable(ability: 'Ability') -> bool:
+    """
+    Whether this ability is one the game stops and offers, waiting for a yes.
+
+    That is a Response or an Interrupt, and only an optional one: the forced
+    kind resolves itself and is never put to the player. These are what a
+    standing answer answers, and the only abilities worth marking a card for.
+    """
+    flags = ability.flags
+    return not flags.is_forced and (flags.is_response or flags.is_interrupt)
+
+
 def AbilityAsksThePlayer(ability: 'Ability') -> bool:
     """
     Whether this ability ever puts a choice in front of the player.
 
-    Actions, Responses and Interrupts do; their forced counterparts do not,
-    since those resolve on their own. A card with none of them is one you only
-    ever read, which is what lets the table stack it out of the way.
+    Answerable ones do, and so does an optional Action. A card with none of
+    them is one you only ever read, which is what lets the table stack it out
+    of the way.
     """
-    flags = ability.flags
-    return not flags.is_forced and (
-        flags.is_action or flags.is_response or flags.is_interrupt)
+    return AbilityIsAnswerable(ability) or (
+        not ability.flags.is_forced and ability.flags.is_action)
 
 
 @final
@@ -1041,5 +1052,8 @@ class Card(Object):
             is_action           = any(x for x in self.face.effects if x.ability.flags.is_action), #  or x.ability.type.is_resource
             is_passive          = not any(
                 AbilityAsksThePlayer(x.ability) for x in self.face.effects
+            ),
+            has_response        = any(
+                AbilityIsAnswerable(x.ability) for x in self.face.effects
             ),
         )

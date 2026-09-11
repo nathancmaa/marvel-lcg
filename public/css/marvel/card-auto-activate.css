@@ -8,6 +8,13 @@ body.no-auto-activate .auto-activate-btn {
     display: none;
 }
 
+/* Nothing on this card is ever offered, so there is no answer to stand for.
+   The tick used to sit on every card in play, which said the mark meant
+   something on all of them. */
+.card:not(.can-answer) .auto-activate-btn {
+    display: none;
+}
+
 body.hide-auto-activate .auto-activate-btn {
     pointer-events: none;
     border-radius: 50% !important;

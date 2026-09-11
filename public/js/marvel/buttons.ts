@@ -617,6 +617,17 @@ export class Button{
             cookie_name: 'btn_show_aa_checkbox'
         })
         Button.createButtonBase(parent_div4, {
+            text: "Stack Passives",
+            id: 'collapse-upgrades',
+            property: 'collapse_upgrades',
+            cookie_name: 'btn_collapse_upgrades',
+            onClick: () => {
+                // Nothing appeared or moved between areas, so the usual
+                // relayout has no work queued; ask for every row directly.
+                MoveCard.doMoveFirstTime()
+            }
+        })
+        Button.createButtonBase(parent_div4, {
             text: "Auto Pause",
             property: 'pause_when_reveal_or_boost',
             onClick: () => {
@@ -725,21 +736,6 @@ export class Button{
                 console.log('hide_no_action_cards:', ButtonSetting.hide_no_action_cards)
                 Cards.render.printCards()
                 Effect.updateHighLight()
-            }
-        })
-
-        // No `hide`: unlike the toggles above it, this one is worth having in
-        // a one-handed game, which is where a hero collects the most upgrades.
-        Button.createButtonBase(parent_div_left, {
-            text: "U",
-            title: "Stack passive upgrades",
-            id: 'collapse-upgrades',
-            property: 'collapse_upgrades',
-            cookie_name: 'btn_collapse_upgrades',
-            onClick: () => {
-                // Nothing appeared or moved between areas, so the usual
-                // relayout has no work queued; ask for every row directly.
-                MoveCard.doMoveFirstTime()
             }
         })
 

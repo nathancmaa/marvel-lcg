@@ -85,6 +85,8 @@ export class CardDescriptor {
     is_action           !: boolean;
     /** No Action, Response or Interrupt: nothing to click, only to read. */
     is_passive          !: boolean;
+    /** Has a Response or Interrupt, so a standing answer means something. */
+    has_response        !: boolean;
     control_player      !: number;
     is_in_play           !: boolean;
     is_in_hand           !: boolean;
@@ -172,6 +174,7 @@ export class CardDescriptor {
         this.is_new                 = obj['is_new'];
         this.is_action              = obj['is_action']
         this.is_passive             = obj['is_passive']
+        this.has_response           = obj['has_response']
         this.control_player         = control_player;
         this.is_in_play             = is_in_play;
         this.is_in_hand             = is_in_hand;
