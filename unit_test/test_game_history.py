@@ -341,6 +341,24 @@ class GameHistoryTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Choose'):
             self.history.SaveGameRatings('test:1', {})
 
+    def test_the_games_list_can_be_bounded_by_day(self):
+        for key, day in ((1, '2026-08-01'), (2, '2026-08-10'), (3, '2026-08-20')):
+            self.history._store_game({
+                'source_key': f'day:{key}', 'finished_at': f'{day}T12:00:00+00:00',
+                'hero_code': '01001a', 'hero_name': 'Spider-Man', 'villain_code': '01094',
+                'villain_name': 'Rhino', 'scenario_name': 'Rhino', 'scenario_key': 'rhino',
+                'result': 'win',
+            })
+        days = lambda dashboard: [row['finished_at'][:10] for row in dashboard['recent_games']]
+
+        self.assertEqual(days(self.history.GetDashboard('all', '2026-08-05', '2026-08-15')), ['2026-08-10'])
+        self.assertEqual(days(self.history.GetDashboard('all', '2026-08-10', '')), ['2026-08-20', '2026-08-10'])
+        self.assertEqual(days(self.history.GetDashboard('all', '', '2026-08-10')), ['2026-08-10', '2026-08-01'])
+        # The records above the list are not bounded: three wins, whatever the days.
+        self.assertEqual(self.history.GetDashboard('all', '2026-08-05', '2026-08-15')['overview']['wins'], 3)
+        with self.assertRaisesRegex(ValueError, 'YYYY-MM-DD'):
+            self.history.GetDashboard('all', 'yesterday', '')
+
     def test_rating_fields_can_be_updated_independently(self):
         self.record(1)
         self.history.SaveGameRatings('test:1', {'scenario_rating': 4})

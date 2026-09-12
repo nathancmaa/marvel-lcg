@@ -1453,10 +1453,24 @@ class GameHistory:
                 'decks': decks,
             }
 
-    def GetDashboard(self, source: str='all') -> Dict[str, Any]:
+    _DATE = re.compile(r'^\d{4}-\d{2}-\d{2}$')
+
+    @classmethod
+    def _normalize_date_filter(cls, value: Any) -> str:
+        """A calendar day as YYYY-MM-DD, or '' for no bound."""
+        text = str(value or '').strip()
+        if text and not cls._DATE.match(text):
+            raise ValueError('Dates must be YYYY-MM-DD.')
+        return text
+
+    def GetDashboard(self, source: str='all', games_from: str='', games_to: str='') -> Dict[str, Any]:
+        """The history tab. `games_from`/`games_to` bound the games list only,
+        by calendar day (UTC), inclusive; the records above it stay whole."""
         if not self.available:
             return {'available': False, 'error': 'Game history is unavailable.'}
         source = self._normalize_source_filter(source)
+        games_from = self._normalize_date_filter(games_from)
+        games_to = self._normalize_date_filter(games_to)
         with self._lock, self._connect() as connection:
             where = ' WHERE is_service = 0'
             if source != 'all':
@@ -1536,9 +1550,13 @@ class GameHistory:
                 "(SELECT group_concat(hero_name, '／') FROM (SELECT hero_name FROM game_players p WHERE p.game_id = games.id ORDER BY seat)) heroes, "
                 "(SELECT group_concat(deck_name, '／') FROM (SELECT deck_name FROM game_players p WHERE p.game_id = games.id ORDER BY seat)) decks "
                 'FROM games WHERE is_service = 0 '
-                + ("AND source = ? " if source != 'all' else '') +
+                + ("AND source = ? " if source != 'all' else '')
+                # The stored stamp is ISO 8601, so its first ten characters
+                # are the day and compare as text.
+                + ("AND substr(finished_at, 1, 10) >= ? " if games_from else '')
+                + ("AND substr(finished_at, 1, 10) <= ? " if games_to else '') +
                 'ORDER BY datetime(finished_at) DESC, id DESC LIMIT 100',
-                parameters,
+                (*parameters, *([games_from] if games_from else []), *([games_to] if games_to else [])),
             ).fetchall()]
             owned_products = [
                 str(row['product_key'])

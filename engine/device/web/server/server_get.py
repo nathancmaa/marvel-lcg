@@ -469,6 +469,8 @@ class GameServerGet(GameServerBase):
             dashboard = await TaskManager.ToThread(
                 history.GetDashboard,
                 request.query.get('source', 'all'),
+                request.query.get('from', ''),
+                request.query.get('to', ''),
             )
         except ValueError as exc:
             return web.json_response({'error': str(exc)}, status=400)

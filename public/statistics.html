@@ -97,7 +97,7 @@
                 <section id="overview" class="overview-grid" aria-label="Overview"></section>
 
                 <section class="split-grid">
-                    <div class="panel">
+                    <div class="panel" data-collapsible="heroes">
                         <div class="panel-heading">
                             <div><p class="eyebrow">HERO RECORDS</p><h2>Heroes</h2></div>
                         </div>
@@ -109,7 +109,7 @@
                         </div>
                     </div>
 
-                    <div class="panel">
+                    <div class="panel" data-collapsible="villains">
                         <div class="panel-heading">
                             <div><p class="eyebrow">VILLAIN RECORDS</p><h2>Villains</h2></div>
                         </div>
@@ -122,7 +122,7 @@
                     </div>
                 </section>
 
-                <section class="panel">
+                <section class="panel" data-collapsible="matchups">
                     <div class="panel-heading">
                         <div><p class="eyebrow">HEAD TO HEAD</p><h2>Matchups</h2></div>
                     </div>
@@ -134,10 +134,17 @@
                     </div>
                 </section>
 
-                <section class="panel">
+                <section class="panel" data-collapsible="games">
                     <div class="panel-heading">
                         <div><p class="eyebrow">RECENT MISSIONS</p><h2>Games</h2></div>
-                        <span id="unknown-note" class="muted"></span>
+                        <div class="panel-tools">
+                            <span id="unknown-note" class="muted"></span>
+                            <div class="date-range" aria-label="Show games played between two days">
+                                <label>From <input type="date" id="games-from"></label>
+                                <label>To <input type="date" id="games-to"></label>
+                                <button type="button" id="games-dates-clear" class="secondary-action compact" hidden>Clear</button>
+                            </div>
+                        </div>
                     </div>
                     <div class="tracker-import">
                         <div class="tracker-import-row">

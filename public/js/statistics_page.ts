@@ -206,6 +206,78 @@ async function postJson<T>(url: string, data: unknown): Promise<T> {
 
 let currentDashboard: Dashboard|null = null;
 let sourceFilter: SourceFilter = 'all';
+
+/** The games list's day bounds, YYYY-MM-DD or '', remembered across visits. */
+const GAME_DATES_KEY = 'marvel_lcg_history_game_dates';
+let gamesFrom = '';
+let gamesTo = '';
+
+function readGameDates(): void {
+    try {
+        const stored = JSON.parse(localStorage.getItem(GAME_DATES_KEY) || '{}') as {from?: string; to?: string};
+        gamesFrom = typeof stored.from === 'string' ? stored.from : '';
+        gamesTo = typeof stored.to === 'string' ? stored.to : '';
+    } catch {
+        gamesFrom = '';
+        gamesTo = '';
+    }
+    element<HTMLInputElement>('games-from').value = gamesFrom;
+    element<HTMLInputElement>('games-to').value = gamesTo;
+    element<HTMLButtonElement>('games-dates-clear').hidden = !gamesFrom && !gamesTo;
+}
+
+function saveGameDates(): void {
+    try {
+        localStorage.setItem(GAME_DATES_KEY, JSON.stringify({from: gamesFrom, to: gamesTo}));
+    } catch {
+        // Not remembering the range costs nothing but the remembering.
+    }
+    element<HTMLButtonElement>('games-dates-clear').hidden = !gamesFrom && !gamesTo;
+}
+
+/**
+ * Which history panels are folded to their heading, remembered across visits.
+ *
+ * The tab stacks five sections and the one being worked in is usually the
+ * last; folding the rest keeps it in reach without scrolling past them.
+ */
+const PANELS_KEY = 'marvel_lcg_history_panels';
+
+function initCollapsiblePanels(): void {
+    let folded: Record<string, boolean> = {};
+    try {
+        folded = JSON.parse(localStorage.getItem(PANELS_KEY) || '{}') as Record<string, boolean>;
+    } catch {
+        folded = {};
+    }
+    document.querySelectorAll<HTMLElement>('[data-collapsible]').forEach(panel => {
+        const name = panel.dataset.collapsible!;
+        const heading = panel.querySelector('.panel-heading');
+        if (!heading) {
+            return;
+        }
+        const toggle = document.createElement('button');
+        toggle.type = 'button';
+        toggle.className = 'panel-toggle';
+        const apply = () => {
+            const collapsed = Boolean(folded[name]);
+            panel.classList.toggle('collapsed', collapsed);
+            toggle.setAttribute('aria-expanded', String(!collapsed));
+            toggle.title = collapsed ? 'Show this section' : 'Fold this section to its heading';
+        };
+        toggle.addEventListener('click', () => {
+            folded[name] = !folded[name];
+            try {
+                localStorage.setItem(PANELS_KEY, JSON.stringify(folded));
+            } catch {
+                // Forgetting the fold is the only cost.
+            }
+            apply();
+        });
+        heading.appendChild(toggle);
+        apply();
+    });
+}
 let activeTab: TabName = 'matchups';
 
 /**
@@ -497,7 +569,8 @@ function renderDashboard(dashboard: Dashboard): void {
 }
 
 async function loadDashboard(): Promise<void> {
-    const dashboard = await fetchJson<Dashboard>(`/get_game_history?source=${encodeURIComponent(sourceFilter)}`);
+    const params = new URLSearchParams({source: sourceFilter, from: gamesFrom, to: gamesTo});
+    const dashboard = await fetchJson<Dashboard>(`/get_game_history?${params.toString()}`);
     if (!dashboard.available) {
         throw new Error(dashboard.error || 'Game history is unavailable.');
     }
@@ -1302,6 +1375,30 @@ async function importTrackerExport(): Promise<void> {
 }
 
 function bindEvents(): void {
+    initCollapsiblePanels();
+    const reloadGames = async () => {
+        saveGameDates();
+        try {
+            await loadDashboard();
+        } catch (reason) {
+            window.alert(reason instanceof Error ? reason.message : 'Could not filter game history.');
+        }
+    };
+    element<HTMLInputElement>('games-from').addEventListener('change', event => {
+        gamesFrom = (event.target as HTMLInputElement).value;
+        void reloadGames();
+    });
+    element<HTMLInputElement>('games-to').addEventListener('change', event => {
+        gamesTo = (event.target as HTMLInputElement).value;
+        void reloadGames();
+    });
+    element<HTMLButtonElement>('games-dates-clear').addEventListener('click', () => {
+        gamesFrom = '';
+        gamesTo = '';
+        element<HTMLInputElement>('games-from').value = '';
+        element<HTMLInputElement>('games-to').value = '';
+        void reloadGames();
+    });
     document.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(button => {
         button.addEventListener('click', () => setActiveTab(button.dataset.tab as TabName));
     });
@@ -1363,6 +1460,7 @@ async function initialize(): Promise<void> {
         // Before anything draws: the grid is rendered as its data arrives,
         // which is earlier than the controls are bound.
         restoreMatchupControls();
+        readGameDates();
         setData = await fetchJson<Record<string, SetInfo>>('/get_sets_json?');
         products = buildProducts(setData);
         await loadDashboard();
