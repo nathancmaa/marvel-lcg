@@ -3,6 +3,7 @@ import { Game } from "./game.js";
 import { recordCampaignVictory } from "../campaign_state.js";
 import { UserSettings } from "../user_settings.js";
 import { Setting } from "./settings.js";
+import { canPushToBgStats, sendToBgStats, type BgStatsGame } from "../bgstats_play.js";
 
 export class Message {
 
@@ -14,6 +15,7 @@ export class Message {
     private static end_messageElementText: HTMLElement
     private static retryButton: HTMLButtonElement
     private static saveReplayButton: HTMLButtonElement
+    private static bgStatsButton: HTMLButtonElement
     private static replaySavePromise: Promise<string>|null = null
     private static autoSaveAttempted = false
     private static ratingPanel: HTMLElement
@@ -156,6 +158,13 @@ export class Message {
             }
         });
 
+        // The same handoff as the history page's button, for the game just
+        // finished, without going to the history page to find it.
+        Message.bgStatsButton = document.createElement('button');
+        Message.bgStatsButton.classList.add('bg-stats');
+        Message.bgStatsButton.hidden = true;
+        Message.bgStatsButton.addEventListener('click', () => void Message.sendToBgStats());
+
         const buttonMainMenu = document.createElement('button');
         buttonMainMenu.innerHTML = '<i class="fa fa-home" aria-hidden="true"></i> Main menu';
         buttonMainMenu.classList.add('main-menu');
@@ -166,6 +175,44 @@ export class Message {
         game_over_buttons.appendChild(Message.retryButton);
         game_over_buttons.appendChild(buttonMainMenu);
         game_over_buttons.appendChild(Message.saveReplayButton);
+        game_over_buttons.appendChild(Message.bgStatsButton);
+    }
+
+    private static resetBgStatsButton() {
+        Message.bgStatsButton.disabled = false;
+        Message.bgStatsButton.innerHTML = '<i class="fa fa-bar-chart" aria-hidden="true"></i> BG Stats';
+    }
+
+    /**
+     * Hand the finished game to BG Stats.
+     *
+     * The game is read back from the history rather than from the table, so
+     * what goes to BG Stats is exactly what the history page would send for
+     * the same row -- and asking the history is what records the game if
+     * the end of it has not yet.
+     */
+    private static async sendToBgStats() {
+        Message.bgStatsButton.disabled = true;
+        Message.bgStatsButton.innerHTML = '<i class="fa fa-spinner fa-spin" aria-hidden="true"></i> BG Stats';
+        try {
+            const response = await fetch('/game_history/current');
+            const data = await response.json();
+            if( !response.ok ) {
+                throw new Error(data.error || `${response.status} ${response.statusText}`);
+            }
+            const game = data as BgStatsGame;
+            if( !canPushToBgStats(game) ) {
+                throw new Error('This game has no result to send.');
+            }
+            sendToBgStats(game, UserSettings.getBgStatsPlayerName() || 'Me', UserSettings.getBgStatsLocation());
+            Message.bgStatsButton.innerHTML = '<i class="fa fa-check" aria-hidden="true"></i> Sent to BG Stats';
+            Message.bgStatsButton.disabled = false;
+        } catch( error ) {
+            console.error(error);
+            Message.bgStatsButton.innerHTML = '<i class="fa fa-exclamation-triangle" aria-hidden="true"></i> BG Stats';
+            Message.bgStatsButton.title = error instanceof Error ? error.message : String(error);
+            Message.bgStatsButton.disabled = false;
+        }
     }
 
     static cleanGameOverMessage() {
@@ -199,6 +246,12 @@ export class Message {
         }
         Message.end_messageElementText.textContent = text
         Message.ratingPanel.hidden = Setting.replay_mode
+        // A replay is not a play; the rest is decided by the history when
+        // the button is pressed, which is where "this game does not count"
+        // is known.
+        Message.bgStatsButton.hidden = Setting.replay_mode
+        Message.bgStatsButton.title = 'Send this game to BG Stats'
+        Message.resetBgStatsButton()
         Message.autoSaveReplay()
     }
 

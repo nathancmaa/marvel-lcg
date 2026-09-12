@@ -1248,15 +1248,22 @@ class GameHistory:
             'scenario_rating': row['scenario_rating'],
         }
 
-    def SaveCurrentGameRatings(self, game: Any, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _EnsureCurrentGameStored(self, game: Any) -> str:
+        """The finished game on the table as a history row, and its key.
+
+        Recorded now if the end of the game has not got to it yet, so that
+        anything done from the game-over screen -- a rating, a send to BG
+        Stats -- finds the row it is about. Raises ValueError, with the
+        reason, for a game that is not a completed, counted one.
+        """
         world = game.world
         scene = game.session.scene
         if not world or not scene or not world.is_game_over:
-            raise ValueError('There is no completed game to rate.')
+            raise ValueError('There is no completed game.')
         if world.game_over.is_game_exit_or_undo:
-            raise ValueError('Only a completed game can be rated.')
+            raise ValueError('Only a completed game counts.')
         if game.controller_manager.replay.is_replay or scene.is_puzzle:
-            raise ValueError('Replay and puzzle sessions cannot be rated.')
+            raise ValueError('Replay and puzzle sessions are not recorded.')
         if not scene.GetMetadataBool('statistics_eligible'):
             raise ValueError('This game is not eligible for statistics.')
 
@@ -1268,7 +1275,29 @@ class GameHistory:
             ).fetchone() is not None
         if not exists:
             self._store_game(self._live_record(game), self._live_card_statistics(game))
+        return source_key
+
+    def SaveCurrentGameRatings(self, game: Any, data: Dict[str, Any]) -> Dict[str, Any]:
+        source_key = self._EnsureCurrentGameStored(game)
         return self.SaveGameRatings(source_key, data)
+
+    def CurrentGameRecord(self, game: Any) -> Dict[str, Any]:
+        """The finished game on the table, in the history's own row shape.
+
+        What the game-over screen hands to BG Stats: the same fields the
+        history page's rows carry, so one sender serves both.
+        """
+        source_key = self._EnsureCurrentGameStored(game)
+        with self._lock, self._connect() as connection:
+            row = connection.execute(
+                'SELECT id, finished_at, hero_code, hero_name, villain_code, villain_name, '
+                'expert, heroic, result, rounds, playtime_seconds, source, deck_name, notes '
+                'FROM games WHERE source_key = ?',
+                (source_key,),
+            ).fetchone()
+        if row is None:
+            raise ValueError('The completed game could not be recorded.')
+        return dict(row)
 
     def ImportTrackerGames(
         self,

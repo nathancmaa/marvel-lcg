@@ -248,6 +248,11 @@ body:not(.game-over) #game-over-close {
     background: linear-gradient(0deg, #996515 0%, #c6922a 100%);
 }
 
+#game-over-buttons button.bg-stats {
+    border-color: #b9a1ff;
+    background: linear-gradient(0deg, #4a2f9e 0%, #6f4bd8 100%);
+}
+
 #game-over-buttons button.try-again {
     border-color: #7dd3fc;
     background: linear-gradient(0deg, #007fca 0%, #029eef 100%);

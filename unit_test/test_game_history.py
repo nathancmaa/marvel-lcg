@@ -349,7 +349,7 @@ class GameHistoryTests(unittest.TestCase):
         self.assertEqual(updated['scenario_rating'], 4)
         self.assertEqual(updated['hero_rating'], 2)
 
-    def test_current_completed_game_is_recorded_before_its_rating(self):
+    def completed_game(self, *, won=True):
         metadata = {'statistics_eligible': True, 'game_id': 'current-game'}
         scene = SimpleNamespace(
             GetMetadataBool=lambda key: bool(metadata.get(key, False)),
@@ -379,7 +379,7 @@ class GameHistoryTests(unittest.TestCase):
             is_game_over=True,
             game_over=SimpleNamespace(
                 is_game_exit_or_undo=False,
-                players_won=True,
+                players_won=won,
                 reason='Players Won',
             ),
             round_id=4,
@@ -399,11 +399,35 @@ class GameHistoryTests(unittest.TestCase):
             ),
         )
 
+        return game
+
+    def test_current_completed_game_is_recorded_before_its_rating(self):
+        game = self.completed_game()
+
         saved = self.history.SaveCurrentGameRatings(game, {'scenario_rating': 5})
 
         self.assertTrue(saved['saved'])
         self.assertEqual(saved['scenario_rating'], 5)
         self.assertEqual(self.history.GetDashboard()['overview']['wins'], 1)
+
+    def test_the_finished_game_can_be_read_back_as_a_history_row(self):
+        row = self.history.CurrentGameRecord(self.completed_game(won=False))
+
+        self.assertEqual(row['hero_name'], 'Spider-Man')
+        self.assertEqual(row['villain_name'], 'Rhino')
+        self.assertEqual(row['result'], 'loss')
+        self.assertEqual(row['rounds'], 4)
+        self.assertIn('finished_at', row)
+        # Recorded by the read, and only once.
+        self.history.CurrentGameRecord(self.completed_game(won=False))
+        self.assertEqual(self.history.GetDashboard()['overview']['losses'], 1)
+
+    def test_a_replay_is_not_a_game_to_send(self):
+        game = self.completed_game()
+        game.controller_manager.replay.is_replay = True
+        with self.assertRaisesRegex(ValueError, 'Replay'):
+            self.history.CurrentGameRecord(game)
+
 
     def test_game_and_card_statistics_are_inserted_only_once(self):
         record = {

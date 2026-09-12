@@ -86,8 +86,16 @@ class GameServerGameHistory(GameServerBase):
             return web.json_response({'error': str(exc)}, status=503)
         return await self._run_history(history.SaveCurrentGameRatings, self.game, data)
 
+    async def current_game(self, request: web.Request) -> web.Response:
+        try:
+            history = self._history()
+        except RuntimeError as exc:
+            return web.json_response({'error': str(exc)}, status=503)
+        return await self._run_history(history.CurrentGameRecord, self.game)
+
     def __init__(self) -> None:
         super().__init__()
+        self.AddAwaitGetSecurity('/game_history/current', self.current_game)
         self.AddPostSecurity('/physical_games/save', self.save_physical_game)
         self.AddPostSecurity('/physical_games/delete', self.delete_physical_game)
         self.AddPostSecurity('/collection/save', self.save_collection)
