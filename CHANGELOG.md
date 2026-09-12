@@ -1,6 +1,6 @@
 # Marvel Champions Digital: Cerebro Changelog
 
-> Current release version: 0.7.11
+> Current release version: 0.7.12
 
 This document records the user-visible and development changes made in this
 fork after it diverged from the original
@@ -15,6 +15,86 @@ Versions 0.7.2 and 0.7.3 were briefly published as 0.8.0 and 0.8.1 and were
 renumbered onto the 0.7 line. Their tags and releases carry the new numbers
 and point at the same commits; the commits that cut them still name the old
 ones.
+
+## Version 0.7.12 (2026-09-12)
+
+Pulled back to what has been played, and a history that is easier to read
+and to send on.
+
+- **The table is 0.7.10's, less two of its experiments.** Card scaling and
+  the stacking of hands and upgrades are gone: scaled-down cards made minions
+  hard to target, and the stacks hid upgrades that still had something to do,
+  Black Panther's among them. What stays from that work is the answerable
+  flag the Priority panel reads and the confirm button under the options. The
+  finished Jessica Jones, Luke Cage and Synthezoid Smackdown packs went out
+  for a day and came back: they are built and tested but not yet played
+  through, so their Quick Game tiles wear NEW until they have had a real
+  game.
+- **The cancel key says no.** Escape, or the key chosen in settings, now
+  presses whatever negative the far-left button is showing -- Continue, End
+  Response, Skip Interrupts, End Defense, Cancel, Cancel Pay -- once nothing
+  is half chosen. It used to reach only the mid-selection cases and fell
+  through to a refresh at rest, which is why declining Black Panther's
+  "discard this to deal 3 more" needed the mouse. Two things it still will
+  not do: end the turn, and answer a forced ask, which has no negative to
+  give.
+- **Confirm where the choosing happens.** The confirm under the options
+  appears whenever there is something to confirm, not only when options are
+  on the table, so a target picked for an upgrade or a search has an OK
+  beside it. A deck spread open to pick a card from folds up when the pick is
+  posted. And a new setting, off by default, makes choosing Attack or Thwart
+  with the mouse count as the confirmation when there was exactly one legal
+  target and auto-targeting already took it; a target or a payment still to
+  choose keeps the OK, and so does a lone option, since the intention is
+  worth confirming.
+- **The right-hand bar stays off the buttons.** Its hover reach ran the full
+  height of the screen edge, so a pointer heading for OK opened it and slid
+  the sliders under the button. The reach now skips the band where OK and
+  the far-left button sit, and once the bar is out the two buttons step
+  inboard by its width.
+- **Hall of Heroes gets its tick.** Its "after you defeat a minion" is built
+  as a wrapper that waits for the defeat and only then registers the
+  response, and the wrapper was what the answerable test read. Every such
+  wrapper now records the printed type, and fifty player cards gain the
+  Priority tick -- Hall of Heroes, Ready to Rumble and Winter Soldier's own
+  response among them. On the table, a standing answer no longer needs
+  auto-targeting's approval: it is about the window, not the targets.
+- **The statistics page, in the order it gets used.** Matchups, Game
+  History, Achievements, Collection, landing on Matchups. On the history tab
+  each panel folds to its heading, the Games panel takes From and To days
+  and shows the games between them, and every table sorts by its headings --
+  a second click turns the order round -- with names starting ascending and
+  numbers descending. Folds, days and sorts are all remembered. The
+  reordering briefly swallowed the Collection tab into the Achievements
+  section; it is back.
+- **Two-handed games say so.** The history listed a two-handed game under its
+  first hero alone. Every row now carries its seats in order, the Games table
+  shows both heroes with a 2-handed mark, and BG Stats gets both heroes as
+  the role and both decks in the comments.
+- **Two Black Panthers, two Spider-Men.** The history always kept T'Challa
+  and Shuri apart by hero code, but every row, axis and tile named them
+  "Black Panther" and left you to guess. A hero whose name is shared now
+  carries the alter ego -- Black Panther (T'Challa), Black Panther (Shuri),
+  Spider-Man (Peter Parker), Spider-Man (Miles Morales) -- in the history's
+  tables, the matchup grid, and the Quick Game, Campaign, Deck Viewer and
+  physical-game pickers. Heroes with one identity keep a plain name.
+- **BG Stats, without the tab and from the game-over screen.** The button
+  hands the play to the app in place rather than opening a tab to be closed,
+  and only if nothing took it does the web page open to explain how to get
+  the app. A BG Stats button beside Save replay sends the game just finished.
+  A play now carries its duration, and always a location -- the one set in
+  settings, or "Marvel Champions Digital" -- because the app files a play
+  sent without one under "No location", whatever its documentation says. A
+  batch play file was tried for the backlog and withdrawn: BG Stats would not
+  import it and does not say why.
+- **The deck table is the roster.** Entering one deck id and pressing Sync
+  replaced the stored list of synced decks with that id, so the nightly
+  refresh quietly stopped covering the other ninety-five. The roster is now
+  read from the decks on disk, the box above the table is only for adding,
+  and each row has its own Remove. Above the near-hundred rows: a search
+  that matches the deck name, the hero or the id, a state filter, headings
+  that sort, and a count that reads "96 decks", or "3 of 96 decks" while
+  something narrows it.
 
 ## Version 0.7.11.1 (2026-09-11)
 
