@@ -577,6 +577,21 @@ tbody tr:last-child td {
     background: rgba(65, 44, 104, 0.7);
 }
 
+/* One player, two heroes. Beside the names rather than in a column of its
+   own, since most rows have nothing to say here. */
+.handed {
+    display: inline-block;
+    margin-left: 0.35rem;
+    padding: 0.15rem 0.45rem;
+    border-radius: 999px;
+    background: rgba(65, 44, 104, 0.7);
+    color: #c8b8f5;
+    font-size: 0.68rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    vertical-align: middle;
+}
+
 .difficulty.expert {
     color: #ffaaaa;
     background: rgba(104, 28, 35, 0.65);

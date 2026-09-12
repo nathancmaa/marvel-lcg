@@ -32,6 +32,9 @@ const SOURCE_PLAYER_ID = 'marvel-champions-digital-player';
 // from the app's own chrome, and there is no reason for BG Stats to be the last
 // place carrying it.
 const SOURCE_NAME = 'Marvel Champions Digital';
+// BG Stats' own separator for several roles in one field: a fullwidth
+// solidus, which the app splits on. The history sends the seats joined by it.
+const ROLE_SEPARATOR = '／';
 
 export type BgStatsGame = {
     id: number;
@@ -46,6 +49,11 @@ export type BgStatsGame = {
     playtime_seconds: number|null;
     deck_name: string;
     notes: string;
+    // Every seat of a two-handed game, joined by ROLE_SEPARATOR, in seat
+    // order; absent or empty on a game recorded before seats were kept.
+    seats?: number;
+    heroes?: string|null;
+    decks?: string|null;
 };
 
 /** BG Stats wants UTC as `yyyy-MM-dd HH:mm:ss`. */
@@ -66,8 +74,14 @@ export function buildBgStatsPlay(
     if (game.rounds) {
         comments.push(`${game.rounds} rounds`);
     }
-    if (game.deck_name) {
-        comments.push(game.deck_name);
+    if ((game.seats ?? 0) > 1) {
+        comments.push(`${game.seats}-handed`);
+    }
+    const decks = game.decks ? game.decks.split(ROLE_SEPARATOR) : [game.deck_name];
+    for (const deck of decks) {
+        if (deck.trim()) {
+            comments.push(deck.trim());
+        }
     }
     if (game.notes) {
         comments.push(game.notes);
@@ -80,7 +94,9 @@ export function buildBgStatsPlay(
         // Kept short on purpose: the whole payload travels in a URL.
         comments: comments.join(' · ').slice(0, 400),
         board: game.villain_name,
-        ...(location ? {location} : {}),
+        // Always named: the docs say an omitted location falls back to the
+        // source name, but the app files such plays under "No location".
+        location: location.trim() || SOURCE_NAME,
         game: {
             name: 'Marvel Champions: The Card Game',
             sourceGameId: SOURCE_GAME_ID,
@@ -94,7 +110,8 @@ export function buildBgStatsPlay(
             sourcePlayerId: SOURCE_PLAYER_ID,
             startPlayer: true,
             winner: game.result === 'win',
-            role: game.hero_name,
+            // The hero, or both heroes of a two-handed game.
+            role: game.heroes || game.hero_name,
         }],
     };
 

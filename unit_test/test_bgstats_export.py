@@ -55,8 +55,16 @@ class ThePlayFileHoldsEveryGame(unittest.TestCase):
         self.assertEqual(play['durationMin'], 31)
         self.assertEqual(play['rounds'], 6)
         self.assertEqual(play['comments'], "Standard · 6 rounds · Shuri's Fury")
-        self.assertNotIn('locationRefId', play)
-        self.assertEqual(content['locations'], [])
+        # No location set still files the play somewhere named, because BG
+        # Stats itself files an unlocated play under "No location".
+        self.assertEqual(play['locationRefId'], 1)
+        self.assertEqual(content['locations'][0]['name'], 'Marvel Champions Digital')
+
+    def test_a_two_handed_game_names_both_heroes_and_both_decks(self):
+        play = BuildBgStatsFile([game(seats=2, heroes='Winter Soldier／Black Panther',
+                                      decks="Bucky／Shuri's Fury")], 'Nathan', '', NOW)['plays'][0]
+        self.assertEqual(play['playerScores'][0]['role'], 'Winter Soldier／Black Panther')
+        self.assertEqual(play['comments'], "Standard · 6 rounds · 2-handed · Bucky · Shuri's Fury")
 
     def test_a_loss_is_not_a_win_and_expert_is_said(self):
         play = BuildBgStatsFile([game(result='loss', expert=1, heroic=2)], 'Nathan', '', NOW)['plays'][0]
@@ -68,6 +76,7 @@ class ThePlayFileHoldsEveryGame(unittest.TestCase):
         # file must name the same play, player and game as the first.
         first = BuildBgStatsFile([game()], 'Nathan', 'Home', NOW)
         second = BuildBgStatsFile([game()], 'Nathan', 'Home', datetime(2027, 1, 1, tzinfo=timezone.utc))
+        self.assertEqual(first['locations'][0]['name'], 'Home')
         self.assertEqual(first['plays'][0]['uuid'], second['plays'][0]['uuid'])
         self.assertEqual(first['games'][0]['uuid'], second['games'][0]['uuid'])
         self.assertEqual(first['players'][0]['uuid'], second['players'][0]['uuid'])

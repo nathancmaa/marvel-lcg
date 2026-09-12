@@ -1291,7 +1291,10 @@ class GameHistory:
         with self._lock, self._connect() as connection:
             row = connection.execute(
                 'SELECT id, finished_at, hero_code, hero_name, villain_code, villain_name, '
-                'expert, heroic, result, rounds, playtime_seconds, source, deck_name, notes '
+                'expert, heroic, result, rounds, playtime_seconds, source, deck_name, notes, '
+                + '(SELECT COUNT(*) FROM game_players p WHERE p.game_id = games.id) seats, '
+                "(SELECT group_concat(hero_name, '／') FROM (SELECT hero_name FROM game_players p WHERE p.game_id = games.id ORDER BY seat)) heroes, "
+                "(SELECT group_concat(deck_name, '／') FROM (SELECT deck_name FROM game_players p WHERE p.game_id = games.id ORDER BY seat)) decks "
                 'FROM games WHERE source_key = ?',
                 (source_key,),
             ).fetchone()
@@ -1472,7 +1475,10 @@ class GameHistory:
                 parameters.extend(wanted)
             return [dict(row) for row in connection.execute(
                 'SELECT id, finished_at, hero_code, hero_name, villain_code, villain_name, '
-                'expert, heroic, result, rounds, playtime_seconds, deck_name, notes '
+                'expert, heroic, result, rounds, playtime_seconds, deck_name, notes, '
+                + '(SELECT COUNT(*) FROM game_players p WHERE p.game_id = games.id) seats, '
+                "(SELECT group_concat(hero_name, '／') FROM (SELECT hero_name FROM game_players p WHERE p.game_id = games.id ORDER BY seat)) heroes, "
+                "(SELECT group_concat(deck_name, '／') FROM (SELECT deck_name FROM game_players p WHERE p.game_id = games.id ORDER BY seat)) decks "
                 "FROM games WHERE is_service = 0 AND result IN ('win', 'loss') "
                 + ("AND source = ? " if source != 'all' else '') + where +
                 'ORDER BY datetime(finished_at), id',
@@ -1549,13 +1555,18 @@ class GameHistory:
                 'GROUP BY p.hero_code, g.scenario_key, g.expert '
                 'ORDER BY games DESC, hero_name, villain_name, expert'
             )
+            # Every seat, in order, beside the row: a two-handed game is one
+            # game with two heroes in it, and the list should say so.
             recent = [dict(row) for row in connection.execute(
                 'SELECT id, finished_at, hero_code, hero_name, villain_code, scenario_key, '
                 'villain_name, expert, heroic, result, rounds, playtime_seconds, '
                 'game_over_reason, replay_file, replay_analysis_status, '
                 'replay_analysis_error, source, deck_name, notes, '
                 'remaining_hit_points, minions_in_play, side_schemes_in_play, '
-                'hero_rating, scenario_rating '
+                'hero_rating, scenario_rating, '
+                + '(SELECT COUNT(*) FROM game_players p WHERE p.game_id = games.id) seats, '
+                "(SELECT group_concat(hero_name, '／') FROM (SELECT hero_name FROM game_players p WHERE p.game_id = games.id ORDER BY seat)) heroes, "
+                "(SELECT group_concat(deck_name, '／') FROM (SELECT deck_name FROM game_players p WHERE p.game_id = games.id ORDER BY seat)) decks "
                 'FROM games WHERE is_service = 0 '
                 + ("AND source = ? " if source != 'all' else '') +
                 'ORDER BY datetime(finished_at) DESC, id DESC LIMIT 100',

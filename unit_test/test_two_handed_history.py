@@ -129,6 +129,25 @@ class TwoHandedHistoryTests(unittest.TestCase):
         self.assertEqual(len(heroes), 1)
         self.assertEqual(heroes[0]['hero_code'], '40001a')
 
+    def test_the_recent_list_names_every_seat(self):
+        self.two_handed('two')
+        self.store('one')
+
+        rows = {row['source_key'] if 'source_key' in row.keys() else row['id']: row
+                for row in self.history.GetDashboard()['recent_games']}
+        by_key = {row['hero_name']: row for row in rows.values()}
+        two = next(row for row in rows.values() if row['seats'] == 2)
+        self.assertEqual(two['heroes'], 'Cable／Spider-Man')
+        self.assertEqual(two['decks'], 'Cable／Spider-Man')
+        one = next(row for row in rows.values() if row['seats'] == 1)
+        self.assertEqual(one['heroes'], 'Cable')
+        self.assertIn('Cable', by_key)
+
+    def test_the_play_file_rows_carry_the_seats_too(self):
+        self.two_handed('two')
+        row = self.history.DecidedGames('all')[0]
+        self.assertEqual((row['seats'], row['heroes']), (2, 'Cable／Spider-Man'))
+
     def test_storing_the_same_game_twice_does_not_double_its_seats(self):
         self.two_handed('two:1')
         self.two_handed('two:1')

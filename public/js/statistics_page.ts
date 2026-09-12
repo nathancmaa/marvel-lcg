@@ -47,6 +47,11 @@ type RecentGame = {
     remaining_hit_points: number|null;
     minions_in_play: number|null;
     side_schemes_in_play: number|null;
+    // Every seat, in order, joined by '／'; absent on rows recorded before
+    // seats were kept, which are one-hero games.
+    seats?: number;
+    heroes?: string|null;
+    decks?: string|null;
 };
 
 type Achievement = {
@@ -285,6 +290,19 @@ function renderMatchups(rows: RecordRow[]): void {
     </tr>`).join('');
 }
 
+/**
+ * The hero column of a game: one name, or every hero of a two-handed game
+ * with a mark saying so. One person played all of them.
+ */
+function heroesCell(row: RecentGame): string {
+    const seats = row.seats ?? 0;
+    if (seats > 1 && row.heroes) {
+        const names = row.heroes.split('／').map(name => escapeHtml(name.trim())).join(' &amp; ');
+        return `${names} <span class="handed" title="One player, ${seats} heroes">${seats}-handed</span>`;
+    }
+    return escapeHtml(displayName(row.hero_name, row.hero_code));
+}
+
 function sourceLabel(source: RecentGame['source']): string {
     if (source === 'physical') return 'Physical';
     if (source === 'replay_import') return 'Replay';
@@ -497,7 +515,7 @@ function renderRecent(rows: RecentGame[], unknownGames: number): void {
             <td class="select-cell">${select}</td>
             <td>${escapeHtml(dateTime(row.finished_at))}</td>
             <td><span class="source ${row.source}">${escapeHtml(sourceLabel(row.source))}</span></td>
-            <td>${escapeHtml(displayName(row.hero_name, row.hero_code))}</td>
+            <td>${heroesCell(row)}</td>
             <td>${escapeHtml(displayName(row.villain_name, row.villain_code))}</td>
             <td><span class="difficulty ${row.heroic ? 'heroic' : row.expert ? 'expert' : ''}">${escapeHtml(difficultyLabel(row))}</span></td>
             <td><span class="result ${escapeHtml(row.result)}">${escapeHtml(row.result)}</span></td>

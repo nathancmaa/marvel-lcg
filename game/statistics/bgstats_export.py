@@ -23,6 +23,15 @@ MARVEL_CHAMPIONS_BGG_ID = 285774
 MARVEL_CHAMPIONS_NAME = 'Marvel Champions: The Card Game'
 MARVEL_CHAMPIONS_YEAR = 2019
 
+# Where the plays are filed when no location is set. The deep link's docs
+# say BG Stats falls back to the source name on its own; the app does not,
+# and files them under "No location", so the name goes in explicitly.
+DEFAULT_LOCATION = 'Marvel Champions Digital'
+
+# BG Stats' own separator for several roles or boards in one field. Not a
+# slash: a fullwidth solidus, which the app splits on.
+ROLE_SEPARATOR = '／'
+
 # Everything this file names is derived under one namespace, so nothing here
 # can collide with a UUID BG Stats made for itself.
 _NAMESPACE = uuid.uuid5(uuid.NAMESPACE_URL, 'https://github.com/nathancmaa/marvel-lcg/bgstats')
@@ -56,11 +65,23 @@ def _comments(game: Mapping[str, Any]) -> str:
     rounds = game.get('rounds')
     if rounds:
         parts.append(f"{rounds} round{'' if rounds == 1 else 's'}")
-    for key in ('deck_name', 'notes'):
-        text = str(game.get(key) or '').strip()
+    if (game.get('seats') or 0) > 1:
+        parts.append(f"{game['seats']}-handed")
+    decks = str(game.get('decks') or '').strip()
+    for text in (decks.split(ROLE_SEPARATOR) if decks else [str(game.get('deck_name') or '')]):
+        text = text.strip()
         if text:
             parts.append(text)
+    notes = str(game.get('notes') or '').strip()
+    if notes:
+        parts.append(notes)
     return ' · '.join(parts)
+
+
+def _role(game: Mapping[str, Any]) -> str:
+    """The hero, or every hero in seat order for a two-handed game."""
+    heroes = str(game.get('heroes') or '').strip()
+    return heroes or str(game.get('hero_name') or '')
 
 
 def BuildBgStatsFile(games: Sequence[Mapping[str, Any]],
@@ -76,7 +97,7 @@ def BuildBgStatsFile(games: Sequence[Mapping[str, Any]],
     """
     stamp = _bgstats_time(now or datetime.now(timezone.utc))
     player_name = player_name.strip() or 'Me'
-    location = location.strip()
+    location = location.strip() or DEFAULT_LOCATION
 
     game_ref = 1
     player_ref = 1
@@ -111,12 +132,11 @@ def BuildBgStatsFile(games: Sequence[Mapping[str, Any]],
                 'rank': 0,
                 'score': '',
                 'newPlayer': False,
-                # What the player was in the play: the hero.
-                'role': str(game.get('hero_name') or ''),
+                # What the player was in the play: the hero, or both.
+                'role': _role(game),
             }],
         }
-        if location:
-            play['locationRefId'] = location_ref
+        play['locationRefId'] = location_ref
         seconds = game.get('playtime_seconds')
         if seconds:
             # Half up, as the deep link rounds it, not to even.
@@ -147,16 +167,14 @@ def BuildBgStatsFile(games: Sequence[Mapping[str, Any]],
             'isAnonymous': False,
             'modificationDate': stamp,
         }],
-        'locations': [],
-        'plays': plays,
-        'userInfo': {'meRefId': player_ref},
-        'challenges': [],
-    }
-    if location:
-        content['locations'].append({
+        'locations': [{
             'id': location_ref,
             'uuid': _stable_uuid(f"location:{location.casefold()}"),
             'name': location,
             'modificationDate': stamp,
-        })
+        }],
+        'plays': plays,
+        'userInfo': {'meRefId': player_ref},
+        'challenges': [],
+    }
     return content
