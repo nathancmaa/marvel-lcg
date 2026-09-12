@@ -311,6 +311,123 @@ function invalidateGameChoices(): void {
     choicesPromise = null;
 }
 
+/**
+ * Which column each history table is sorted on, and which way.
+ *
+ * One state per table, remembered across visits; a click on the heading of
+ * the sorted column turns the order round, a click on another starts it
+ * descending for numbers and ascending for names, which is the way each
+ * is usually wanted. The server's own order is kept as the tie-break.
+ */
+type SortDir = 1|-1;
+type TableSort = {key: string; dir: SortDir};
+const TABLE_SORTS_KEY = 'marvel_lcg_history_sorts';
+const DEFAULT_SORTS: Record<string, TableSort> = {
+    heroes: {key: 'games', dir: -1},
+    villains: {key: 'games', dir: -1},
+    matchups: {key: 'games', dir: -1},
+    'recent-games': {key: 'date', dir: -1},
+};
+const NUMERIC_KEYS = new Set(['games', 'wins', 'rate', 'rounds', 'time', 'date', 'difficulty']);
+let tableSorts: Record<string, TableSort> = {...DEFAULT_SORTS};
+
+function readTableSorts(): void {
+    try {
+        const stored = JSON.parse(localStorage.getItem(TABLE_SORTS_KEY) || '{}') as Record<string, TableSort>;
+        for (const [table, sort] of Object.entries(stored)) {
+            if (table in DEFAULT_SORTS && sort && typeof sort.key === 'string' && (sort.dir === 1 || sort.dir === -1)) {
+                tableSorts[table] = {key: sort.key, dir: sort.dir};
+            }
+        }
+    } catch {
+        tableSorts = {...DEFAULT_SORTS};
+    }
+}
+
+/** Sort a table's rows by its current column; `value` reads the column off a row. */
+function sortedRows<T>(table: string, rows: T[], value: (row: T, key: string) => string|number): T[] {
+    const {key, dir} = tableSorts[table] ?? DEFAULT_SORTS[table];
+    const compare = (a: T, b: T): number => {
+        const left = value(a, key);
+        const right = value(b, key);
+        if (typeof left === 'number' && typeof right === 'number') {
+            return (left - right) * dir;
+        }
+        return String(left).localeCompare(String(right), undefined, {sensitivity: 'base'}) * dir;
+    };
+    // A stable sort keeps the server's order among equals.
+    return rows.map((row, at) => ({row, at}))
+        .sort((a, b) => compare(a.row, b.row) || a.at - b.at)
+        .map(entry => entry.row);
+}
+
+/** Put the arrow on the sorted column's heading. */
+function markSort(table: string): void {
+    const {key, dir} = tableSorts[table] ?? DEFAULT_SORTS[table];
+    element(table).closest('table')?.querySelectorAll<HTMLTableCellElement>('th').forEach(cell => {
+        const button = cell.querySelector<HTMLButtonElement>('.table-sort');
+        if (button && button.dataset.sort === key) {
+            cell.setAttribute('aria-sort', dir === 1 ? 'ascending' : 'descending');
+        } else {
+            cell.removeAttribute('aria-sort');
+        }
+    });
+}
+
+function bindTableSorts(): void {
+    for (const table of Object.keys(DEFAULT_SORTS)) {
+        element(table).closest('table')?.querySelectorAll<HTMLButtonElement>('.table-sort').forEach(button => {
+            button.addEventListener('click', () => {
+                const key = button.dataset.sort!;
+                const current = tableSorts[table] ?? DEFAULT_SORTS[table];
+                tableSorts[table] = current.key === key
+                    ? {key, dir: current.dir === 1 ? -1 : 1}
+                    : {key, dir: NUMERIC_KEYS.has(key) ? -1 : 1};
+                try {
+                    localStorage.setItem(TABLE_SORTS_KEY, JSON.stringify(tableSorts));
+                } catch {
+                    // Forgetting the order is the only cost.
+                }
+                if (currentDashboard) {
+                    renderDashboard(currentDashboard);
+                }
+            });
+        });
+    }
+}
+
+/** Standard, then Expert, then Heroic by level, as a number for sorting. */
+function difficultyRank(row: {expert?: number; heroic?: number}): number {
+    return (row.expert ? 10 : 0) + Number(row.heroic ?? 0);
+}
+
+function recordValue(row: RecordRow, key: string): string|number {
+    switch (key) {
+        case 'name': return displayName(row.hero_name ?? row.villain_name, row.hero_code ?? row.villain_code);
+        case 'hero': return displayName(row.hero_name, row.hero_code);
+        case 'villain': return displayName(row.villain_name, row.villain_code);
+        case 'difficulty': return difficultyRank(row);
+        case 'games': return row.games;
+        case 'wins': return row.wins * 1000 - row.losses;
+        case 'rate': return row.win_rate;
+        default: return 0;
+    }
+}
+
+function recentValue(row: RecentGame, key: string): string|number {
+    switch (key) {
+        case 'date': return new Date(row.finished_at).getTime() || 0;
+        case 'source': return sourceLabel(row.source);
+        case 'hero': return row.heroes || displayName(row.hero_name, row.hero_code);
+        case 'villain': return displayName(row.villain_name, row.villain_code);
+        case 'difficulty': return difficultyRank(row);
+        case 'result': return row.result;
+        case 'rounds': return row.rounds ?? -1;
+        case 'time': return row.playtime_seconds ?? -1;
+        default: return 0;
+    }
+}
+
 function renderOverview(overview: Overview): void {
     const cards: Array<[string, string]> = [
         [String(overview.completed), 'Completed games'],
@@ -329,11 +446,12 @@ function renderOverview(overview: Overview): void {
 
 function renderRecords(targetId: string, rows: RecordRow[], type: 'hero'|'villain'): void {
     const target = element<HTMLTableSectionElement>(targetId);
+    markSort(targetId);
     if (!rows.length) {
         target.innerHTML = emptyRow(4, 'No completed games in this view.');
         return;
     }
-    target.innerHTML = rows.map(row => {
+    target.innerHTML = sortedRows(targetId, rows, recordValue).map(row => {
         const name = type === 'hero'
             ? displayName(row.hero_name, row.hero_code)
             : displayName(row.villain_name, row.villain_code);
@@ -348,11 +466,12 @@ function renderRecords(targetId: string, rows: RecordRow[], type: 'hero'|'villai
 
 function renderMatchups(rows: RecordRow[]): void {
     const target = element<HTMLTableSectionElement>('matchups');
+    markSort('matchups');
     if (!rows.length) {
         target.innerHTML = emptyRow(6, 'No completed matchups in this view.');
         return;
     }
-    target.innerHTML = rows.map(row => `<tr>
+    target.innerHTML = sortedRows('matchups', rows, recordValue).map(row => `<tr>
         <td>${escapeHtml(displayName(row.hero_name, row.hero_code))}</td>
         <td>${escapeHtml(displayName(row.villain_name, row.villain_code))}</td>
         <td><span class="difficulty ${row.heroic ? 'heroic' : row.expert ? 'expert' : ''}">${escapeHtml(difficultyLabel(row))}</span></td>
@@ -383,6 +502,8 @@ function sourceLabel(source: RecentGame['source']): string {
 
 function renderRecent(rows: RecentGame[], unknownGames: number): void {
     const target = element<HTMLTableSectionElement>('recent-games');
+    markSort('recent-games');
+    rows = sortedRows('recent-games', rows, recentValue);
     element('unknown-note').textContent = unknownGames
         ? `${unknownGames} imported replay${unknownGames === 1 ? '' : 's'} with unknown result`
         : '';
@@ -1376,6 +1497,7 @@ async function importTrackerExport(): Promise<void> {
 
 function bindEvents(): void {
     initCollapsiblePanels();
+    bindTableSorts();
     const reloadGames = async () => {
         saveGameDates();
         try {
@@ -1461,6 +1583,7 @@ async function initialize(): Promise<void> {
         // which is earlier than the controls are bound.
         restoreMatchupControls();
         readGameDates();
+        readTableSorts();
         setData = await fetchJson<Record<string, SetInfo>>('/get_sets_json?');
         products = buildProducts(setData);
         await loadDashboard();
