@@ -2,55 +2,15 @@ import { UI } from "./ui.js";
 import { SCENE_WIDTH_CHANGED } from './scene.js'
 import { ClassName } from './class_name.js'
 import { Cards } from "./cards.js";
-import { Game } from "./game.js";
 import { ButtonSetting, Setting } from "./settings.js";
-import { UserSettings } from "../user_settings.js";
 import { Lib } from "./lib.js";
 
 export class MoveCard {
 
     // Root CSS custom properties
     static rootStyles = getComputedStyle(document.documentElement);
-
-    /* The size a card is laid out at. Read from the stylesheet rather than
-       written down, because the tablet breakpoint asks for a bigger card, and
-       kept as numbers rather than a property read per card because the layout
-       touches them several times for every card in every row.
-
-       Only applyCardScale writes these, and it is the only thing that writes
-       the CSS variables they mirror -- so the two cannot drift apart by
-       somebody changing one and forgetting the other, which is the bug this
-       shape exists to prevent. */
-    static cardWidth = 0;
-    static cardHeight = 0;
-
-    static {
-        MoveCard.applyCardScale();
-        MoveCard.bindCardScaleSlider();
-    }
-
-    /**
-     * The slider in the button bar, wired to the same setting the settings
-     * page writes -- so the two agree without either knowing about the other.
-     *
-     * Here rather than in ui.ts, which is where the animation slider beside it
-     * is wired: ui.ts would have to import MoveCard, and MoveCard already
-     * imports UI. Everything this needs is in this file already.
-     */
-    private static bindCardScaleSlider(): void {
-        const slider = document.getElementById('card-scale-range') as HTMLInputElement | null;
-        if( !slider ) {
-            return;
-        }
-        slider.value = String(UserSettings.getCardScale());
-        slider.oninput = () => {
-            UserSettings.setCardScale(Number(slider.value));
-            MoveCard.applyCardScale();
-            // Nothing entered or left an area, so the usual relayout has no
-            // work queued; ask for every row directly.
-            MoveCard.doMoveFirstTime();
-        };
-    }
+    static cardWidth = parseFloat(MoveCard.rootStyles.getPropertyValue('--card-width'));
+    static cardHeight = parseFloat(MoveCard.rootStyles.getPropertyValue('--card-height'));
 
     /** Total width, in card widths, kept free at the left and right edges of
      *  the stage so a compressed row cannot slide under the deck columns. */
@@ -69,46 +29,6 @@ export class MoveCard {
     static timer: Record<string, number> = {}
     static updating_area: Set<HTMLElement> = new Set()
     static updating_in_deck_cards: Set<HTMLElement> = new Set()
-
-    /**
-     * Resize the cards, and bring the layout's copy of the size with them.
-     *
-     * The design size is re-read every time with our own override lifted,
-     * the way designSceneWidth does it: that override is this function's
-     * answer from last time, and a breakpoint can change the size underneath
-     * it. Callers relayout afterwards; this only settles what a card is.
-     */
-    static applyCardScale(): void {
-        const root = document.documentElement;
-        // Cleared and not put back: every path below either sets a new value
-        // or means to leave it cleared. --card-scale goes too, so the design
-        // size is read at the size the stylesheet means it.
-        root.style.removeProperty('--card-width');
-        root.style.removeProperty('--card-height');
-        root.style.removeProperty('--card-scale');
-        const design = {
-            width: parseFloat(MoveCard.rootStyles.getPropertyValue('--card-width')),
-            height: parseFloat(MoveCard.rootStyles.getPropertyValue('--card-height')),
-        };
-        const scale = UserSettings.getCardScale() / 100;
-
-        if( scale === 1 ) {
-            // Removed rather than set to the design size, so that crossing the
-            // tablet breakpoint later still changes the card.
-            root.style.removeProperty('--card-scale');
-            MoveCard.cardWidth = design.width;
-            MoveCard.cardHeight = design.height;
-            return;
-        }
-        MoveCard.cardWidth = Math.round(design.width * scale);
-        MoveCard.cardHeight = Math.round(design.height * scale);
-        root.style.setProperty('--card-width', `${MoveCard.cardWidth}px`);
-        root.style.setProperty('--card-height', `${MoveCard.cardHeight}px`);
-        // What a card sizes its own text and badges by. Without this the frame
-        // shrank and its contents did not, which put a scheme's rules text
-        // outside the card.
-        root.style.setProperty('--card-scale', String(scale));
-    }
 
     static narrowToRange(values: number[], newMin: number, newMax: number): number[] {
         const oldMin = Math.min(...values);
@@ -186,45 +106,17 @@ export class MoveCard {
         return { padding, padding2 };
     }
 
-    /**
-     * Whether this hand card belongs to the player who is not taking the turn.
-     *
-     * Their hand is worth seeing in a two-handed game -- it is your hand too --
-     * but at full width it takes as much of the row as the hand you are
-     * actually playing from.
-     */
-    private static isCollapsedHandCard(card: any): boolean {
-        return Boolean(ButtonSetting.collapse_other_hand)
-            && Game.total_players > 1
-            && Game.forced_on_player >= 0
-            && card.control_player !== Game.forced_on_player;
-    }
-
     private static buildHandXList(cards_els: HTMLElement[], list_x: number[]) {
-        // The hand is sorted by player, so each player's cards are already a
-        // run and the one being collapsed needs no gathering first.
-        let collapsing: number | null = null;
+        const show_all_hands = true;
         for (let i = 0; i < cards_els.length; i++) {
-            const card = Cards.getCard(Number(cards_els[i].dataset.id!))!;
             let x = MoveCard.cardWidth;
-            if (i > 0) {
-                const previous_card = Cards.getCard(Number(cards_els[i - 1].dataset.id!))!;
-                if (card.control_player !== previous_card.control_player) {
+            if (show_all_hands && i > 0) {
+                let id_a = Number(cards_els[i].dataset.id!);
+                let id_b = Number(cards_els[i - 1].dataset.id!);
+                if (Cards.getCard(id_a)!.control_player !== Cards.getCard(id_b)!.control_player) {
                     list_x.push(-2);
                 }
             }
-
-            const collapse = MoveCard.isCollapsedHandCard(card);
-            if (collapse && collapsing === card.control_player) {
-                // Never the separator: that is only pushed where the player
-                // changes, and a run is one player's cards.
-                const previous = list_x.pop()!;
-                list_x.push(previous > 0
-                    ? Math.min(previous, MoveCard.cardWidth * MoveCard.STACK_PEEK)
-                    : previous);
-            }
-            collapsing = collapse ? card.control_player : null;
-
             list_x.push(x);
         }
     }
@@ -249,7 +141,7 @@ export class MoveCard {
      * to click stays where you can click it; an ally can carry either kind,
      * which is why this asks the card rather than the row it sits in.
      */
-    static isStackedUpgrade(card: any): boolean {
+    private static isStackedUpgrade(card: any): boolean {
         if (!ButtonSetting.collapse_upgrades) return false;
         if (!card.is_face_up || card.card_type !== 'Upgrade') return false;
         if (!card.is_passive || !card.bind_object_id) return false;
@@ -650,9 +542,6 @@ window.addEventListener(SCENE_WIDTH_CHANGED, () => {
     }
     relayoutHandle = requestAnimationFrame(() => {
         relayoutHandle = 0;
-        // A resize is also how the tablet breakpoint is crossed, which changes
-        // the size a card is laid out at.
-        MoveCard.applyCardScale();
         MoveCard.doMoveFirstTime();
     });
 });

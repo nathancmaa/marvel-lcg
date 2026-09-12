@@ -62,13 +62,6 @@
     width: 100%;
 }
 
-/* Two sliders sit above the buttons and neither is labelled yet, so for now
-   the accent is what tells them apart: the card size one takes the colour the
-   rest of the app uses for its own marks. */
-.side-bar .slider-card-scale {
-    accent-color: #78d2ff;
-}
-
 .side-bar > .button {
     height: calc(2 * var(--font-size-out));
     --color: #333;

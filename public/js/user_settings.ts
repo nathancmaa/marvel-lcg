@@ -23,26 +23,6 @@ const optionKeysKey = 'marvel_lcg_option_keys'
 export const DEFAULT_OPTION_KEYS: readonly string[] =
     ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l']
 
-const cardScaleKey = 'marvel_lcg_card_scale'
-
-/**
- * Card size, as a percentage of what the stylesheet asks for.
- *
- * In steps, not continuously: the rows a card sits in are pinned at fixed
- * stage coordinates, so every size that makes a card taller needs its own
- * set of those, and a handful of sizes is a handful of tables rather than a
- * function of a slider position.
- *
- * The maximum is 100 for now. Smaller cards only ever leave more room, both
- * across a row and between rows; larger ones run into the 4 to 24 pixels of
- * slack between one row and the next, which is the work that has not been
- * done yet.
- */
-export const CARD_SCALE_MIN = 50
-export const CARD_SCALE_MAX = 100
-export const CARD_SCALE_STEP = 5
-export const CARD_SCALE_DEFAULT = 100
-
 function readStorage(key: string): string|null {
     try {
         return localStorage.getItem(key)
@@ -202,23 +182,5 @@ export class UserSettings {
 
     static setOptionKeys(keys: readonly string[]) {
         writeStorage(optionKeysKey, JSON.stringify(keys))
-    }
-
-    /** Card size as a percentage, snapped to a step the layout has a table for. */
-    static getCardScale(): number {
-        // Tested for null before converting: Number(null) is 0, which is
-        // finite, so a missing setting would otherwise clamp to the minimum
-        // and every new browser would open at the smallest card.
-        const stored = readStorage(cardScaleKey)
-        const value = stored === null ? NaN : Number(stored)
-        if( !Number.isFinite(value) ) {
-            return CARD_SCALE_DEFAULT
-        }
-        const snapped = Math.round(value / CARD_SCALE_STEP) * CARD_SCALE_STEP
-        return Math.min(CARD_SCALE_MAX, Math.max(CARD_SCALE_MIN, snapped))
-    }
-
-    static setCardScale(percent: number) {
-        writeStorage(cardScaleKey, String(percent))
     }
 }

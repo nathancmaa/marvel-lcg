@@ -52,15 +52,7 @@
     --button-opacity: 1;
 
     --area-gap: 6px;
-    /* The stage's text size. Kept separately from --font-size so that a card
-       can scale its own contents without dragging the side bars, the log and
-       the prompt down with it -- everything inside a card sizes off
-       --font-size, and shrinking the card frame alone left the stats and the
-       rules text at full size, spilling out of the card. Most visible on a
-       scheme, which is wide and carries the most text. */
-    --font-size-base: 26px;
-    --card-scale: 1;
-    --font-size: var(--font-size-base);
+    --font-size: 26px;
     --font-size-out: 16px;
 
     overflow: hidden;
