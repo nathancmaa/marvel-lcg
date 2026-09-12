@@ -25,5 +25,4 @@ class CardDescriptor:
     crc                 : int
     is_new              : bool
     is_action           : bool
-    is_passive          : bool          # nothing on it the player ever chooses to use
     has_response        : bool          # a Response or Interrupt the player may answer

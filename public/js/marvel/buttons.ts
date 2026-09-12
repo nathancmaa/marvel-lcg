@@ -1,5 +1,4 @@
 import { DeckTracker } from './deck_tracker.js'
-import { MoveCard } from './move-card.js'
 import { StandingPanel } from './standing_panel.js'
 import { QuickReference } from './quick_reference.js'
 import { Lib } from './lib.js'
@@ -608,17 +607,6 @@ export class Button{
             cookie_name: 'btn_auto_activate'
         })
         Button.createButtonBase(parent_div4, {
-            text: "Stack Passives",
-            id: 'collapse-upgrades',
-            property: 'collapse_upgrades',
-            cookie_name: 'btn_collapse_upgrades',
-            onClick: () => {
-                // Nothing appeared or moved between areas, so the usual
-                // relayout has no work queued; ask for every row directly.
-                MoveCard.doMoveFirstTime()
-            }
-        })
-        Button.createButtonBase(parent_div4, {
             text: "Auto Pause",
             property: 'pause_when_reveal_or_boost',
             onClick: () => {
@@ -793,8 +781,6 @@ export class Button{
     static createButtonBase(parent: HTMLElement, options: {
         names?: string[];
         text?: string;
-        /** Hover text, for the buttons whose label is a single letter. */
-        title?: string;
         class_name?: string;
         id?: string;
         property?: keyof typeof ButtonSetting;
@@ -802,12 +788,9 @@ export class Button{
         callWhenInit?: boolean;
         cookie_name?: string;
     }) {
-        const { names=[], text="", title="", class_name, id="", property, onClick, callWhenInit=false, cookie_name="" } = options;
+        const { names=[], text="", class_name, id="", property, onClick, callWhenInit=false, cookie_name="" } = options;
         const button = document.createElement('button');
         button.id = id
-        if( title ) {
-            button.title = title
-        }
 
         button.className = class_name ? `button ${class_name}` : "button";
 

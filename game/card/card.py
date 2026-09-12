@@ -1,4 +1,3 @@
-import re
 from typing import Final
 from core import *
 from game.card.states import CardIsStates, CardCanStates
@@ -15,20 +14,6 @@ from game.world import *
 from game.render.descriptor.card import CardDescriptor
 
 
-# A card that prints its own Resource line: "Resource: Exhaust this card and
-# take 1 damage -> generate a wild resource". Read from the text because the
-# abilities cannot tell us: at runtime every card in play carries a
-# CheckResource effect, since any card can be spent for the icons printed on
-# it, so asking the effects makes every card look spendable. The printed line
-# is also what the player is reading when they reach for the card.
-RESOURCE_LINE = re.compile(r'<b>\s*(?:Hero |Alter-Ego )?Resource\s*</b>', re.IGNORECASE)
-
-
-def CardPrintsAResourceAbility(text: str) -> bool:
-    """Whether this card offers a resource of its own, rather than its icons."""
-    return bool(RESOURCE_LINE.search(text or ''))
-
-
 def AbilityIsAnswerable(ability: 'Ability') -> bool:
     """
     Whether this ability is one the game stops and offers, waiting for a yes.
@@ -39,24 +24,6 @@ def AbilityIsAnswerable(ability: 'Ability') -> bool:
     """
     flags = ability.flags
     return not flags.is_forced and (flags.is_response or flags.is_interrupt)
-
-
-def AbilityAsksThePlayer(ability: 'Ability') -> bool:
-    """
-    Whether this ability ever puts a choice in front of the player.
-
-    Answerable ones do, and so does an optional Action. So does a Resource:
-    spending a card to pay for another is a click on that card, which the
-    first version of this missed -- an upgrade whose only ability was
-    "Resource: exhaust this to generate energy" read as pure text and was
-    stacked out of reach behind its neighbours.
-
-    A card with none of them is one you only ever read, which is what lets
-    the table stack it out of the way.
-    """
-    flags = ability.flags
-    return AbilityIsAnswerable(ability) or (
-        not flags.is_forced and (flags.is_action or flags.is_resource))
 
 
 @final
@@ -1071,9 +1038,6 @@ class Card(Object):
             crc                 = self.GetCRC(),
             is_new              = Engine.statistics.IsNew(self.face.paper.card_id),
             is_action           = any(x for x in self.face.effects if x.ability.flags.is_action), #  or x.ability.type.is_resource
-            is_passive          = not any(
-                AbilityAsksThePlayer(x.ability) for x in self.face.effects
-            ) and not CardPrintsAResourceAbility(self.face.paper.text),
             has_response        = any(
                 AbilityIsAnswerable(x.ability) for x in self.face.effects
             ),
