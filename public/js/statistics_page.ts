@@ -314,6 +314,7 @@ function chooseBgStatsGames(on: boolean): void {
     element('games-panel').classList.toggle('selecting', on);
     element('bgstats-cancel').hidden = !on;
     element('bgstats-hint').hidden = !on;
+    element('bgstats-hint').textContent = 'Tick the games to send';
     if (!on) {
         document.querySelectorAll<HTMLInputElement>('[data-bgstats-select]').forEach(box => {
             box.checked = false;
@@ -329,7 +330,7 @@ function chooseBgStatsGames(on: boolean): void {
  * and this is for catching up on several. Which ones is the player's choice,
  * row by row or all at once; nothing is sent that was not ticked.
  */
-function downloadBgStatsFile(): void {
+async function downloadBgStatsFile(): Promise<void> {
     const ids = selectedBgStatsGames();
     if (!ids.length) {
         return;
@@ -340,8 +341,62 @@ function downloadBgStatsFile(): void {
         player: bgStatsPlayerName(),
         location: bgStatsLocation(),
     });
-    window.location.href = `/download_bgstats_plays?${params.toString()}`;
-    chooseBgStatsGames(false);
+    const button = element<HTMLButtonElement>('bgstats-file');
+    const hint = element('bgstats-hint');
+    button.disabled = true;
+    hint.textContent = 'Preparing the file…';
+    try {
+        await saveBgStatsFile(`/download_bgstats_plays?${params.toString()}`);
+        chooseBgStatsGames(false);
+    } catch (error) {
+        console.error(error);
+        hint.textContent = error instanceof Error ? error.message : 'The file could not be saved.';
+        updateBgStatsSelection();
+    }
+}
+
+/**
+ * Fetch the play file and hand it to the device.
+ *
+ * Not a navigation to the download: WebKit -- Safari, and every browser on
+ * an iPad -- answers a navigation to an attachment with "download canceled".
+ * The file is fetched here and given to the browser as a file, which on a
+ * touch device goes to the share sheet, where BG Stats is one of the
+ * choices, and elsewhere is saved like any download.
+ */
+async function saveBgStatsFile(url: string): Promise<void> {
+    const response = await fetch(url);
+    if (!response.ok) {
+        const body = await response.json().catch(() => ({})) as {error?: string};
+        throw new Error(body.error || `${response.status} ${response.statusText}`);
+    }
+    const disposition = response.headers.get('Content-Disposition') || '';
+    const name = /filename="([^"]+)"/.exec(disposition)?.[1] || 'marvel-champions.bgsplay';
+    const blob = await response.blob();
+    const file = new File([blob], name, {type: 'application/json'});
+
+    const touch = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+    if (touch && typeof navigator.canShare === 'function' && navigator.canShare({files: [file]})) {
+        try {
+            await navigator.share({files: [file], title: name});
+            return;
+        } catch (error) {
+            // Closing the sheet is a decision, not a failure. Anything else
+            // -- the gesture having expired, a sharing service refusing --
+            // falls through to a plain save.
+            if (error instanceof Error && error.name === 'AbortError') {
+                return;
+            }
+        }
+    }
+
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(file);
+    link.download = name;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(link.href), 60_000);
 }
 
 /**
@@ -1380,7 +1435,7 @@ async function importTrackerExport(): Promise<void> {
 function bindEvents(): void {
     element<HTMLButtonElement>('bgstats-file').addEventListener('click', () => {
         if (isChoosingBgStatsGames()) {
-            downloadBgStatsFile();
+            void downloadBgStatsFile();
         } else {
             chooseBgStatsGames(true);
         }
