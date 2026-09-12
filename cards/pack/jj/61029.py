@@ -1,6 +1,12 @@
 from . import *
 
 
+def IsTeamUpCard(face: 'CardFace') -> bool:
+    # There is no finder flag for the keyword, so this reads the parsed TeamUp
+    # attribute: a card without the keyword keeps the empty pair it starts with.
+    return HasTeamUp.IsType(face) and any(face.team_up)
+
+
 def GetAbilities() -> Sequence['Ability']:
 
     def defend_our_city(effect: 'Effect', message: 'Message.WhenSchemeBeDefeated') -> None:

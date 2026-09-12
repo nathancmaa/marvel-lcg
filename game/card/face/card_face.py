@@ -149,7 +149,7 @@ class CardFace(ModelName, ModelTrait, ModelAction, ModelOnEvent, ModelGain, Mode
 
         'rebirth', 'labor', 'speed', 'drain', 'threat', 'civilian', 'stamina',
         'support', 'grip', 'spot', 'stilt', 'evidence', 'pheromone',
-        'limb', 'squirrel', 'block',
+        'limb', 'squirrel',
     ]
 
     COUNTER_LIST: List[COUNTER] = Types.LiteralToList(COUNTER)
