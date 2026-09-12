@@ -26,11 +26,21 @@
     cursor: pointer;
     z-index: var(--z-index-btn-ok);
     font-size: calc(2 * var(--font-size));
+    transition: right .15s linear;
 }
 
 #btn-end.response_interrupt {
     top: calc(50% - (-1.5 * var(--font-size)));
-    transition: top var(--anime-time);
+    transition: top var(--anime-time), right .15s linear;
+}
+
+/* The right-hand bar is taller than the gap under these on most screens,
+   so an open bar would lie across them. They step inboard by the bar's
+   width while it is out, and back when it parks; the timing is the bar's. */
+/* No :has() inside :has(): a nested one makes the browser drop the whole rule
+   without a word. The locked bar is matched by its descendant instead. */
+body:has(#right-side-bar:hover, #right-side-bar.clicked, #right-side-bar .lock.clicked) :is(#btn-end:not(:disabled), #btn-ok) {
+    right: calc(20px + 5 * var(--font-size));
 }
 #btn-end.response_interrupt:not(:disabled) + #btn-ok:disabled {
     opacity: 1;

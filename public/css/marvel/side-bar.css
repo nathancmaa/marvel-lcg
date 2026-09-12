@@ -46,13 +46,30 @@
    half-shown buttons were taking anyway. It travels with the bar, which leaves
    it inboard of the buttons once they are out -- room to spare on the way to
    them rather than a seam that closes the bar again. */
-#right-side-bar::before {
+#right-side-bar::before,
+#right-side-bar::after {
     content: '';
     position: absolute;
-    top: 0;
-    bottom: 0;
     right: 100%;
     width: var(--reach);
+}
+
+/* The reach stops short of the band where OK and the far-left button sit,
+   halfway up the screen: a pointer on its way to OK must not open the bar
+   and put the sliders under the button it was reaching for. The band is
+   where btn-ok.css puts them -- three font-sizes above centre to five and a
+   half below, once End Response has dropped into its lower place -- and
+   the bar's own bottom is the screen's, so the offsets can be measured from
+   there. Above the band and below it the reach is what it was; a bar too
+   short to rise above the band simply has nothing there. */
+#right-side-bar::before {
+    top: 0;
+    bottom: calc(50vh + 3 * var(--font-size-out));
+}
+
+#right-side-bar::after {
+    top: max(0px, calc(100% - (50vh - 5.5 * var(--font-size-out))));
+    bottom: 0;
 }
 
 .side-bar > * {
