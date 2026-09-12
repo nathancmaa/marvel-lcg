@@ -291,6 +291,22 @@ function sourceLabel(source: RecentGame['source']): string {
     return 'Digital';
 }
 
+/**
+ * Every decided game in the current view as one BG Stats play file.
+ *
+ * A download rather than a link the app opens: the deep link carries one play,
+ * and this is for catching up on many. The file is built on the server from
+ * the whole history, not the hundred games on screen.
+ */
+function downloadBgStatsFile(): void {
+    const params = new URLSearchParams({
+        source: sourceFilter,
+        player: bgStatsPlayerName(),
+        location: bgStatsLocation(),
+    });
+    window.location.href = `/download_bgstats_plays?${params.toString()}`;
+}
+
 function renderRecent(rows: RecentGame[], unknownGames: number): void {
     const target = element<HTMLTableSectionElement>('recent-games');
     element('unknown-note').textContent = unknownGames
@@ -467,6 +483,13 @@ function renderDashboard(dashboard: Dashboard): void {
     renderRecords('villains', dashboard.villains, 'villain');
     renderMatchups(dashboard.matchups);
     renderRecent(dashboard.recent_games, dashboard.overview.unknown_games);
+    // Nothing decided in this view means nothing to put in a file; a dead
+    // button says so better than a page of error JSON would.
+    const bgStatsFile = element<HTMLButtonElement>('bgstats-file');
+    bgStatsFile.disabled = !(dashboard.overview.completed > 0);
+    bgStatsFile.title = bgStatsFile.disabled
+        ? 'No won or lost games in this view to send'
+        : `Download the ${dashboard.overview.completed} decided game${dashboard.overview.completed === 1 ? '' : 's'} in this view as one BG Stats play file, to open with the app`;
     renderAchievements(dashboard.achievements);
     if (!collectionDirty) {
         ownedProducts = new Set(dashboard.owned_products);
@@ -1283,6 +1306,7 @@ async function importTrackerExport(): Promise<void> {
 }
 
 function bindEvents(): void {
+    element<HTMLButtonElement>('bgstats-file').addEventListener('click', downloadBgStatsFile);
     document.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(button => {
         button.addEventListener('click', () => setActiveTab(button.dataset.tab as TabName));
     });

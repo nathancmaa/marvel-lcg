@@ -243,6 +243,12 @@ h2 {
     margin-bottom: 1rem;
 }
 
+.panel-heading-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
 .panel-copy {
     max-width: 48rem;
     margin: 0.4rem 0 0;

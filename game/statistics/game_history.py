@@ -1421,6 +1421,27 @@ class GameHistory:
                 'decks': decks,
             }
 
+    def DecidedGames(self, source: str='all') -> List[Dict[str, Any]]:
+        """Every won or lost game, oldest first, for a play file.
+
+        Not capped like the dashboard's recent list: a file that holds every
+        play is the point of a file. Abandoned and unknown games stay out, as
+        they do from the BG Stats button, since they would arrive as losses.
+        """
+        if not self.available:
+            return []
+        source = self._normalize_source_filter(source)
+        with self._lock, self._connect() as connection:
+            parameters: tuple[Any, ...] = () if source == 'all' else (source,)
+            return [dict(row) for row in connection.execute(
+                'SELECT id, finished_at, hero_code, hero_name, villain_code, villain_name, '
+                'expert, heroic, result, rounds, playtime_seconds, deck_name, notes '
+                "FROM games WHERE is_service = 0 AND result IN ('win', 'loss') "
+                + ("AND source = ? " if source != 'all' else '') +
+                'ORDER BY datetime(finished_at), id',
+                parameters,
+            ).fetchall()]
+
     def GetDashboard(self, source: str='all') -> Dict[str, Any]:
         if not self.available:
             return {'available': False, 'error': 'Game history is unavailable.'}
