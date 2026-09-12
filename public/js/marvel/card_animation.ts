@@ -106,6 +106,23 @@ export class CardAnimation
         })
     }
 
+    // Whether setEvent() would attach an animation to this render.  The sync
+    // loop folds renders that would not animate into the next one when the
+    // server has run ahead, so this must agree with setEvent().
+    static hasAnimation(event_name: string, prompt_text: string): boolean {
+        if( event_name == "WhenUnitBeingAttack" ) {
+            return true
+        }
+        if( EVENT_ANIMATION[event_name] ) {
+            return true
+        }
+        if( ['WhenCardWouldUpdateKeyword_Text'].includes(event_name) ) {
+            const texts = prompt_text.split(' ')
+            return texts[texts.length - 1] != "MAXHP"
+        }
+        return false
+    }
+
     static setEvent(event_name: string, prompt_text: string) {
         CardAnimation.clearAttackTarget()
 

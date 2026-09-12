@@ -17,6 +17,10 @@ import { Lib } from './lib.js'
 import { ErrorDialog } from './error_dialog.js'
 import { MouseSync } from './mouse.js'
 
+function sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms))
+}
+
 function showRes() {
     let resource_div = ""
     for( let i = 0; i<Game.world_descriptor.players.length; i++ ) {
@@ -36,7 +40,8 @@ export class Client {
 
     static ws = class WebSocketHandler {
         static ws: WebSocket | null = null;
-        static messageQueue: string[] = [];
+        // Frames not yet shown, oldest first.  Mouse positions never queue.
+        static messageQueue: any[] = [];
         static isProcessing: boolean = false;
 
         static init(): void {
@@ -48,53 +53,81 @@ export class Client {
             const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
             const url = `${protocol}://${window.location.host}/ws?${getUrlParameters(window.location.href)}`;
             WebSocketHandler.ws = new WebSocket(url);
-    
+
             WebSocketHandler.ws.onmessage = async (event: MessageEvent) => {
                 if (event.data) {
-                    WebSocketHandler.messageQueue.push(event.data);
+                    WebSocketHandler.enqueue(event.data);
                     await WebSocketHandler.processQueue();
                 }
             };
-    
+
             WebSocketHandler.ws.onopen = () => {
                 UI.onConnected()
                 Client.doSyncGame();
             };
-    
+
             WebSocketHandler.ws.onerror = (error: Event) => {
                 console.error("WebSocket error:", error);
                 UI.onLostConnect();
             };
-    
+
             WebSocketHandler.ws.onclose = () => {
                 WebSocketHandler.ws = null;
                 UI.onLostConnect();
             };
         }
-    
+
+        static enqueue(message: string): void {
+            const parsed = JSON.parse(message);
+            if (parsed.mouse_position) {
+                MouseSync.handle(parsed)
+                return
+            }
+            // A frame from another game (undo, restart, new game) makes
+            // everything still queued from the old one meaningless.
+            const queue = WebSocketHandler.messageQueue
+            if (queue.length > 0 && queue[queue.length - 1].game_id !== parsed.game_id) {
+                queue.length = 0
+            }
+            queue.push(parsed);
+        }
+
+        // Frames are shown one at a time, each waiting for its own animation
+        // before the next, and acknowledged as they finish.  The server may be
+        // many renders ahead; when it is, a frame nothing would animate is
+        // folded into the one after it, keeping only its log line.
         static async processQueue(): Promise<void> {
             if (WebSocketHandler.isProcessing) return;
             WebSocketHandler.isProcessing = true;
-    
-            while (WebSocketHandler.messageQueue.length > 0) {
-                // const message = WebSocketHandler.messageQueue.shift();
-                const message = WebSocketHandler.messageQueue.pop()
-                WebSocketHandler.messageQueue.length = 0
-                if (message) {
-                    const parsedMessage = JSON.parse(message);
-                    // Check if the message contains mouse position data
-                    if (parsedMessage.mouse_position) {
-                        MouseSync.handle(parsedMessage)
-                    } else {
-                        // Handle other types of messages
-                        await Client.handleGetId(parsedMessage);
+
+            try {
+                const queue = WebSocketHandler.messageQueue
+                while (queue.length > 0) {
+                    if (Game.is_pause) {
+                        // Left queued; Client.resumeFrames() picks them up.
+                        break
                     }
+                    const frame = queue.shift()
+                    if (queue.length > 0 && Client.canFold(frame)) {
+                        Client.foldFrame(frame, queue[0])
+                        continue
+                    }
+                    await Client.handleGetId(frame);
                 }
+            } finally {
+                WebSocketHandler.isProcessing = false;
             }
-    
-            WebSocketHandler.isProcessing = false;
         }
-    
+
+        static send(text: string): boolean {
+            const ws = WebSocketHandler.ws
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(text)
+                return true
+            }
+            return false
+        }
+
         static doSyncGame(): void {
             if (WebSocketHandler.ws) {
                 WebSocketHandler.ws.send(`Connected ${window.location.href}`);
@@ -102,6 +135,40 @@ export class Client {
                 WebSocketHandler.init();
             }
         }
+    }
+
+    static resumeFrames() {
+        Client.ws.processQueue()
+    }
+
+    // A frame can be skipped when showing it would change nothing the player
+    // needs to see: it carries a world (so the next frame is self-contained),
+    // asks nothing, notifies nothing, belongs to the game on screen, and
+    // neither animates nor marks a phase or a defeat.
+    private static canFold(frame: any): boolean {
+        const world = frame.world
+        if (!world) return false
+        if (frame.render_id === -1) return false
+        if (frame.game_id !== UI.last_game_id) return false
+        if (frame.ask_players.length > 0) return false
+        if (frame.notify_texts.length > 0) return false
+        if (world.prompt_last_text.startsWith("\n--- Game Over ---")) return false
+        if (['phase', 'destroyed'].includes(world.sound_name)) return false
+        return !CardAnimation.hasAnimation(world.event_name, world.prompt)
+    }
+
+    private static foldFrame(frame: any, next: any) {
+        const prompt_text: string = frame.world.prompt
+        if (!prompt_text.startsWith("--")) {
+            HistoryLog.addText(frame.render_id, Client.clean_render_info(prompt_text))
+        }
+        // The server sends a render's world once per socket, so a second
+        // seat's frame for the same render arrives without it.  Hand it on
+        // rather than have that frame fetch what was just thrown away.
+        if (next.world == null && next.game_id === frame.game_id && next.render_id === frame.render_id) {
+            next.world = frame.world
+        }
+        console.log("fold render:", frame.render_id)
     }
 
     static doSyncGame() {
@@ -251,7 +318,7 @@ export class Client {
             // }
             UI.hideAllTimerBar()
             Client.last_turn_id = data.render_id
-            await Client.doGetWorld()
+            await Client.doGetWorld(original_data['world'] ?? null)
             // if( !data.is_skipping ) {
             //     await Client.doGetWorld()
             // } else {
@@ -329,7 +396,11 @@ export class Client {
         return Lib.game.cleanResText(renderInfo)
     }
 
-    private static async doGetWorld() {
+    // Shows one world state and resolves once its animation has run and
+    // the server has been told.  `world` is the state carried by the frame;
+    // a frame without one (a reconnect, a prompt for a render already shown)
+    // is fetched.
+    private static async doGetWorld(world: any) {
         // if( Game.game_over ) {
         //     return true
         // }
@@ -340,11 +411,14 @@ export class Client {
         Effect.select_effect_obj.clear()
         UI.selectCountClear()
 
-        const response = await fetch(`get_world?p=0`);
-        if (!response.ok) {
-            throw new Error('Network response was not ok: ' + response.statusText);
+        let data = world
+        if (data == null) {
+            const response = await fetch(`get_world?p=0`);
+            if (!response.ok) {
+                throw new Error('Network response was not ok: ' + response.statusText);
+            }
+            data = await response.json();
         }
-        const data = await response.json();
 
         Game.world_descriptor = new WorldDescriptor(data)
         // The tracker reads straight off the descriptor, so it only has to
@@ -529,31 +603,24 @@ export class Client {
 
                 UI.setPhaseText(Game.world_descriptor.phase)
                 showRes()
-
-                wait_next_frame()
             }
 
             ms = Math.max(ms, CardAnimation.rest_anime_time())
             console.log("Anime: anime_time", ms)
 
-            if (ms === 0 || Client.first_start_ui || UI.hold_ctrl) {
-                render();
-            } else {
-                setTimeout(render, ms);
+            if (!(ms === 0 || Client.first_start_ui || UI.hold_ctrl)) {
+                await sleep(ms)
             }
-        } else {
-            wait_next_frame()
-        }
+            render();
 
-        function wait_next_frame() {
-            if( UI.hold_ctrl ) {
-                Client.onUpdateFinished()
-            } else {
-                setTimeout(() => {
-                    Client.onUpdateFinished()
-                }, CardAnimation.rest_anime_time());
+            // The animations render() started decide how long this state
+            // stays on screen; only then does the server hear it was shown.
+            const rest = UI.hold_ctrl ? 0 : CardAnimation.rest_anime_time()
+            console.log("Anime: wait_next_frame", rest)
+            if( rest > 0 ) {
+                await sleep(rest)
             }
-            console.log("Anime: wait_next_frame", CardAnimation.rest_anime_time())
+            Client.onUpdateFinished()
         }
         UI.resetDelayTime()
     }
@@ -624,14 +691,13 @@ export class Client {
             //     Lib.alert("!!!")
             // }
             let render_id = Game.world_descriptor.render_id
+            console.log("sync:", render_id)
+            if( Client.ws.send(`client_updated ${render_id} ${UI.last_game_id}`) ) {
+                return
+            }
             let ajax = new XMLHttpRequest();
             let text = `client_updated?p=${Setting.getPlayerIds()}&r=${render_id}&g=${UI.last_game_id}`
             ajax.open("GET", text, true);
-            console.log("sync:", text)
-            // ajax.onreadystatechange = function () {
-            //     if (this.readyState == 4 && this.status == 200) {
-            //     }
-            // }
             ajax.send();
         }
     }

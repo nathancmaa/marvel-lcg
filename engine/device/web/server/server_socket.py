@@ -55,6 +55,10 @@ class GameServerSocket(GameServerBase):
             game = self.game
             world = game.world
             from game.render.descriptor.frame import FrameDescriptor
+            render_id = world.render.last_render_id if world else 0
+            world_descriptor = None
+            if world and client.NeedsWorld(game.session.game_id, render_id):
+                world_descriptor = world.render.descriptor
             data = FrameDescriptor(
                 render_id           = world.render.last_render_id if world else 0,
                 game_id             = game.session.game_id,
@@ -66,7 +70,8 @@ class GameServerSocket(GameServerBase):
                 current_step_id     = game.controller_manager.replay.current_step_id,
                 max_replay_step_id  = game.controller_manager.replay.GetReplayOperationLen(),
                 player_id           = player_id,
-                total_players       = world.started_player_num if world else 0
+                total_players       = world.started_player_num if world else 0,
+                world               = world_descriptor,
                 # game.controller_manager.skip.is_skipping,
             )
             try:
@@ -77,7 +82,10 @@ class GameServerSocket(GameServerBase):
 
                 # compressed_data = Json.DumpGZip(data)
                 # await client.send_bytes(compressed_data)
-                await client.ws.send_json(data.__dict__)
+                # Dataclasses nest inside the frame, so this goes through the
+                # project encoder rather than send_json.  permessage-deflate
+                # (negotiated at prepare) keeps the ~70 KB world small on the wire.
+                await client.ws.send_str(Json.Dumps(data))
             except Exception as exc:
                 Log.FailedTrace(CATEGORY_NAME, exc)
                 device_manager.client_manager.Remove(client.ws)
@@ -127,12 +135,28 @@ class GameServerSocket(GameServerBase):
                             self.WebSendRender(player_ids[0], "websocket_handler")
                         self.device_manager.notify.connect.NotifyAll()
                         Log.Debug(CATEGORY_NAME, f'Websocket: {data}')
+                    elif data.startswith('client_updated '):
+                        # Same contract as GET /client_updated, without the
+                        # round trip: "client_updated <render_id> <game_id>".
+                        self.OnClientUpdated(data, player_ids)
         except Exception as exc:
             Log.FailedTrace(CATEGORY_NAME, exc)
         finally:
             self.device_manager.client_manager.Remove(ws)
 
         return ws
+
+    def OnClientUpdated(self, data: str, player_ids: List[int]) -> None:
+        parts = data.split()
+        try:
+            render_id = int(parts[1])
+            game_id = int(parts[2])
+        except (IndexError, ValueError):
+            Log.Warn(CATEGORY_NAME, f"Malformed acknowledgement: {data!r}")
+            return
+        for player_id in player_ids:
+            self.device_manager.ClientUpdateRenderId(player_id, render_id, game_id)
+        Log.DebugSilent("SYNC", f"[Client] Updated (socket), render id: {render_id}, player_id: {player_ids}")
 
     @override
     def __init__(self) -> None:

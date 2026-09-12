@@ -11,6 +11,12 @@ PORT                = ConfigVariables.Int('port', 2345)
 SERVER_ADDRESSES    = ConfigVariables.ListStr('server_addresses', [
     "127.0.0.1:2345"
 ])
+# How many renders the engine may get ahead of a browser before it waits for
+# an acknowledgement.  The browser plays animated renders at its own pace and
+# folds the rest together, so this only bounds memory and how far the board
+# can run ahead of the screen.  0 restores the old lock-step behaviour: every
+# render waits for the browser to finish drawing it.
+RENDER_AHEAD_WINDOW = ConfigVariables.Int('render_ahead_window', 24)
 
 CATEGORY_NAME = "WEB_DEVICE_MANAGER"
 
@@ -154,7 +160,8 @@ class WebDeviceManager(DeviceManager):
             Log.DebugSilent("SYNC", f"WaitSync Exit: not running")
             return True
 
-        if self.client_manager.client_synced[player_id] >= controller.world.render.last_render_id:
+        window = max(0, RENDER_AHEAD_WINDOW.value)
+        if self.client_manager.client_synced[player_id] + window >= controller.world.render.last_render_id:
             Log.DebugSilent("SYNC", f"WaitSync Exit: Sync {controller.world.render.last_render_id}")
             return True
 

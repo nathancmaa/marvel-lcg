@@ -24,6 +24,19 @@ class ClientManager:
             self.mouse = Pos()
 
             self.ws: Final = ws
+            # (game_id, render_id) of the last world state pushed down this
+            # socket, so a prompt for the same render does not resend it.
+            self.last_sent_world: Tuple[int, int] = (-1, -1)
+
+        def NeedsWorld(self, game_id: int, render_id: int) -> bool:
+            # True the first time a render is sent down this socket.  A
+            # prompt re-announcing the same render, or a second seat played
+            # on the same socket, gets the frame without the world.
+            key = (game_id, render_id)
+            if self.last_sent_world == key:
+                return False
+            self.last_sent_world = key
+            return True
 
         def __repr__(self) -> str:
             return f"{self.id} ({self.player_ids})"

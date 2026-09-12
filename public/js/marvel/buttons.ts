@@ -357,6 +357,8 @@ export class Button{
         if( do_sync ) {
             Client.doSyncGame()
         }
+        // Renders that arrived while paused are still queued; play them.
+        Client.resumeFrames()
     }
 
     static enablePause() {
