@@ -653,7 +653,9 @@ class GameServerGet(GameServerBase):
         self.AddAwaitGetSecurity('/get_statistics', self.get_statistics)
         self.AddAwaitGetSecurity('/get_session_statistics', self.get_session_statistics)
         self.AddAwaitGetSecurity('/get_game_history', self.get_game_history)
-        self.AddAwaitGetSecurity('/download_bgstats_plays', self.download_bgstats_plays)
+        # A file, not a page: a browser's download session need not carry the
+        # version cookie, and a version-mismatch page is no play file.
+        self.AddAwaitGetSecurity('/download_bgstats_plays', self.download_bgstats_plays, need_check_version=False)
         self.AddAwaitGetSecurity('/get_active_campaign', self.get_active_campaign)
         self.AddAwaitGetSecurity('/get_play_scene_name', self.get_play_scene_name)
         self.AddAwaitGetSecurity('/get_max_timeout', self.get_max_timeout)

@@ -315,6 +315,8 @@ function chooseBgStatsGames(on: boolean): void {
     element('bgstats-cancel').hidden = !on;
     element('bgstats-hint').hidden = !on;
     element('bgstats-hint').textContent = 'Tick the games to send';
+    element('bgstats-save').hidden = true;
+    element('bgstats-file').hidden = false;
     if (!on) {
         document.querySelectorAll<HTMLInputElement>('[data-bgstats-select]').forEach(box => {
             box.checked = false;
@@ -347,6 +349,11 @@ async function downloadBgStatsFile(): Promise<void> {
     hint.textContent = 'Preparing the file…';
     try {
         const outcome = await saveBgStatsFile(`/download_bgstats_plays?${params.toString()}`);
+        if (outcome === null) {
+            // A link is waiting for the player's own tap; the mode ends when
+            // it is tapped.
+            return;
+        }
         chooseBgStatsGames(false);
         // What became of the file, left showing after the ticks are gone: on
         // a browser that cannot hand a file to an app, the player has to go
@@ -370,12 +377,14 @@ async function downloadBgStatsFile(): Promise<void> {
  * - on a touch device whose browser can hand a file to an app (Safari on
  *   iPad, Chrome on Android), it goes to the share sheet, where BG Stats is
  *   one of the choices and opens it straight into its import screen;
- * - otherwise it is saved through a link to the server's own URL, so the
- *   file keeps its name. Firefox on an iPad cannot share files and names a
- *   blob for itself, which is how the first version of this handed over a
- *   randomly named .json.
+ * - on any other touch device, a real link is put under the player's
+ *   finger, because Firefox on an iPad cannot share files, cancels a
+ *   download the page starts by itself, and only honours a file's name on
+ *   a tap it saw happen. `null` says the link is waiting to be tapped;
+ * - on a desktop it is saved like any download, through the server's own
+ *   URL, whose response carries the file's name.
  */
-async function saveBgStatsFile(url: string): Promise<string> {
+async function saveBgStatsFile(url: string): Promise<string|null> {
     const response = await fetch(url);
     if (!response.ok) {
         const body = await response.json().catch(() => ({})) as {error?: string};
@@ -402,15 +411,28 @@ async function saveBgStatsFile(url: string): Promise<string> {
         }
     }
 
+    if (touch) {
+        const file = new File([await response.blob()], name, {type: 'application/json'});
+        const save = element<HTMLAnchorElement>('bgstats-save');
+        if (save.href.startsWith('blob:')) {
+            URL.revokeObjectURL(save.href);
+        }
+        save.href = URL.createObjectURL(file);
+        save.download = name;
+        save.textContent = `Save ${name}`;
+        save.hidden = false;
+        element<HTMLButtonElement>('bgstats-file').hidden = true;
+        element('bgstats-hint').textContent = 'Tap Save, then open the file with BG Stats.';
+        return null;
+    }
+
     const link = document.createElement('a');
     link.href = url;
     link.download = name;
     document.body.appendChild(link);
     link.click();
     link.remove();
-    return touch
-        ? `Saved ${name} to this browser's downloads — open it from there with BG Stats. Safari can share it to BG Stats directly.`
-        : `Saved ${name} — open it with BG Stats.`;
+    return `Saved ${name} — open it with BG Stats.`;
 }
 
 /**
@@ -1455,6 +1477,17 @@ function bindEvents(): void {
         }
     });
     element<HTMLButtonElement>('bgstats-cancel').addEventListener('click', () => chooseBgStatsGames(false));
+    element<HTMLAnchorElement>('bgstats-save').addEventListener('click', () => {
+        // The tap is the save; let it go through, then put the ticks away
+        // and say where the file went.
+        const name = element<HTMLAnchorElement>('bgstats-save').download;
+        window.setTimeout(() => {
+            chooseBgStatsGames(false);
+            const hint = element('bgstats-hint');
+            hint.hidden = false;
+            hint.textContent = `Saved ${name} to this browser's downloads — open it from there with BG Stats. Safari can share it to BG Stats directly.`;
+        }, 500);
+    });
     element<HTMLInputElement>('bgstats-select-all').addEventListener('change', event => {
         const checked = (event.target as HTMLInputElement).checked;
         document.querySelectorAll<HTMLInputElement>('[data-bgstats-select]').forEach(box => {
