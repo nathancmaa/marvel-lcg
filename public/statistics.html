@@ -22,37 +22,61 @@
         </header>
 
         <nav class="tabs" aria-label="Collection and statistics sections">
-            <button type="button" data-tab="collection">Collection</button>
-            <button type="button" data-tab="history">Game History</button>
             <button type="button" data-tab="matchups">Matchups</button>
+            <button type="button" data-tab="history">Game History</button>
             <button type="button" data-tab="achievements">Achievements</button>
+            <button type="button" data-tab="collection">Collection</button>
         </nav>
 
         <div id="loading" class="state-panel">Reading the archives…</div>
         <div id="error" class="state-panel error" hidden></div>
 
         <div id="dashboard" hidden>
-            <section id="tab-collection" class="tab-panel" data-panel="collection">
+            <section id="tab-matchups" class="tab-panel" data-panel="matchups">
                 <section class="panel">
-                    <div class="panel-heading collection-heading">
+                    <div class="matchup-head">
                         <div>
-                            <p class="eyebrow">PHYSICAL LIBRARY</p>
-                            <h2>Your collection</h2>
-                            <p class="panel-copy">Mark the products you own. The catalog stays on this server and is available from every device.</p>
+                            <h2>Hero / Scenario Coverage</h2>
+                            <p class="panel-note" id="matchup-summary">Reading your game history…</p>
                         </div>
-                        <div class="collection-summary">
-                            <span id="collection-count" class="count-badge"></span>
-                            <button id="save-collection" class="primary-action compact" type="button" disabled>Save Collection</button>
+                        <div class="matchup-controls">
+                            <label class="matchup-sort">
+                                <span>Heroes</span>
+                                <select id="matchup-sort-heroes">
+                                    <option value="default">By box</option>
+                                    <option value="name">By name</option>
+                                    <option value="completion">By completion</option>
+                                </select>
+                            </label>
+                            <label class="matchup-sort">
+                                <span>Scenarios</span>
+                                <select id="matchup-sort-scenarios">
+                                    <option value="default">By box</option>
+                                    <option value="name">By name</option>
+                                    <option value="completion">By completion</option>
+                                </select>
+                            </label>
+                            <label class="matchup-toggle">
+                                <input type="checkbox" id="matchup-counts">
+                                <span>Show counts</span>
+                            </label>
+                            <label class="matchup-toggle">
+                                <input type="checkbox" id="matchup-played-only">
+                                <span>Played only</span>
+                            </label>
                         </div>
                     </div>
-                    <div class="collection-tools">
-                        <label class="search-field">
-                            <span class="sr-only">Search products</span>
-                            <input id="collection-search" type="search" placeholder="Search products…">
-                        </label>
-                        <div id="collection-filters" class="filter-buttons" aria-label="Product type"></div>
+                    <p class="matchup-legend">
+                        <span class="swatch won"></span> won
+                        <span class="swatch won-expert"></span> won on expert
+                        <span class="swatch won-heroic-1"></span><span class="swatch won-heroic-2"></span><span class="swatch won-heroic-3"></span><span class="swatch won-heroic-4"></span> won on heroic 1–4
+                        <span class="swatch lost"></span> played, not won
+                        <span class="swatch none"></span> never played
+                        <span class="matchup-hint">Hover a name for its box · click a square to set that game up</span>
+                    </p>
+                    <div id="matchup-scroll" class="matchup-scroll">
+                        <table id="matchup-table" class="matchup-table"></table>
                     </div>
-                    <div id="collection-products" class="product-grid"></div>
                 </section>
             </section>
 
@@ -141,54 +165,6 @@
                 </section>
             </section>
 
-            <section id="tab-matchups" class="tab-panel" data-panel="matchups" hidden>
-                <section class="panel">
-                    <div class="matchup-head">
-                        <div>
-                            <h2>Hero / Scenario Coverage</h2>
-                            <p class="panel-note" id="matchup-summary">Reading your game history…</p>
-                        </div>
-                        <div class="matchup-controls">
-                            <label class="matchup-sort">
-                                <span>Heroes</span>
-                                <select id="matchup-sort-heroes">
-                                    <option value="default">By box</option>
-                                    <option value="name">By name</option>
-                                    <option value="completion">By completion</option>
-                                </select>
-                            </label>
-                            <label class="matchup-sort">
-                                <span>Scenarios</span>
-                                <select id="matchup-sort-scenarios">
-                                    <option value="default">By box</option>
-                                    <option value="name">By name</option>
-                                    <option value="completion">By completion</option>
-                                </select>
-                            </label>
-                            <label class="matchup-toggle">
-                                <input type="checkbox" id="matchup-counts">
-                                <span>Show counts</span>
-                            </label>
-                            <label class="matchup-toggle">
-                                <input type="checkbox" id="matchup-played-only">
-                                <span>Played only</span>
-                            </label>
-                        </div>
-                    </div>
-                    <p class="matchup-legend">
-                        <span class="swatch won"></span> won
-                        <span class="swatch won-expert"></span> won on expert
-                        <span class="swatch won-heroic-1"></span><span class="swatch won-heroic-2"></span><span class="swatch won-heroic-3"></span><span class="swatch won-heroic-4"></span> won on heroic 1–4
-                        <span class="swatch lost"></span> played, not won
-                        <span class="swatch none"></span> never played
-                        <span class="matchup-hint">Hover a name for its box · click a square to set that game up</span>
-                    </p>
-                    <div id="matchup-scroll" class="matchup-scroll">
-                        <table id="matchup-table" class="matchup-table"></table>
-                    </div>
-                </section>
-            </section>
-
             <section id="tab-achievements" class="tab-panel" data-panel="achievements" hidden>
                 <section class="panel achievements-panel">
                     <div class="panel-heading">
@@ -201,6 +177,30 @@
                     </div>
                     <div id="achievements" class="achievement-grid"></div>
                 </section>
+            <section id="tab-collection" class="tab-panel" data-panel="collection" hidden>
+                <section class="panel">
+                    <div class="panel-heading collection-heading">
+                        <div>
+                            <p class="eyebrow">PHYSICAL LIBRARY</p>
+                            <h2>Your collection</h2>
+                            <p class="panel-copy">Mark the products you own. The catalog stays on this server and is available from every device.</p>
+                        </div>
+                        <div class="collection-summary">
+                            <span id="collection-count" class="count-badge"></span>
+                            <button id="save-collection" class="primary-action compact" type="button" disabled>Save Collection</button>
+                        </div>
+                    </div>
+                    <div class="collection-tools">
+                        <label class="search-field">
+                            <span class="sr-only">Search products</span>
+                            <input id="collection-search" type="search" placeholder="Search products…">
+                        </label>
+                        <div id="collection-filters" class="filter-buttons" aria-label="Product type"></div>
+                    </div>
+                    <div id="collection-products" class="product-grid"></div>
+                </section>
+            </section>
+
             </section>
         </div>
     </main>

@@ -201,7 +201,7 @@ async function postJson<T>(url: string, data: unknown): Promise<T> {
 
 let currentDashboard: Dashboard|null = null;
 let sourceFilter: SourceFilter = 'all';
-let activeTab: TabName = 'collection';
+let activeTab: TabName = 'matchups';
 
 /**
  * The name a play is filed under in BG Stats.
@@ -1353,10 +1353,12 @@ async function initialize(): Promise<void> {
         await loadDashboard();
         bindEvents();
         const requestedTab = location.hash.slice(1) as TabName;
+        // Matchups first: it is the tab that gets opened most, so it is the
+        // one the page lands on without a hash.
         setActiveTab(
             ['collection', 'history', 'matchups', 'achievements'].includes(requestedTab)
                 ? requestedTab
-                : 'collection');
+                : 'matchups');
         loading.hidden = true;
         dashboardElement.hidden = false;
     } catch (reason) {
