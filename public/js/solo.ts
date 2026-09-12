@@ -118,9 +118,12 @@ const requestedGame = (() => {
         scenario: query.get('scenario') ?? '',
     };
 })();
-const newScenarioIds = new Set(['kingpin', 'protection_racket', 'the_raft_breakout', 'art_museum_heist', 'the_getaway', 'stop_the_presses']);
+// Content that is in the game but has not yet been played through: the tile
+// wears NEW so a rough edge is expected rather than a surprise. Take an id
+// out once it has had a real game.
+const newScenarioIds = new Set(['kingpin', 'protection_racket', 'the_raft_breakout', 'art_museum_heist', 'the_getaway', 'stop_the_presses', 'she_hulk', 'vision']);
 const newUnderlingIds = new Set(['bullseye', 'electro', 'hammerhead', 'purple_man', 'typhoid_mary']);
-const newHeroIds = new Set(['echo', 'daredevil', 'jessica_jones']);
+const newHeroIds = new Set(['echo', 'daredevil', 'jessica_jones', 'luke_cage']);
 
 const scenarioList = document.querySelector<HTMLElement>('#scenario-list')!;
 const heroList = document.querySelector<HTMLElement>('#hero-list')!;
