@@ -1,5 +1,6 @@
 from core import *
 from engine.lib import Json
+from game.statistics.hero_labels import HeroLabel
 from engine.file import FileManager
 from engine.device import *
 
@@ -127,7 +128,17 @@ class GameServerGet(GameServerBase):
     async def get_hero_json(self, request: web.Request) -> web.Response:
         path = request.rel_url.query_string
         file = FileManager.FindJsonPath("Hero", path)
-        return self.ReadJsonFile(file)
+        if not file:
+            return web.json_response({})
+        # The deck as written, plus the name to show for its hero: two decks
+        # named "Black Panther" are told apart by whose they are.
+        data = Json.Load(file)
+        if isinstance(data, dict):
+            code = str((data.get('hero') or [''])[0]).split(',')[0].strip()
+            data['display_name'] = HeroLabel(code, str(data.get('name') or ''))
+        compressed_data = Json.DumpGZip(data)
+        return web.Response(body=compressed_data, content_type='application/json',
+                            headers={'Content-Encoding': 'gzip', **self.HeaderCache})
 
     async def get_sets_json(self, request: web.Request) -> web.Response:
         file = FileManager.FindJsonPath("SetInfo", "sets_info.json")
@@ -204,7 +215,7 @@ class GameServerGet(GameServerBase):
                 heroes.append({
                     'id': hero_id,
                     'code': code,
-                    'name': data.get('name') or hero_id,
+                    'name': HeroLabel(code, data.get('name') or hero_id),
                     'box': box,
                     'box_order': order,
                 })

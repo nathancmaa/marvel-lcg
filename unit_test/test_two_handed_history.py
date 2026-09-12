@@ -137,11 +137,27 @@ class TwoHandedHistoryTests(unittest.TestCase):
                 for row in self.history.GetDashboard()['recent_games']}
         by_key = {row['hero_name']: row for row in rows.values()}
         two = next(row for row in rows.values() if row['seats'] == 2)
-        self.assertEqual(two['heroes'], 'Cable／Spider-Man')
+        self.assertEqual(two['heroes'], 'Cable／Spider-Man (Peter Parker)')
         self.assertEqual(two['decks'], 'Cable／Spider-Man')
         one = next(row for row in rows.values() if row['seats'] == 1)
         self.assertEqual(one['heroes'], 'Cable')
         self.assertIn('Cable', by_key)
+
+    def test_two_heroes_with_one_name_read_apart_in_every_list(self):
+        # Both are stored as "Black Panther", which is what the decks are
+        # called; the history says whose on the way out, by code.
+        self.store('shuri', hero_code='51001a', hero_name='Black Panther', deck_name='Black Panther',
+                   players=[{'seat': 0, 'hero_code': '51001a', 'hero_name': 'Black Panther', 'deck_name': 'Black Panther'},
+                            {'seat': 1, 'hero_code': '01001a', 'hero_name': 'Spider-Man', 'deck_name': 'Spider-Man'}])
+        self.store('tchalla', hero_code='01040a', hero_name='Black Panther', deck_name='Black Panther')
+
+        dashboard = self.history.GetDashboard()
+        self.assertEqual({row['hero_name'] for row in dashboard['heroes']},
+                         {"Black Panther (T'Challa)", 'Black Panther (Shuri)', 'Spider-Man (Peter Parker)'})
+        two = next(row for row in dashboard['recent_games'] if row['seats'] == 2)
+        self.assertEqual(two['heroes'], 'Black Panther (Shuri)／Spider-Man (Peter Parker)')
+        self.assertEqual({row['hero_name'] for row in dashboard['matchups']},
+                         {"Black Panther (T'Challa)", 'Black Panther (Shuri)', 'Spider-Man (Peter Parker)'})
 
     def test_storing_the_same_game_twice_does_not_double_its_seats(self):
         self.two_handed('two:1')

@@ -31,6 +31,25 @@ GAME_HISTORY_FILE = ConfigVariables.File(
 REPLAY_FOLDERS = ConfigVariables.Folders('replay_folders', ['./replays/'])
 
 
+def _label_heroes(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Name each row's hero so that two heroes with one name read apart.
+
+    The rows keep their codes, which is what the records are grouped by; only
+    what is shown changes. A two-handed row's joined names are relabelled
+    seat by seat from the joined codes beside them.
+    """
+    from game.statistics.hero_labels import HeroLabel
+    for row in rows:
+        if row.get('hero_name') is not None:
+            row['hero_name'] = HeroLabel(row.get('hero_code'), row['hero_name'])
+        codes = str(row.get('hero_codes') or '')
+        names = str(row.get('heroes') or '')
+        if codes and names:
+            pairs = zip(codes.split('／'), names.split('／'))
+            row['heroes'] = '／'.join(HeroLabel(code, name) for code, name in pairs)
+    return rows
+
+
 class GameHistory:
     SCHEMA_VERSION = 8
     KNOWN_RESULTS = ('win', 'loss', 'unknown', 'abandoned')
@@ -1294,13 +1313,14 @@ class GameHistory:
                 'expert, heroic, result, rounds, playtime_seconds, source, deck_name, notes, '
                 + '(SELECT COUNT(*) FROM game_players p WHERE p.game_id = games.id) seats, '
                 "(SELECT group_concat(hero_name, '／') FROM (SELECT hero_name FROM game_players p WHERE p.game_id = games.id ORDER BY seat)) heroes, "
+                "(SELECT group_concat(hero_code, '／') FROM (SELECT hero_code FROM game_players p WHERE p.game_id = games.id ORDER BY seat)) hero_codes, "
                 "(SELECT group_concat(deck_name, '／') FROM (SELECT deck_name FROM game_players p WHERE p.game_id = games.id ORDER BY seat)) decks "
                 'FROM games WHERE source_key = ?',
                 (source_key,),
             ).fetchone()
         if row is None:
             raise ValueError('The completed game could not be recorded.')
-        return dict(row)
+        return _label_heroes([dict(row)])[0]
 
     def ImportTrackerGames(
         self,
@@ -1446,6 +1466,7 @@ class GameHistory:
                 + source_clause +
                 'GROUP BY p.deck_name ORDER BY games DESC, deck_name'
             )
+            _label_heroes(heroes)
             return {
                 'available': True,
                 'source_filter': source,
@@ -1548,6 +1569,7 @@ class GameHistory:
                 'hero_rating, scenario_rating, '
                 + '(SELECT COUNT(*) FROM game_players p WHERE p.game_id = games.id) seats, '
                 "(SELECT group_concat(hero_name, '／') FROM (SELECT hero_name FROM game_players p WHERE p.game_id = games.id ORDER BY seat)) heroes, "
+                "(SELECT group_concat(hero_code, '／') FROM (SELECT hero_code FROM game_players p WHERE p.game_id = games.id ORDER BY seat)) hero_codes, "
                 "(SELECT group_concat(deck_name, '／') FROM (SELECT deck_name FROM game_players p WHERE p.game_id = games.id ORDER BY seat)) decks "
                 'FROM games WHERE is_service = 0 '
                 + ("AND source = ? " if source != 'all' else '')
@@ -1577,10 +1599,10 @@ class GameHistory:
                     'average_rounds': round(float(overview_row['average_rounds'] or 0), 1),
                     'average_playtime': round(float(overview_row['average_playtime'] or 0), 1),
                 },
-                'heroes': heroes,
+                'heroes': _label_heroes(heroes),
                 'villains': villains,
-                'matchups': matchups,
-                'recent_games': recent,
+                'matchups': _label_heroes(matchups),
+                'recent_games': _label_heroes(recent),
                 'achievements': AchievementEvaluator.Dashboard(connection),
                 'owned_products': owned_products,
             }

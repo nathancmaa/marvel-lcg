@@ -96,6 +96,8 @@ type Product = {
 
 type HeroData = {
     name: string;
+    /** The hero's name with the alter ego added when two heroes share it. */
+    display_name?: string;
     hero: string[];
 };
 
@@ -1262,7 +1264,7 @@ async function loadGameChoices(): Promise<void> {
         }
         try {
             const data = await fetchJson<HeroData>(`/get_hero_json?${encodeURIComponent(id)}`);
-            return data.name ? {id, code: firstCardId(data.hero), name: data.name} : null;
+            return data.name ? {id, code: firstCardId(data.hero), name: data.display_name ?? data.name} : null;
         } catch (error) {
             console.warn(`Could not load hero ${id}`, error);
             return {id, code: '', name: humanizeId(id)};

@@ -11,6 +11,9 @@ import { isFavorite } from './favorites.js';
 
 export type DeckFilterData = {
     name: string;
+    /** The hero's name with the alter ego added when two heroes share it,
+     *  as the server writes it: "Black Panther (Shuri)". */
+    display_name?: string;
     deck_name?: string;
     /** Identity cards, e.g. `["51001a,51001b"]`. */
     hero?: string[];
@@ -145,6 +148,13 @@ export function buildHeroLabels(choices: readonly DeckFilterChoice[]): Map<strin
     for (const choice of choices) {
         const key = heroKeyOf(choice);
         const entry = byKey.get(key) ?? {name: choice.data.name};
+        // The server names both halves of a shared name -- "Black Panther
+        // (T'Challa)" as well as "(Shuri)" -- so that is the name to count
+        // and to show. The precon-id suffix below is the fallback for
+        // files that do not carry it.
+        if (choice.data.display_name) {
+            entry.name = choice.data.display_name;
+        }
         if (!choice.isUserDeck && entry.preconId === undefined) {
             entry.preconId = choice.id;
         }

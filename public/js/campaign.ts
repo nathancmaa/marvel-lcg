@@ -28,6 +28,8 @@ type ScenarioData = {
 
 type HeroData = {
     name: string;
+    /** The hero's name with the alter ego added when two heroes share it. */
+    display_name?: string;
     deck_name?: string;
     hero: string[];
     player_deck: string[];
@@ -194,7 +196,7 @@ async function loadHeroChoice(path: string, isUserDeck: boolean): Promise<HeroCh
         }
         return {
             id,
-            name: data.deck_name ?? data.name,
+            name: data.deck_name ?? data.display_name ?? data.name,
             imageId,
             data,
             isUserDeck,

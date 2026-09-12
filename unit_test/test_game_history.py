@@ -431,7 +431,7 @@ class GameHistoryTests(unittest.TestCase):
     def test_the_finished_game_can_be_read_back_as_a_history_row(self):
         row = self.history.CurrentGameRecord(self.completed_game(won=False))
 
-        self.assertEqual(row['hero_name'], 'Spider-Man')
+        self.assertEqual(row['hero_name'], 'Spider-Man (Peter Parker)')
         self.assertEqual(row['villain_name'], 'Rhino')
         self.assertEqual(row['result'], 'loss')
         self.assertEqual(row['rounds'], 4)
@@ -511,7 +511,8 @@ class GameHistoryTests(unittest.TestCase):
         self.assertEqual(dashboard['overview']['completed'], 0)
         self.assertEqual(dashboard['overview']['unknown_games'], 1)
         imported = dashboard['recent_games'][0]
-        self.assertEqual(imported['hero_name'], 'Spider-Man')
+        # Peter Parker's card is one of two named Spider-Man, so the row says which.
+        self.assertEqual(imported['hero_name'], 'Spider-Man (Peter Parker)')
         self.assertEqual(imported['villain_name'], 'Klaw')
         self.assertEqual(imported['expert'], 1)
         self.assertEqual(imported['result'], 'unknown')
