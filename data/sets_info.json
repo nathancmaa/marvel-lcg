@@ -792,6 +792,25 @@
         ],
         "max_id": "56214"
     },
+    "57. Synthezoid Smackdown": {
+        "name": "synthezoid",
+        "scenarios": [
+            "she_hulk",
+            "vision"
+        ],
+        "heroes": [],
+        "encounters": [
+            "deadly_duo",
+            "moon_knight",
+            "royal_guard",
+            "scarlet_twins",
+            "shield_ops",
+            "taskmaster",
+            "thunderbolts",
+            "young_avengers"
+        ],
+        "max_id": "57081"
+    },
     "58. Wonder Man": {
         "name": "wonder_man",
         "scenarios": [],
@@ -850,6 +869,15 @@
         "encounters": [],
         "max_id": "61040"
     },
+    "62. Luke Cage": {
+        "name": "luke_cage",
+        "scenarios": [],
+        "heroes": [
+            "luke_cage"
+        ],
+        "encounters": [],
+        "max_id": "62037"
+    },
     "90. Ronan Modular Set": {
         "name": "ron",
         "scenarios": [],
@@ -891,5 +919,5 @@
         "heroes": [],
         "encounters": []
     },
-    "checksum": "b0164da0813cc6dd3e9651c75d0385c7e3bb682ae18e99e01775e257c0a8e0be"
+    "checksum": "53be51e0ff09936bb3c8c61295d5bd423d6c5b3eaeebfb9281a1fa4c457442ff"
 }

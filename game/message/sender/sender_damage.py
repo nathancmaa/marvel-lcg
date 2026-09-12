@@ -812,11 +812,15 @@ class SenderDamage:
         def ReduceDamage(self, value: int, by_effect: 'Effect'):
             assert value >= 0 # Fix "24039"
             from game.message import Message
+            if self.property.unpreventable:
+                return
             self.property.damage -= value
             Message.WhenDamageUpdated_Text(-1 * value, by_effect)
 
         def ReduceDamageTo(self, value: int, by_effect: 'Effect'):
             from game.message import Message
+            if self.property.unpreventable:
+                return
             diff = self.property.damage - value
             self.property.damage = value
             Message.WhenDamageUpdated_Text(-1 * diff, by_effect)
@@ -839,6 +843,10 @@ class SenderDamage:
 
         def PreventDamage(self, value: int|Literal["All"], by_effect: 'Effect') -> int:
             from game.message import Message
+            # Unpreventable damage: the prevention does not happen at all, so
+            # nothing is reported as prevented either.
+            if self.property.unpreventable:
+                return 0
             if value == "All":
                 prevent_damage = self.PreventAllDamageInternal()
             else:

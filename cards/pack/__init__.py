@@ -92,6 +92,14 @@ NonEliteMinion = CardFinder.NonEliteMinion
 
 ################################################################################
 #
+def IsTeamUpCard(face: 'CardFace') -> bool:
+    """Whether a card carries the Team-Up keyword.
+
+    There is no finder flag for it, so this reads the parsed TeamUp
+    attribute: a card without the keyword keeps the empty pair it starts
+    with."""
+    return HasTeamUp.IsType(face) and any(face.team_up)
+
 def ShuffleThisCardIntoEncounter(by_effect: 'Effect', message: 'Message2') -> None:
     this = by_effect.this
     encounter_deck = Worlds.GetEncounterDeck(by_effect)
