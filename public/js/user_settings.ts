@@ -4,6 +4,7 @@ export const ANIMATION_TIME_DEFAULT = 0.2
 
 const animationTimeKey = 'marvel_lcg_animation_time'
 const autoSaveReplaysKey = 'marvel_lcg_autosave_replays'
+const skipSingleTargetConfirmKey = 'marvel_lcg_skip_single_target_confirm'
 const bgStatsPlayerKey = 'marvel_lcg_bgstats_player'
 const bgStatsLocationKey = 'marvel_lcg_bgstats_location'
 const twoHandedKey = 'marvel_lcg_two_handed_solo'
@@ -63,6 +64,19 @@ export class UserSettings {
 
     static setAutoSaveReplays(enabled: boolean) {
         writeStorage(autoSaveReplaysKey, enabled.toString())
+    }
+
+    /**
+     * Whether choosing Attack or Thwart with the mouse also confirms it when
+     * there is only one thing to hit. Off by default: the extra OK is a
+     * safety catch, and taking it off is the player's call.
+     */
+    static getSkipSingleTargetConfirm(): boolean {
+        return readStorage(skipSingleTargetConfirmKey) === 'true'
+    }
+
+    static setSkipSingleTargetConfirm(enabled: boolean) {
+        writeStorage(skipSingleTargetConfirmKey, enabled.toString())
     }
 
     /**

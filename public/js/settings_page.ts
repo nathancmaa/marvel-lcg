@@ -8,6 +8,7 @@ import { whatKeyDoes } from './game_keys.js'
 const animationTime = document.getElementById('animation-time') as HTMLInputElement
 const animationTimeValue = document.getElementById('animation-time-value') as HTMLOutputElement
 const autoSaveReplays = document.getElementById('autosave-replays') as HTMLInputElement
+const skipSingleTargetConfirm = document.getElementById('skip-single-target-confirm') as HTMLInputElement
 const confirmKey = document.getElementById('confirm-key') as HTMLInputElement
 const denyKey = document.getElementById('deny-key') as HTMLInputElement
 const undoKey = document.getElementById('undo-key') as HTMLInputElement
@@ -336,6 +337,7 @@ animationTimeValue.value = `${ANIMATION_TIME_DEFAULT.toFixed(1)} s`
 updateAnimationTime()
 
 autoSaveReplays.checked = UserSettings.getAutoSaveReplays()
+skipSingleTargetConfirm.checked = UserSettings.getSkipSingleTargetConfirm()
 confirmKey.value = UserSettings.getConfirmKey()
 denyKey.value = UserSettings.getDenyKey()
 undoKey.value = UserSettings.getUndoKey()
@@ -349,6 +351,9 @@ updateMarvelCdbControls()
 animationTime.addEventListener('input', updateAnimationTime)
 autoSaveReplays.addEventListener('change', () => {
     UserSettings.setAutoSaveReplays(autoSaveReplays.checked)
+})
+skipSingleTargetConfirm.addEventListener('change', () => {
+    UserSettings.setSkipSingleTargetConfirm(skipSingleTargetConfirm.checked)
 })
 
 /**

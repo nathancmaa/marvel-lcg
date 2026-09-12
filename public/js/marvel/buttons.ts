@@ -152,6 +152,9 @@ export class Button{
                 selected_data_text = JSON.stringify(result_json)
             }
             Effect.select_effect_obj.clear()
+            // A card picked out of a spread deck is the end of the visit;
+            // the deck used to stay open until the table was clicked.
+            UI.closeOpenDecks()
 
             var ajax = new XMLHttpRequest();
             ajax.onreadystatechange = function () {

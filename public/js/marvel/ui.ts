@@ -481,6 +481,17 @@ export class UI {
         Effect.updateHighLight()
     }
 
+    /** Fold up any deck spread out on the table. */
+    static closeOpenDecks() {
+        document.querySelectorAll('.deck.clicked').forEach( div => {
+            div.classList.remove('clicked')
+        })
+        if( UI.temp_sorted_deck_div ) {
+            UI.tempSortDeck(false)
+            UI.temp_sorted_deck_div = null
+        }
+    }
+
     static updateAnimeTime() {
         if( UI.hold_ctrl ) {
             UI.anime_time = .01

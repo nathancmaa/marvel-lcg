@@ -58,7 +58,11 @@
     cursor: default;
 }
 
-#option-area:has(#option-buttons:empty) #btn-ok-near {
+/* With no options on the table the near confirm still appears once there is
+   something to confirm -- an upgrade waiting for a character, a target that
+   auto-targeting picked -- and only then; disabled, it would be a grey box in
+   the middle of the board. */
+#option-area:has(#option-buttons:empty) #btn-ok-near:disabled {
     display: none;
 }
 

@@ -903,6 +903,9 @@ export class Effect {
                             }
                             UpdateCards(JSON.parse(btn.dataset.json_str!))
                             console.log(button.innerHTML)
+                            if( Effect.confirmsOnTheClick() ) {
+                                Button.doBtnOk()
+                            }
                         } else {
                             Effect.setOptionTargetSelection(false)
                             SelectStep.setEffect()
@@ -979,6 +982,31 @@ export class Effect {
             Button.doBtnOk()
         }
         return true
+    }
+
+    /**
+     * Whether the Attack or Thwart just chosen with the mouse needs no OK.
+     *
+     * Only with the setting on, only for the two basic powers, and only when
+     * there was exactly one legal target and auto-targeting has already taken
+     * it -- the same state the option keys confirm from. Anything still to
+     * choose, a target or a payment, keeps the OK where it is.
+     */
+    private static confirmsOnTheClick(): boolean {
+        if( ButtonSetting.is_replay || !UserSettings.getSkipSingleTargetConfirm() ) {
+            return false
+        }
+        const effect = Effect.select_effect_obj
+        if( !['Attack', 'Thwart'].includes(effect.name_with_space) ) {
+            return false
+        }
+        if( effect.all_legal_targets.length !== 1 || Effect.needsTargetChoice() ) {
+            return false
+        }
+        if( effect.getCost() ) {
+            return false
+        }
+        return !BtnOk.btn_ok_div.disabled
     }
 
     /**

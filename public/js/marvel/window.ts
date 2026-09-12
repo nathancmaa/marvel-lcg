@@ -9,6 +9,7 @@ import { QuickReference } from './quick_reference.js'
 import { Replay } from './replay.js'
 import { SelectStep } from './select.js'
 import { Effect } from './effect.js'
+import { BtnOk } from './btn_ok.js'
 import { UserSettings } from '../user_settings.js'
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -18,13 +19,7 @@ export class WindowLoad {
     static mouse_x = 0
 
     static onClick(event: MouseEvent) {
-        document.querySelectorAll('.deck.clicked').forEach( div => {
-            div.classList.remove('clicked')
-            if( UI.temp_sorted_deck_div ) {
-                UI.tempSortDeck(false)
-                UI.temp_sorted_deck_div = null
-            }
-        })
+        UI.closeOpenDecks()
     }
 
     static onKeyUp(event: KeyboardEvent) {
@@ -131,23 +126,37 @@ export class WindowLoad {
         // }
         else
         if( Effect.isExEffect() && (SelectStep.isTargets() || SelectStep.isCost()) && Effect.select_effect_obj.selected_targets.length > 0 ) {
+            // Something is half chosen: back out of that first.
             Button.disablePause()
             Effect.onCancel()
         }
         else
-        if( SelectStep.isCard() ||
-            Effect.isExEffect() && (SelectStep.isTargets() || SelectStep.isCost()) && Effect.select_effect_obj.selected_targets.length == 0 ||
-            // Effect.isExEffect() && (SelectStep.isTargets() || SelectStep.isCost()) ||
-            Effect.isExEffect() && SelectStep.isEffect() ||
-            Effect.is_in_event == 'response' ||
-            Effect.is_in_event == 'interrupt'
-        ) {
+        if( WindowLoad.denyWouldEndTheTurn() ) {
+            // The only negative on offer is End Turn, and a key meant as
+            // "no" must never be that. Left as it always was.
             Button.doRedo()
-            // Replay.doReplay(true)
         }
         else {
-            Button.doBtnCancel()
+            // Otherwise the key is the button on the far left, whatever it is
+            // saying: Continue, End Response, Skip Interrupts, End Defense,
+            // Cancel, Cancel Pay. A forced ask hides that button and has no
+            // negative to give, and doBtnCancel already refuses a disabled one.
+            if( !BtnOk.btn_end_div.classList.contains('forced_action') ) {
+                Button.doBtnCancel()
+            }
         }
+    }
+
+    /**
+     * Whether the far-left button currently reads End Turn.
+     *
+     * That is the in-turn ask at rest, before a card has been picked up.
+     * Every other negative -- declining a prompt, skipping a response
+     * window, ending a defense -- is what a cancel key is for; this one
+     * would end the turn on a slip of the finger.
+     */
+    static denyWouldEndTheTurn(): boolean {
+        return Effect.is_in_event == 'in_turn' && SelectStep.isCard() && !Effect.isExEffect()
     }
 
     /**
