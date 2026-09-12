@@ -118,6 +118,44 @@ export function bgStatsPlayUrl(
 }
 
 /**
+ * The same link on the app's own scheme, which is what the web page above
+ * rewrites its "click here" to: `https://` becomes `bgstats://`.
+ */
+export function bgStatsAppUrl(
+    game: BgStatsGame,
+    playerName: string,
+    location: string = '',
+): string {
+    return 'bgstats' + bgStatsPlayUrl(game, playerName, location).slice('https'.length);
+}
+
+/**
+ * Hand a play to BG Stats without leaving this page.
+ *
+ * The app's scheme is tried first, in place: a browser passes it to the app
+ * and stays where it is, so there is no blank tab to close afterwards. Only
+ * if nothing takes it -- the page still has focus a moment later, which is
+ * the web page's own test -- does the https link open in a new tab, where it
+ * explains how to get the app.
+ */
+export function sendToBgStats(
+    game: BgStatsGame,
+    playerName: string,
+    location: string = '',
+): void {
+    let handedOff = false;
+    const onBlur = () => { handedOff = true; };
+    window.addEventListener('blur', onBlur, {once: true});
+    window.location.href = bgStatsAppUrl(game, playerName, location);
+    window.setTimeout(() => {
+        window.removeEventListener('blur', onBlur);
+        if (!handedOff && document.visibilityState === 'visible') {
+            window.open(bgStatsPlayUrl(game, playerName, location), '_blank', 'noopener');
+        }
+    }, 1500);
+}
+
+/**
  * Whether this game is worth sending.
  *
  * An unfinished or abandoned game has no result for BG Stats to record, and it

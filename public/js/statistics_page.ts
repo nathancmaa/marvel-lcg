@@ -1,5 +1,5 @@
 import { beatenClass, beatenLabel } from './beaten.js';
-import { bgStatsPlayUrl, canPushToBgStats } from './bgstats_play.js';
+import { sendToBgStats, canPushToBgStats } from './bgstats_play.js';
 import { UserSettings } from './user_settings.js';
 
 type SourceFilter = 'all'|'digital'|'physical'|'replay_import';
@@ -332,11 +332,7 @@ function renderRecent(rows: RecentGame[], unknownGames: number): void {
             if (!game) {
                 return;
             }
-            // A new tab, because the link hands off to the BG Stats app and
-            // navigating away would lose this page's place in the history.
-            window.open(
-                bgStatsPlayUrl(game, bgStatsPlayerName(), bgStatsLocation()),
-                '_blank', 'noopener');
+            sendToBgStats(game, bgStatsPlayerName(), bgStatsLocation());
         });
     });
 
