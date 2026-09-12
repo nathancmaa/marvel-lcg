@@ -8,7 +8,7 @@ import os
 import re
 import sqlite3
 import threading
-from typing import Any, Dict, Iterator, List, Sequence, TYPE_CHECKING
+from typing import Any, Dict, Iterator, List, TYPE_CHECKING
 import uuid
 
 from core.lib import Time
@@ -1452,38 +1452,6 @@ class GameHistory:
                 'heroes': heroes,
                 'decks': decks,
             }
-
-    def DecidedGames(self, source: str='all', ids: Sequence[int]|None=None) -> List[Dict[str, Any]]:
-        """Won or lost games, oldest first, for a play file.
-
-        `ids` narrows it to the games the player ticked; an id that is not a
-        decided game in this view is simply not in the answer. Abandoned and
-        unknown games stay out either way, as they do from the BG Stats
-        button, since they would arrive as losses.
-        """
-        if not self.available:
-            return []
-        source = self._normalize_source_filter(source)
-        wanted = [int(value) for value in ids] if ids is not None else None
-        if wanted is not None and not wanted:
-            return []
-        with self._lock, self._connect() as connection:
-            parameters: List[Any] = [] if source == 'all' else [source]
-            where = ''
-            if wanted is not None:
-                where = 'AND id IN (' + ','.join('?' * len(wanted)) + ') '
-                parameters.extend(wanted)
-            return [dict(row) for row in connection.execute(
-                'SELECT id, finished_at, hero_code, hero_name, villain_code, villain_name, '
-                'expert, heroic, result, rounds, playtime_seconds, deck_name, notes, '
-                + '(SELECT COUNT(*) FROM game_players p WHERE p.game_id = games.id) seats, '
-                "(SELECT group_concat(hero_name, '／') FROM (SELECT hero_name FROM game_players p WHERE p.game_id = games.id ORDER BY seat)) heroes, "
-                "(SELECT group_concat(deck_name, '／') FROM (SELECT deck_name FROM game_players p WHERE p.game_id = games.id ORDER BY seat)) decks "
-                "FROM games WHERE is_service = 0 AND result IN ('win', 'loss') "
-                + ("AND source = ? " if source != 'all' else '') + where +
-                'ORDER BY datetime(finished_at), id',
-                parameters,
-            ).fetchall()]
 
     def GetDashboard(self, source: str='all') -> Dict[str, Any]:
         if not self.available:

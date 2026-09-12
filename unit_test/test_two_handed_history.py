@@ -143,11 +143,6 @@ class TwoHandedHistoryTests(unittest.TestCase):
         self.assertEqual(one['heroes'], 'Cable')
         self.assertIn('Cable', by_key)
 
-    def test_the_play_file_rows_carry_the_seats_too(self):
-        self.two_handed('two')
-        row = self.history.DecidedGames('all')[0]
-        self.assertEqual((row['seats'], row['heroes']), (2, 'Cable／Spider-Man'))
-
     def test_storing_the_same_game_twice_does_not_double_its_seats(self):
         self.two_handed('two:1')
         self.two_handed('two:1')

@@ -458,45 +458,6 @@ class GameServerGet(GameServerBase):
     async def get_session_statistics(self, request: web.Request) -> web.Response:
         return web.json_response(self.game.session.statistics.dic)
 
-    async def download_bgstats_plays(self, request: web.Request) -> web.Response:
-        """Every decided game as one BG Stats play file.
-
-        The player's name and location live in the browser, with the rest of
-        the BG Stats settings, so they arrive on the query string.
-        """
-        from game.statistics.bgstats_export import BuildBgStatsFile
-        history = self.game.game_history
-        if history is None:
-            return web.json_response({'error': 'Game history is disabled.'}, status=404)
-        ids = None
-        if 'ids' in request.query:
-            try:
-                ids = [int(value) for value in request.query['ids'].split(',') if value.strip()]
-            except ValueError:
-                return web.json_response({'error': 'ids must be game numbers.'}, status=400)
-        try:
-            games = await TaskManager.ToThread(
-                history.DecidedGames,
-                request.query.get('source', 'all'),
-                ids,
-            )
-        except ValueError as exc:
-            return web.json_response({'error': str(exc)}, status=400)
-        if not games:
-            return web.json_response({'error': 'No decided games to send.'}, status=404)
-        content = BuildBgStatsFile(
-            games,
-            request.query.get('player', ''),
-            request.query.get('location', ''),
-        )
-        source = request.query.get('source', 'all')
-        file_name = 'marvel-champions' + ('' if source == 'all' else f'-{source}') + '.bgsplay'
-        return web.Response(
-            body=Json.Dumps(content).encode('utf-8'),
-            content_type='application/json',
-            headers={'Content-Disposition': f'attachment; filename="{file_name}"'},
-        )
-
     async def get_game_history(self, request: web.Request) -> web.Response:
         history = self.game.game_history
         if history is None:
@@ -653,9 +614,6 @@ class GameServerGet(GameServerBase):
         self.AddAwaitGetSecurity('/get_statistics', self.get_statistics)
         self.AddAwaitGetSecurity('/get_session_statistics', self.get_session_statistics)
         self.AddAwaitGetSecurity('/get_game_history', self.get_game_history)
-        # A file, not a page: a browser's download session need not carry the
-        # version cookie, and a version-mismatch page is no play file.
-        self.AddAwaitGetSecurity('/download_bgstats_plays', self.download_bgstats_plays, need_check_version=False)
         self.AddAwaitGetSecurity('/get_active_campaign', self.get_active_campaign)
         self.AddAwaitGetSecurity('/get_play_scene_name', self.get_play_scene_name)
         self.AddAwaitGetSecurity('/get_max_timeout', self.get_max_timeout)

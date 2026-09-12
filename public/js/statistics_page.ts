@@ -1,6 +1,5 @@
 import { beatenClass, beatenLabel } from './beaten.js';
-import { sendToBgStats, canPushToBgStats, bgStatsPlayUrl } from './bgstats_play.js';
-import { copyToClipboard } from './lib/clipboard.js';
+import { sendToBgStats, canPushToBgStats } from './bgstats_play.js';
 import { UserSettings } from './user_settings.js';
 
 type SourceFilter = 'all'|'digital'|'physical'|'replay_import';
@@ -310,203 +309,21 @@ function sourceLabel(source: RecentGame['source']): string {
     return 'Digital';
 }
 
-/** The games ticked for the BG Stats file, in the order they are listed. */
-function selectedBgStatsGames(): number[] {
-    return Array.from(
-        document.querySelectorAll<HTMLInputElement>('[data-bgstats-select]:checked'),
-        box => Number(box.dataset.bgstatsSelect));
-}
-
-/** Whether the Games panel is showing its ticks. */
-function isChoosingBgStatsGames(): boolean {
-    return element('games-panel').classList.contains('selecting');
-}
-
-/**
- * Show the ticks, or put them away again with nothing ticked.
- *
- * A mode rather than a permanent column: the table is read far more often
- * than it is exported from, and a row of boxes down it would be in the way
- * the rest of the time.
- */
-function chooseBgStatsGames(on: boolean): void {
-    element('games-panel').classList.toggle('selecting', on);
-    element('bgstats-cancel').hidden = !on;
-    element('bgstats-hint').hidden = !on;
-    element('bgstats-hint').textContent = 'Tick the games to send';
-    element('bgstats-save').hidden = true;
-    element('bgstats-file').hidden = false;
-    if (!on) {
-        document.querySelectorAll<HTMLInputElement>('[data-bgstats-select]').forEach(box => {
-            box.checked = false;
-        });
-    }
-    updateBgStatsSelection();
-}
-
-/**
- * The ticked games as one BG Stats play file.
- *
- * A download rather than a link the app opens: the deep link carries one play,
- * and this is for catching up on several. Which ones is the player's choice,
- * row by row or all at once; nothing is sent that was not ticked.
- */
-async function downloadBgStatsFile(): Promise<void> {
-    const ids = selectedBgStatsGames();
-    if (!ids.length) {
-        return;
-    }
-    const params = new URLSearchParams({
-        source: sourceFilter,
-        ids: ids.join(','),
-        player: bgStatsPlayerName(),
-        location: bgStatsLocation(),
-    });
-    const button = element<HTMLButtonElement>('bgstats-file');
-    const hint = element('bgstats-hint');
-    button.disabled = true;
-    hint.textContent = 'Preparing the file…';
-    try {
-        const outcome = await saveBgStatsFile(`/download_bgstats_plays?${params.toString()}`);
-        if (outcome === null) {
-            // A link is waiting for the player's own tap; the mode ends when
-            // it is tapped.
-            return;
-        }
-        chooseBgStatsGames(false);
-        // What became of the file, left showing after the ticks are gone: on
-        // a browser that cannot hand a file to an app, the player has to go
-        // and find it, and should be told so and where.
-        hint.hidden = false;
-        hint.textContent = outcome;
-    } catch (error) {
-        console.error(error);
-        hint.textContent = error instanceof Error ? error.message : 'The file could not be saved.';
-        updateBgStatsSelection();
-    }
-}
-
-/**
- * Fetch the play file and hand it to the device, and say what happened.
- *
- * Not a navigation to the download: WebKit -- Safari, and every browser on
- * an iPad -- answers a navigation to an attachment with "download canceled".
- * The file is fetched here, checked, and then:
- *
- * - on a touch device whose browser can hand a file to an app (Safari on
- *   iPad, Chrome on Android), it goes to the share sheet, where BG Stats is
- *   one of the choices and opens it straight into its import screen;
- * - on any other touch device, a real link is put under the player's
- *   finger, because Firefox on an iPad cannot share files, cancels a
- *   download the page starts by itself, and only honours a file's name on
- *   a tap it saw happen. `null` says the link is waiting to be tapped;
- * - on a desktop it is saved like any download, through the server's own
- *   URL, whose response carries the file's name.
- */
-async function saveBgStatsFile(url: string): Promise<string|null> {
-    const response = await fetch(url);
-    if (!response.ok) {
-        const body = await response.json().catch(() => ({})) as {error?: string};
-        throw new Error(body.error || `${response.status} ${response.statusText}`);
-    }
-    const disposition = response.headers.get('Content-Disposition') || '';
-    const name = /filename="([^"]+)"/.exec(disposition)?.[1] || 'marvel-champions.bgsplay';
-
-    const touch = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
-    if (touch && typeof navigator.canShare === 'function') {
-        const file = new File([await response.blob()], name, {type: 'application/json'});
-        if (navigator.canShare({files: [file]})) {
-            try {
-                await navigator.share({files: [file], title: name});
-                return `Shared ${name}`;
-            } catch (error) {
-                // Closing the sheet is a decision, not a failure. Anything
-                // else -- the tap having expired, a sharing service refusing
-                // -- falls through to a plain save.
-                if (error instanceof Error && error.name === 'AbortError') {
-                    return 'Nothing shared';
-                }
-            }
-        }
-    }
-
-    if (touch) {
-        const file = new File([await response.blob()], name, {type: 'application/json'});
-        const save = element<HTMLAnchorElement>('bgstats-save');
-        if (save.href.startsWith('blob:')) {
-            URL.revokeObjectURL(save.href);
-        }
-        save.href = URL.createObjectURL(file);
-        save.download = name;
-        save.textContent = `Save ${name}`;
-        save.hidden = false;
-        element<HTMLButtonElement>('bgstats-file').hidden = true;
-        element('bgstats-hint').textContent = 'Tap Save, then open the file with BG Stats.';
-        return null;
-    }
-
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = name;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    return `Saved ${name} — open it with BG Stats.`;
-}
-
-/**
- * Keep the button and the select-all box saying what the ticks say.
- *
- * Out of the mode the button offers the export and is dead only when there
- * is nothing decided to export. In it, the button is the download, counts
- * what will go, and waits for at least one tick; select-all is checked when
- * every decided row is and part-way when some are.
- */
-function updateBgStatsSelection(): void {
-    const boxes = Array.from(document.querySelectorAll<HTMLInputElement>('[data-bgstats-select]'));
-    const ticked = boxes.filter(box => box.checked).length;
-    const button = element<HTMLButtonElement>('bgstats-file');
-    if (!isChoosingBgStatsGames()) {
-        button.textContent = 'BGStats Batch Export';
-        button.disabled = boxes.length === 0;
-        button.title = boxes.length
-            ? 'Choose games to download as one BG Stats play file, to open with the app'
-            : 'No won or lost games in this view to send';
-    } else {
-        button.textContent = ticked ? `Download (${ticked})` : 'Download';
-        button.disabled = ticked === 0;
-        button.title = ticked
-            ? `Download the ${ticked} ticked game${ticked === 1 ? '' : 's'} as one BG Stats play file, to open with the app`
-            : 'Tick at least one game';
-    }
-    const all = element<HTMLInputElement>('bgstats-select-all');
-    all.disabled = boxes.length === 0;
-    all.checked = boxes.length > 0 && ticked === boxes.length;
-    all.indeterminate = ticked > 0 && ticked < boxes.length;
-}
-
 function renderRecent(rows: RecentGame[], unknownGames: number): void {
     const target = element<HTMLTableSectionElement>('recent-games');
     element('unknown-note').textContent = unknownGames
         ? `${unknownGames} imported replay${unknownGames === 1 ? '' : 's'} with unknown result`
         : '';
     if (!rows.length) {
-        target.innerHTML = emptyRow(10, 'No game history in this view.');
-        updateBgStatsSelection();
+        target.innerHTML = emptyRow(9, 'No game history in this view.');
         return;
     }
     target.innerHTML = rows.map(row => {
         // Only a decided game: an abandoned one has no result to record and
         // would arrive in BG Stats as a loss.
         const decided = canPushToBgStats(row);
-        // The link as well as the send: to open on another device, or to
-        // read what exactly is being sent when BG Stats shows something odd.
         const push = decided
-            ? `<button type="button" data-bgstats-game="${row.id}" title="Send this play to BG Stats">BG Stats</button>
-               <button type="button" data-bgstats-link="${row.id}" title="Copy the BG Stats link for this play">Link</button>`
-            : '';
-        const select = decided
-            ? `<input type="checkbox" data-bgstats-select="${row.id}" aria-label="Put this game in the BG Stats file">`
+            ? `<button type="button" data-bgstats-game="${row.id}" title="Send this play to BG Stats">BG Stats</button>`
             : '';
         const edit = row.source === 'physical'
             ? `<button type="button" data-edit-game="${row.id}" title="Edit physical game">Edit</button>
@@ -516,7 +333,6 @@ function renderRecent(rows: RecentGame[], unknownGames: number): void {
             ? `<div class="row-actions">${push}${edit}</div>`
             : '';
         return `<tr>
-            <td class="select-cell">${select}</td>
             <td>${escapeHtml(dateTime(row.finished_at))}</td>
             <td><span class="source ${row.source}">${escapeHtml(sourceLabel(row.source))}</span></td>
             <td>${heroesCell(row)}</td>
@@ -528,23 +344,6 @@ function renderRecent(rows: RecentGame[], unknownGames: number): void {
             <td>${actions}</td>
         </tr>`;
     }).join('');
-
-    target.querySelectorAll<HTMLInputElement>('[data-bgstats-select]').forEach(box => {
-        box.addEventListener('change', updateBgStatsSelection);
-    });
-    updateBgStatsSelection();
-
-    target.querySelectorAll<HTMLButtonElement>('[data-bgstats-link]').forEach(button => {
-        button.addEventListener('click', () => {
-            const game = rows.find(row => row.id === Number(button.dataset.bgstatsLink));
-            if (!game) {
-                return;
-            }
-            copyToClipboard(bgStatsPlayUrl(game, bgStatsPlayerName(), bgStatsLocation()));
-            button.textContent = 'Copied';
-            window.setTimeout(() => { button.textContent = 'Link'; }, 1500);
-        });
-    });
 
     target.querySelectorAll<HTMLButtonElement>('[data-bgstats-game]').forEach(button => {
         button.addEventListener('click', () => {
@@ -1503,32 +1302,6 @@ async function importTrackerExport(): Promise<void> {
 }
 
 function bindEvents(): void {
-    element<HTMLButtonElement>('bgstats-file').addEventListener('click', () => {
-        if (isChoosingBgStatsGames()) {
-            void downloadBgStatsFile();
-        } else {
-            chooseBgStatsGames(true);
-        }
-    });
-    element<HTMLButtonElement>('bgstats-cancel').addEventListener('click', () => chooseBgStatsGames(false));
-    element<HTMLAnchorElement>('bgstats-save').addEventListener('click', () => {
-        // The tap is the save; let it go through, then put the ticks away
-        // and say where the file went.
-        const name = element<HTMLAnchorElement>('bgstats-save').download;
-        window.setTimeout(() => {
-            chooseBgStatsGames(false);
-            const hint = element('bgstats-hint');
-            hint.hidden = false;
-            hint.textContent = `Saved ${name} to this browser's downloads — open it from there with BG Stats. Safari can share it to BG Stats directly.`;
-        }, 500);
-    });
-    element<HTMLInputElement>('bgstats-select-all').addEventListener('change', event => {
-        const checked = (event.target as HTMLInputElement).checked;
-        document.querySelectorAll<HTMLInputElement>('[data-bgstats-select]').forEach(box => {
-            box.checked = checked;
-        });
-        updateBgStatsSelection();
-    });
     document.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(button => {
         button.addEventListener('click', () => setActiveTab(button.dataset.tab as TabName));
     });
