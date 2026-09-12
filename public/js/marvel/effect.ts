@@ -857,7 +857,11 @@ export class Effect {
             if( Effect.isResponse(options[0].name_with_space) ||
                 Effect.isInterrupt(options[0].name_with_space)
             ){
-                can_auto_activate = AutoEffect.isAutoEffectTargeting() && AutoActivate.isHasAutoActivate()
+                // Whether a marked card is asking, and nothing about targets:
+                // auto-targeting declines an ability with none, and a response
+                // that places a counter on itself has none. Gating on it here
+                // was why a marked Hall of Heroes still stopped to ask.
+                can_auto_activate = AutoActivate.isHasAutoActivate()
             }
             UpdateCards(options[0], can_auto_activate)
 

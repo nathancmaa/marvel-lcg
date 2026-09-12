@@ -35,6 +35,15 @@ class AnswerableAbilityTests(unittest.TestCase):
             with self.subTest(name):
                 self.assertTrue(self.Answerable(name, card_type))
 
+    def test_a_response_that_waits_on_its_event_still_counts(self):
+        # "After you defeat a minion" and "After you change form" are built as
+        # a forced wrapper that registers the response once the event comes.
+        # The card still prints a Response, and the game still stops to ask.
+        for name, card_type in [("Hall of Heroes", "Support"),
+                                ("Ready to Rumble", "Upgrade")]:
+            with self.subTest(name):
+                self.assertTrue(self.Answerable(name, card_type))
+
     def test_an_action_alone_is_not(self):
         # Plasma Rifle is a Hero Action. Marking it used to let the table post
         # for it, which is how an ally with a tick attacked on a click.

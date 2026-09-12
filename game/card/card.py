@@ -23,6 +23,13 @@ def AbilityIsAnswerable(ability: 'Ability') -> bool:
     standing answer answers, and the only abilities worth marking a card for.
     """
     flags = ability.flags
+    if flags.is_delay_ability and ability.second_type_internal is not None:
+        # A "Response: After you defeat a minion" is built as a wrapper that
+        # waits for the defeat and only then registers the response itself.
+        # The wrapper is forced by construction and would say no here; what
+        # the card prints, and what the game will stop and offer, is the type
+        # the wrapper carries as its second.
+        flags = ability.second_type_internal.flags
     return not flags.is_forced and (flags.is_response or flags.is_interrupt)
 
 
