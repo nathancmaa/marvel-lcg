@@ -1,5 +1,6 @@
 import { beatenClass, beatenLabel } from './beaten.js';
-import { sendToBgStats, canPushToBgStats } from './bgstats_play.js';
+import { sendToBgStats, canPushToBgStats, bgStatsPlayUrl } from './bgstats_play.js';
+import { copyToClipboard } from './lib/clipboard.js';
 import { UserSettings } from './user_settings.js';
 
 type SourceFilter = 'all'|'digital'|'physical'|'replay_import';
@@ -498,8 +499,11 @@ function renderRecent(rows: RecentGame[], unknownGames: number): void {
         // Only a decided game: an abandoned one has no result to record and
         // would arrive in BG Stats as a loss.
         const decided = canPushToBgStats(row);
+        // The link as well as the send: to open on another device, or to
+        // read what exactly is being sent when BG Stats shows something odd.
         const push = decided
-            ? `<button type="button" data-bgstats-game="${row.id}" title="Send this play to BG Stats">BG Stats</button>`
+            ? `<button type="button" data-bgstats-game="${row.id}" title="Send this play to BG Stats">BG Stats</button>
+               <button type="button" data-bgstats-link="${row.id}" title="Copy the BG Stats link for this play">Link</button>`
             : '';
         const select = decided
             ? `<input type="checkbox" data-bgstats-select="${row.id}" aria-label="Put this game in the BG Stats file">`
@@ -529,6 +533,18 @@ function renderRecent(rows: RecentGame[], unknownGames: number): void {
         box.addEventListener('change', updateBgStatsSelection);
     });
     updateBgStatsSelection();
+
+    target.querySelectorAll<HTMLButtonElement>('[data-bgstats-link]').forEach(button => {
+        button.addEventListener('click', () => {
+            const game = rows.find(row => row.id === Number(button.dataset.bgstatsLink));
+            if (!game) {
+                return;
+            }
+            copyToClipboard(bgStatsPlayUrl(game, bgStatsPlayerName(), bgStatsLocation()));
+            button.textContent = 'Copied';
+            window.setTimeout(() => { button.textContent = 'Link'; }, 1500);
+        });
+    });
 
     target.querySelectorAll<HTMLButtonElement>('[data-bgstats-game]').forEach(button => {
         button.addEventListener('click', () => {
