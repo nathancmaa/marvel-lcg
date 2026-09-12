@@ -346,8 +346,13 @@ async function downloadBgStatsFile(): Promise<void> {
     button.disabled = true;
     hint.textContent = 'Preparing the file…';
     try {
-        await saveBgStatsFile(`/download_bgstats_plays?${params.toString()}`);
+        const outcome = await saveBgStatsFile(`/download_bgstats_plays?${params.toString()}`);
         chooseBgStatsGames(false);
+        // What became of the file, left showing after the ticks are gone: on
+        // a browser that cannot hand a file to an app, the player has to go
+        // and find it, and should be told so and where.
+        hint.hidden = false;
+        hint.textContent = outcome;
     } catch (error) {
         console.error(error);
         hint.textContent = error instanceof Error ? error.message : 'The file could not be saved.';
@@ -356,15 +361,21 @@ async function downloadBgStatsFile(): Promise<void> {
 }
 
 /**
- * Fetch the play file and hand it to the device.
+ * Fetch the play file and hand it to the device, and say what happened.
  *
  * Not a navigation to the download: WebKit -- Safari, and every browser on
  * an iPad -- answers a navigation to an attachment with "download canceled".
- * The file is fetched here and given to the browser as a file, which on a
- * touch device goes to the share sheet, where BG Stats is one of the
- * choices, and elsewhere is saved like any download.
+ * The file is fetched here, checked, and then:
+ *
+ * - on a touch device whose browser can hand a file to an app (Safari on
+ *   iPad, Chrome on Android), it goes to the share sheet, where BG Stats is
+ *   one of the choices and opens it straight into its import screen;
+ * - otherwise it is saved through a link to the server's own URL, so the
+ *   file keeps its name. Firefox on an iPad cannot share files and names a
+ *   blob for itself, which is how the first version of this handed over a
+ *   randomly named .json.
  */
-async function saveBgStatsFile(url: string): Promise<void> {
+async function saveBgStatsFile(url: string): Promise<string> {
     const response = await fetch(url);
     if (!response.ok) {
         const body = await response.json().catch(() => ({})) as {error?: string};
@@ -372,31 +383,34 @@ async function saveBgStatsFile(url: string): Promise<void> {
     }
     const disposition = response.headers.get('Content-Disposition') || '';
     const name = /filename="([^"]+)"/.exec(disposition)?.[1] || 'marvel-champions.bgsplay';
-    const blob = await response.blob();
-    const file = new File([blob], name, {type: 'application/json'});
 
     const touch = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
-    if (touch && typeof navigator.canShare === 'function' && navigator.canShare({files: [file]})) {
-        try {
-            await navigator.share({files: [file], title: name});
-            return;
-        } catch (error) {
-            // Closing the sheet is a decision, not a failure. Anything else
-            // -- the gesture having expired, a sharing service refusing --
-            // falls through to a plain save.
-            if (error instanceof Error && error.name === 'AbortError') {
-                return;
+    if (touch && typeof navigator.canShare === 'function') {
+        const file = new File([await response.blob()], name, {type: 'application/json'});
+        if (navigator.canShare({files: [file]})) {
+            try {
+                await navigator.share({files: [file], title: name});
+                return `Shared ${name}`;
+            } catch (error) {
+                // Closing the sheet is a decision, not a failure. Anything
+                // else -- the tap having expired, a sharing service refusing
+                // -- falls through to a plain save.
+                if (error instanceof Error && error.name === 'AbortError') {
+                    return 'Nothing shared';
+                }
             }
         }
     }
 
     const link = document.createElement('a');
-    link.href = URL.createObjectURL(file);
+    link.href = url;
     link.download = name;
     document.body.appendChild(link);
     link.click();
     link.remove();
-    window.setTimeout(() => URL.revokeObjectURL(link.href), 60_000);
+    return touch
+        ? `Saved ${name} to this browser's downloads — open it from there with BG Stats. Safari can share it to BG Stats directly.`
+        : `Saved ${name} — open it with BG Stats.`;
 }
 
 /**
