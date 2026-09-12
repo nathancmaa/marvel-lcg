@@ -249,6 +249,31 @@ h2 {
     gap: 0.8rem;
 }
 
+/* The tick that puts a game in the BG Stats file. The column is only there
+   while games are being chosen; the rest of the time the table reads as it
+   always did. */
+.select-cell {
+    display: none;
+    width: 1.6rem;
+    padding-right: 0;
+}
+
+#games-panel.selecting .select-cell {
+    display: table-cell;
+}
+
+.select-cell input {
+    width: 1.05rem;
+    height: 1.05rem;
+    cursor: pointer;
+    accent-color: #52b8ef;
+}
+
+.secondary-action.compact {
+    min-height: 2.35rem;
+    padding: 0.5rem 0.8rem;
+}
+
 .panel-copy {
     max-width: 48rem;
     margin: 0.4rem 0 0;

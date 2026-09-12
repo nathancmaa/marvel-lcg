@@ -929,6 +929,15 @@ class DecidedGamesForThePlayFile(GameHistoryTests):
         self.assertEqual({r['result'] for r in self.history.DecidedGames('physical')}, {'loss'})
         self.assertEqual(self.history.DecidedGames('digital')[0]['hero_name'], 'Spider-Man')
 
+    def test_only_the_ticked_games_go_in_the_file(self):
+        first = self.record(1, result='win')['id']
+        self.record(2, result='loss')
+        abandoned = self.record(3, result='abandoned')['id']
+
+        chosen = self.history.DecidedGames('all', [first, abandoned, 999])
+        self.assertEqual([r['id'] for r in chosen], [first])
+        self.assertEqual(self.history.DecidedGames('all', []), [])
+
 
 if __name__ == '__main__':
     unittest.main()

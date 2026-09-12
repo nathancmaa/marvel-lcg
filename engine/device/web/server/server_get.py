@@ -468,10 +468,17 @@ class GameServerGet(GameServerBase):
         history = self.game.game_history
         if history is None:
             return web.json_response({'error': 'Game history is disabled.'}, status=404)
+        ids = None
+        if 'ids' in request.query:
+            try:
+                ids = [int(value) for value in request.query['ids'].split(',') if value.strip()]
+            except ValueError:
+                return web.json_response({'error': 'ids must be game numbers.'}, status=400)
         try:
             games = await TaskManager.ToThread(
                 history.DecidedGames,
                 request.query.get('source', 'all'),
+                ids,
             )
         except ValueError as exc:
             return web.json_response({'error': str(exc)}, status=400)

@@ -291,20 +291,88 @@ function sourceLabel(source: RecentGame['source']): string {
     return 'Digital';
 }
 
+/** The games ticked for the BG Stats file, in the order they are listed. */
+function selectedBgStatsGames(): number[] {
+    return Array.from(
+        document.querySelectorAll<HTMLInputElement>('[data-bgstats-select]:checked'),
+        box => Number(box.dataset.bgstatsSelect));
+}
+
+/** Whether the Games panel is showing its ticks. */
+function isChoosingBgStatsGames(): boolean {
+    return element('games-panel').classList.contains('selecting');
+}
+
 /**
- * Every decided game in the current view as one BG Stats play file.
+ * Show the ticks, or put them away again with nothing ticked.
+ *
+ * A mode rather than a permanent column: the table is read far more often
+ * than it is exported from, and a row of boxes down it would be in the way
+ * the rest of the time.
+ */
+function chooseBgStatsGames(on: boolean): void {
+    element('games-panel').classList.toggle('selecting', on);
+    element('bgstats-cancel').hidden = !on;
+    element('bgstats-hint').hidden = !on;
+    if (!on) {
+        document.querySelectorAll<HTMLInputElement>('[data-bgstats-select]').forEach(box => {
+            box.checked = false;
+        });
+    }
+    updateBgStatsSelection();
+}
+
+/**
+ * The ticked games as one BG Stats play file.
  *
  * A download rather than a link the app opens: the deep link carries one play,
- * and this is for catching up on many. The file is built on the server from
- * the whole history, not the hundred games on screen.
+ * and this is for catching up on several. Which ones is the player's choice,
+ * row by row or all at once; nothing is sent that was not ticked.
  */
 function downloadBgStatsFile(): void {
+    const ids = selectedBgStatsGames();
+    if (!ids.length) {
+        return;
+    }
     const params = new URLSearchParams({
         source: sourceFilter,
+        ids: ids.join(','),
         player: bgStatsPlayerName(),
         location: bgStatsLocation(),
     });
     window.location.href = `/download_bgstats_plays?${params.toString()}`;
+    chooseBgStatsGames(false);
+}
+
+/**
+ * Keep the button and the select-all box saying what the ticks say.
+ *
+ * Out of the mode the button offers the export and is dead only when there
+ * is nothing decided to export. In it, the button is the download, counts
+ * what will go, and waits for at least one tick; select-all is checked when
+ * every decided row is and part-way when some are.
+ */
+function updateBgStatsSelection(): void {
+    const boxes = Array.from(document.querySelectorAll<HTMLInputElement>('[data-bgstats-select]'));
+    const ticked = boxes.filter(box => box.checked).length;
+    const button = element<HTMLButtonElement>('bgstats-file');
+    if (!isChoosingBgStatsGames()) {
+        button.textContent = 'BGStats Batch Export';
+        button.disabled = boxes.length === 0;
+        button.title = boxes.length
+            ? 'Choose games to download as one BG Stats play file, to open with the app'
+            : 'No won or lost games in this view to send';
+    } else {
+        button.textContent = ticked ? `Download (${ticked})` : 'Download';
+        button.disabled = ticked === 0;
+        button.title = ticked
+            ? `Download the ${ticked} ticked game${ticked === 1 ? '' : 's'} as one BG Stats play file, to open with the app`
+            : 'Tick at least one game';
+    }
+    const all = element<HTMLInputElement>('bgstats-select-all');
+    all.disabled = boxes.length === 0;
+    all.checked = boxes.length > 0 && ticked === boxes.length;
+    all.indeterminate = ticked > 0 && ticked < boxes.length;
 }
 
 function renderRecent(rows: RecentGame[], unknownGames: number): void {
@@ -313,14 +381,19 @@ function renderRecent(rows: RecentGame[], unknownGames: number): void {
         ? `${unknownGames} imported replay${unknownGames === 1 ? '' : 's'} with unknown result`
         : '';
     if (!rows.length) {
-        target.innerHTML = emptyRow(9, 'No game history in this view.');
+        target.innerHTML = emptyRow(10, 'No game history in this view.');
+        updateBgStatsSelection();
         return;
     }
     target.innerHTML = rows.map(row => {
         // Only a decided game: an abandoned one has no result to record and
         // would arrive in BG Stats as a loss.
-        const push = canPushToBgStats(row)
+        const decided = canPushToBgStats(row);
+        const push = decided
             ? `<button type="button" data-bgstats-game="${row.id}" title="Send this play to BG Stats">BG Stats</button>`
+            : '';
+        const select = decided
+            ? `<input type="checkbox" data-bgstats-select="${row.id}" aria-label="Put this game in the BG Stats file">`
             : '';
         const edit = row.source === 'physical'
             ? `<button type="button" data-edit-game="${row.id}" title="Edit physical game">Edit</button>
@@ -330,6 +403,7 @@ function renderRecent(rows: RecentGame[], unknownGames: number): void {
             ? `<div class="row-actions">${push}${edit}</div>`
             : '';
         return `<tr>
+            <td class="select-cell">${select}</td>
             <td>${escapeHtml(dateTime(row.finished_at))}</td>
             <td><span class="source ${row.source}">${escapeHtml(sourceLabel(row.source))}</span></td>
             <td>${escapeHtml(displayName(row.hero_name, row.hero_code))}</td>
@@ -341,6 +415,11 @@ function renderRecent(rows: RecentGame[], unknownGames: number): void {
             <td>${actions}</td>
         </tr>`;
     }).join('');
+
+    target.querySelectorAll<HTMLInputElement>('[data-bgstats-select]').forEach(box => {
+        box.addEventListener('change', updateBgStatsSelection);
+    });
+    updateBgStatsSelection();
 
     target.querySelectorAll<HTMLButtonElement>('[data-bgstats-game]').forEach(button => {
         button.addEventListener('click', () => {
@@ -483,13 +562,6 @@ function renderDashboard(dashboard: Dashboard): void {
     renderRecords('villains', dashboard.villains, 'villain');
     renderMatchups(dashboard.matchups);
     renderRecent(dashboard.recent_games, dashboard.overview.unknown_games);
-    // Nothing decided in this view means nothing to put in a file; a dead
-    // button says so better than a page of error JSON would.
-    const bgStatsFile = element<HTMLButtonElement>('bgstats-file');
-    bgStatsFile.disabled = !(dashboard.overview.completed > 0);
-    bgStatsFile.title = bgStatsFile.disabled
-        ? 'No won or lost games in this view to send'
-        : `Download the ${dashboard.overview.completed} decided game${dashboard.overview.completed === 1 ? '' : 's'} in this view as one BG Stats play file, to open with the app`;
     renderAchievements(dashboard.achievements);
     if (!collectionDirty) {
         ownedProducts = new Set(dashboard.owned_products);
@@ -1306,7 +1378,21 @@ async function importTrackerExport(): Promise<void> {
 }
 
 function bindEvents(): void {
-    element<HTMLButtonElement>('bgstats-file').addEventListener('click', downloadBgStatsFile);
+    element<HTMLButtonElement>('bgstats-file').addEventListener('click', () => {
+        if (isChoosingBgStatsGames()) {
+            downloadBgStatsFile();
+        } else {
+            chooseBgStatsGames(true);
+        }
+    });
+    element<HTMLButtonElement>('bgstats-cancel').addEventListener('click', () => chooseBgStatsGames(false));
+    element<HTMLInputElement>('bgstats-select-all').addEventListener('change', event => {
+        const checked = (event.target as HTMLInputElement).checked;
+        document.querySelectorAll<HTMLInputElement>('[data-bgstats-select]').forEach(box => {
+            box.checked = checked;
+        });
+        updateBgStatsSelection();
+    });
     document.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach(button => {
         button.addEventListener('click', () => setActiveTab(button.dataset.tab as TabName));
     });

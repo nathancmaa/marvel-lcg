@@ -8,7 +8,7 @@ import os
 import re
 import sqlite3
 import threading
-from typing import Any, Dict, Iterator, List, TYPE_CHECKING
+from typing import Any, Dict, Iterator, List, Sequence, TYPE_CHECKING
 import uuid
 
 from core.lib import Time
@@ -1450,23 +1450,31 @@ class GameHistory:
                 'decks': decks,
             }
 
-    def DecidedGames(self, source: str='all') -> List[Dict[str, Any]]:
-        """Every won or lost game, oldest first, for a play file.
+    def DecidedGames(self, source: str='all', ids: Sequence[int]|None=None) -> List[Dict[str, Any]]:
+        """Won or lost games, oldest first, for a play file.
 
-        Not capped like the dashboard's recent list: a file that holds every
-        play is the point of a file. Abandoned and unknown games stay out, as
-        they do from the BG Stats button, since they would arrive as losses.
+        `ids` narrows it to the games the player ticked; an id that is not a
+        decided game in this view is simply not in the answer. Abandoned and
+        unknown games stay out either way, as they do from the BG Stats
+        button, since they would arrive as losses.
         """
         if not self.available:
             return []
         source = self._normalize_source_filter(source)
+        wanted = [int(value) for value in ids] if ids is not None else None
+        if wanted is not None and not wanted:
+            return []
         with self._lock, self._connect() as connection:
-            parameters: tuple[Any, ...] = () if source == 'all' else (source,)
+            parameters: List[Any] = [] if source == 'all' else [source]
+            where = ''
+            if wanted is not None:
+                where = 'AND id IN (' + ','.join('?' * len(wanted)) + ') '
+                parameters.extend(wanted)
             return [dict(row) for row in connection.execute(
                 'SELECT id, finished_at, hero_code, hero_name, villain_code, villain_name, '
                 'expert, heroic, result, rounds, playtime_seconds, deck_name, notes '
                 "FROM games WHERE is_service = 0 AND result IN ('win', 'loss') "
-                + ("AND source = ? " if source != 'all' else '') +
+                + ("AND source = ? " if source != 'all' else '') + where +
                 'ORDER BY datetime(finished_at), id',
                 parameters,
             ).fetchall()]
