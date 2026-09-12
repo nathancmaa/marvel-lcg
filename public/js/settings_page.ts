@@ -55,6 +55,11 @@ const marvelCdbSync = document.getElementById('marvelcdb-sync') as HTMLButtonEle
 const marvelCdbStatus = document.getElementById('marvelcdb-status') as HTMLElement
 const marvelCdbDecks = document.getElementById('marvelcdb-decks') as HTMLTableElement
 const marvelCdbDecksBody = document.getElementById('marvelcdb-decks-body') as HTMLElement
+const marvelCdbDecksTools = document.getElementById('marvelcdb-decks-tools') as HTMLElement
+const marvelCdbDecksSearch = document.getElementById('marvelcdb-decks-search') as HTMLInputElement
+const marvelCdbDecksState = document.getElementById('marvelcdb-decks-state') as HTMLSelectElement
+const marvelCdbDecksCount = document.getElementById('marvelcdb-decks-count') as HTMLElement
+const marvelCdbDecksSortButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('.synced-decks-sort'))
 const marvelCdbDecksPanel = document.getElementById('marvelcdb-decks-panel') as HTMLElement
 
 type SyncedDeck = {
@@ -181,6 +186,21 @@ function cell(text: string, className?: string): HTMLTableCellElement {
     return td
 }
 
+/** One row of the table, worked out once and drawn as often as the filters change. */
+type DeckRowState = 'ok'|'warned'|'failed'|'pending'
+type DeckRow = {
+    id: string;
+    name: string;
+    hero: string;
+    deck: SyncedDeck;
+    state: DeckRowState;
+    stateText: string;
+}
+type DeckSortKey = 'name'|'hero'|'id'|'state'
+
+let deckRows: DeckRow[] = []
+let deckSort: {key: DeckSortKey; dir: 1|-1} = {key: 'name', dir: 1}
+
 /**
  * What is actually being kept in step, one row per deck.
  *
@@ -198,10 +218,8 @@ function renderSyncedDecks(status: MarvelCdbSyncStatus): void {
     for( const deck of status.decks ?? [] ) {
         byId.set(deck.id, deck)
     }
-    const syncedNow = new Set<string>()
     for( const deck of result?.synced ?? [] ) {
         byId.set(deck.id, deck)
-        syncedNow.add(deck.id)
     }
     const errorsById = new Map<string, string>()
     for( const error of result?.errors ?? [] ) {
@@ -212,25 +230,93 @@ function renderSyncedDecks(status: MarvelCdbSyncStatus): void {
         warningsById.set(warning.id, warning.cards.length)
     }
 
-    const rows: HTMLTableRowElement[] = []
+    deckRows = []
     for( const ref of status.deck_ids ?? [] ) {
         // A reference is `123`, `deck/123` or `decklist/123`.
         const parts = String(ref).split('/')
         const id = parts[parts.length - 1] ?? ''
         const kind = parts.length > 1 ? parts[0] : undefined
-        const synced = byId.get(id) ?? {id, name: '', hero: '', kind}
+        const deck = byId.get(id) ?? {id, name: '', hero: '', kind}
         const error = errorsById.get(id)
         const missingCards = warningsById.get(id)
 
+        let state: DeckRowState
+        let stateText: string
+        if( error ) {
+            state = 'failed'
+            stateText = error
+        } else if( byId.has(id) ) {
+            // "Synced" says this deck is here and being kept in step, which is
+            // true of every deck on disk -- not only the ones the last press
+            // of the button happened to cover.
+            state = missingCards ? 'warned' : 'ok'
+            stateText = missingCards
+                ? `Synced · ${missingCards} card${missingCards === 1 ? '' : 's'} not implemented`
+                : 'Synced'
+        } else {
+            state = 'pending'
+            stateText = 'Not synced yet'
+        }
+        deckRows.push({id, name: deck.name, hero: deck.hero, deck, state, stateText})
+    }
+
+    drawSyncedDecks()
+}
+
+/** Attention first when sorting by state: what failed, then what is short of cards. */
+const STATE_RANK: Record<DeckRowState, number> = {failed: 0, warned: 1, pending: 2, ok: 3}
+
+function compareDeckRows(a: DeckRow, b: DeckRow): number {
+    let order = 0
+    switch( deckSort.key ) {
+        case 'name':
+            order = (a.name || '\uffff').localeCompare(b.name || '\uffff')
+            break
+        case 'hero':
+            order = (a.hero || '\uffff').localeCompare(b.hero || '\uffff')
+            break
+        case 'id':
+            order = Number(a.id) - Number(b.id)
+            if( Number.isNaN(order) ) {
+                order = a.id.localeCompare(b.id)
+            }
+            break
+        case 'state':
+            order = STATE_RANK[a.state] - STATE_RANK[b.state]
+            break
+    }
+    if( order === 0 ) {
+        order = a.name.localeCompare(b.name) || a.id.localeCompare(b.id)
+    }
+    return order * deckSort.dir
+}
+
+/**
+ * The rows that pass the search and the state filter, in the chosen order,
+ * with the count saying how many that is out of how many there are.
+ */
+function drawSyncedDecks(): void {
+    const total = deckRows.length
+    const query = marvelCdbDecksSearch.value.trim().toLowerCase()
+    const wantedState = marvelCdbDecksState.value
+    const shown = deckRows
+        .filter(row => wantedState === 'all' || row.state === wantedState)
+        .filter(row => !query
+            || row.name.toLowerCase().includes(query)
+            || row.hero.toLowerCase().includes(query)
+            || row.id.includes(query))
+        .sort(compareDeckRows)
+
+    const rows: HTMLTableRowElement[] = shown.map(({id, deck, state, stateText}) => {
         const row = document.createElement('tr')
         row.append(
-            cell(synced.name || '—', 'synced-deck-name'),
-            cell(synced.hero || '—'),
+            cell(deck.name || '—', 'synced-deck-name'),
+            cell(deck.hero || '—'),
         )
 
         const idCell = document.createElement('td')
         const link = document.createElement('a')
-        link.href = deckPageUrl(synced)
+        link.href = deckPageUrl(deck)
         link.textContent = id
         link.target = '_blank'
         link.rel = 'noopener noreferrer'
@@ -238,42 +324,56 @@ function renderSyncedDecks(status: MarvelCdbSyncStatus): void {
         idCell.appendChild(link)
         row.appendChild(idCell)
 
-        const state = document.createElement('td')
-        if( error ) {
-            state.textContent = error
-            state.className = 'synced-deck-failed'
-        } else if( byId.has(id) ) {
-            // "Synced" says this deck is here and being kept in step, which is
-            // true of every deck on disk -- not only the ones the last press
-            // of the button happened to cover.
-            state.textContent = missingCards
-                ? `Synced · ${missingCards} card${missingCards === 1 ? '' : 's'} not implemented`
-                : 'Synced'
-            state.className = missingCards ? 'synced-deck-warned' : 'synced-deck-ok'
-        } else {
-            state.textContent = 'Not synced yet'
-            state.className = 'synced-deck-pending'
-        }
-        row.appendChild(state)
+        row.appendChild(cell(stateText, `synced-deck-${state}`))
 
         const actions = document.createElement('td')
         const remove = document.createElement('button')
         remove.type = 'button'
         remove.className = 'synced-deck-remove'
         remove.textContent = 'Remove'
-        remove.title = `Stop syncing ${synced.name || id} and delete this copy`
-        remove.addEventListener('click', () => void forgetDeck(id, synced.name))
+        remove.title = `Stop syncing ${deck.name || id} and delete this copy`
+        remove.addEventListener('click', () => void forgetDeck(id, deck.name))
         actions.appendChild(remove)
         row.appendChild(actions)
+        return row
+    })
 
+    if( total > 0 && rows.length === 0 ) {
+        const row = document.createElement('tr')
+        row.className = 'synced-decks-empty'
+        const td = cell('No decks match.')
+        td.colSpan = 5
+        row.appendChild(td)
         rows.push(row)
     }
 
     marvelCdbDecksBody.replaceChildren(...rows)
+    const decks = `${total} deck${total === 1 ? '' : 's'}`
+    marvelCdbDecksCount.textContent = shown.length === total ? decks : `${shown.length} of ${decks}`
+    for( const button of marvelCdbDecksSortButtons ) {
+        const th = button.closest('th')
+        if( button.dataset.sort === deckSort.key ) {
+            th?.setAttribute('aria-sort', deckSort.dir === 1 ? 'ascending' : 'descending')
+        } else {
+            th?.removeAttribute('aria-sort')
+        }
+    }
     // The panel carries the border and the scroll, so it goes with the table
     // rather than standing there as an empty box.
-    marvelCdbDecks.hidden = rows.length === 0
-    marvelCdbDecksPanel.hidden = rows.length === 0
+    marvelCdbDecksTools.hidden = total === 0
+    marvelCdbDecks.hidden = total === 0
+    marvelCdbDecksPanel.hidden = total === 0
+}
+
+marvelCdbDecksSearch.addEventListener('input', drawSyncedDecks)
+marvelCdbDecksState.addEventListener('change', drawSyncedDecks)
+for( const button of marvelCdbDecksSortButtons ) {
+    button.addEventListener('click', () => {
+        const key = button.dataset.sort as DeckSortKey
+        // The same heading again turns the order round; a new one starts ascending.
+        deckSort = key === deckSort.key ? {key, dir: deckSort.dir === 1 ? -1 : 1} : {key, dir: 1}
+        drawSyncedDecks()
+    })
 }
 
 /**

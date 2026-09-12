@@ -258,6 +258,72 @@
             display: none;
         }
 
+        /* Search, a state filter and the count, in one row above the table.
+           Above rather than inside the scrolling panel, so they stay put. */
+        .synced-decks-tools {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto auto;
+            gap: 0.6rem;
+            align-items: center;
+            margin-top: 0.7rem;
+        }
+
+        .synced-decks-tools[hidden] {
+            display: none;
+        }
+
+        .synced-decks-tools input[type='search'],
+        .synced-decks-tools select {
+            min-width: 0;
+            padding: 0.55rem 0.7rem;
+            border: 1px solid #54758f;
+            border-radius: 0.35rem;
+            background: #111d28;
+            color: #fff;
+            font: inherit;
+            font-size: 0.9rem;
+        }
+
+        .synced-decks-count {
+            color: #9db3c4;
+            font-size: 0.85rem;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+
+        /* A heading that sorts is still a heading: the page's button look is
+           for actions, and a row of blue pills across the top of the table
+           would say the wrong thing. */
+        .synced-decks-sort {
+            min-height: 0;
+            padding: 0;
+            border: 0;
+            background: none;
+            color: inherit;
+            font: inherit;
+            letter-spacing: inherit;
+            text-transform: inherit;
+            cursor: pointer;
+        }
+
+        .synced-decks-sort:hover,
+        .synced-decks-sort:focus-visible {
+            color: #78d2ff;
+        }
+
+        .synced-decks th[aria-sort='ascending'] .synced-decks-sort::after {
+            content: ' \25B4';
+        }
+
+        .synced-decks th[aria-sort='descending'] .synced-decks-sort::after {
+            content: ' \25BE';
+        }
+
+        .synced-decks-empty td {
+            color: #9db3c4;
+            font-style: italic;
+        }
+
         .synced-decks-caption {
             padding: 0.6rem 0 0.15rem;
             color: #9db3c4;
@@ -346,6 +412,10 @@
             .slider-row output {
                 grid-column: 1 / -1;
                 text-align: center;
+            }
+
+            .synced-decks-tools {
+                grid-template-columns: 1fr;
             }
 
             .deck-ids-row {
@@ -439,15 +509,26 @@
                 <button type="button" id="marvelcdb-sync">Sync</button>
             </div>
             <p id="marvelcdb-status" role="status" aria-live="polite"></p>
+            <div class="synced-decks-tools" id="marvelcdb-decks-tools" hidden>
+                <input type="search" id="marvelcdb-decks-search" autocomplete="off" placeholder="Search by deck, hero or ID" aria-label="Search the synced decks">
+                <select id="marvelcdb-decks-state" aria-label="Show decks by state">
+                    <option value="all">All states</option>
+                    <option value="ok">Synced</option>
+                    <option value="warned">Cards not implemented</option>
+                    <option value="failed">Failed</option>
+                    <option value="pending">Not synced yet</option>
+                </select>
+                <span id="marvelcdb-decks-count" class="synced-decks-count" role="status" aria-live="polite"></span>
+            </div>
             <div class="synced-decks-wrap" id="marvelcdb-decks-panel" hidden>
                 <table id="marvelcdb-decks" class="synced-decks" hidden>
-                    <caption class="synced-decks-caption">Decks kept in step with MarvelCDB</caption>
+                    <caption class="synced-decks-caption">Decks kept in step with MarvelCDB. Click a heading to sort.</caption>
                     <thead>
                         <tr>
-                            <th scope="col">Deck</th>
-                            <th scope="col">Hero</th>
-                            <th scope="col">Deck ID</th>
-                            <th scope="col">Last sync</th>
+                            <th scope="col" aria-sort="ascending"><button type="button" class="synced-decks-sort" data-sort="name">Deck</button></th>
+                            <th scope="col"><button type="button" class="synced-decks-sort" data-sort="hero">Hero</button></th>
+                            <th scope="col"><button type="button" class="synced-decks-sort" data-sort="id">Deck ID</button></th>
+                            <th scope="col"><button type="button" class="synced-decks-sort" data-sort="state">Last sync</button></th>
                             <th scope="col"><span class="visually-hidden">Actions</span></th>
                         </tr>
                     </thead>
