@@ -237,6 +237,11 @@ class Controller:
                     )
                 )
 
+                # A resignation is asked for from outside the ask, so it is
+                # applied here, on the game's own thread, before the answer
+                # is read: there is no answer, the game is over.
+                if self.game.session.ConsumeResignation(message.world):
+                    return None, False
                 if user_input == None:
                     return None, True
 

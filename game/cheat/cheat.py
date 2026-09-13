@@ -170,6 +170,10 @@ class Cheat:
                 seed = None
             game.Restart(seed)
 
+        def do_resign():
+            game.session.Resign()
+            return "Resigned"
+
         def do_comment(*args: str):
             game.scene.SetMetadataStr("comment", " ".join(args))
             return f"Comment Update: {game.scene.comment}"
@@ -277,6 +281,7 @@ class Cheat:
             # "/save_level":      do_save_level,
             # "/load_level":      do_load_level,
             "/restart":         do_restart,
+            "/resign":          do_resign,
             "/comment":         do_comment,
             "/C":               do_comment,
             "/cs":              do_comment_by,

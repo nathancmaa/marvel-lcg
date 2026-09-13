@@ -30,6 +30,9 @@ class GameSession:
         self.game = game
         self.preserve_replay_inputs_on_restart = False
         self.undo_count = 0
+        # A resignation asked for from outside the game's own thread, held
+        # here until that thread is at a point where it can end the game.
+        self.resign_requested = False
         # self.condition = Condition("State")
 
     def Restart(self, seed: int|None) -> None:
@@ -56,6 +59,7 @@ class GameSession:
 
     def SetScene(self, scene: 'Scene', state: 'GameState.START_STATE'):
         self.scene = scene
+        self.resign_requested = False
         self.undo_count = scene.GetMetadataInt('undo_count')
         self.version = Ver(scene.version)
         self.game_id += 1
@@ -223,6 +227,30 @@ class GameSession:
         self.game.state.SetStartState('Undo')
         self.start_time = Time.GetTime()
         # game.controller_manager.replay.SetIsSkipping()
+
+    ################################################################################
+    #
+    def Resign(self) -> None:
+        """Concede the game in progress.
+
+        A game that is plainly lost is still a game played, and the only way
+        it reached the history was to play it out and be told so. This ends
+        it now, as the loss it is. The request comes in on the web thread;
+        the game thread picks it up at its next ask, which the wake-up here
+        brings on.
+        """
+        self.resign_requested = True
+        self.ExitWait()
+
+    def ConsumeResignation(self, world: 'World|None') -> bool:
+        """End the game if a resignation is waiting; True when it did."""
+        if not self.resign_requested:
+            return False
+        self.resign_requested = False
+        if world is None or world.is_game_over:
+            return False
+        world.game_over.SetResigned()
+        return True
 
     def ReplayGoto(self, target_step: int):
         replay = self.game.controller_manager.replay

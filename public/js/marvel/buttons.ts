@@ -349,6 +349,24 @@ export class Button{
         Button.doDebug("/undo auto", false)
     }
 
+    /**
+     * Concede the game in progress.
+     *
+     * A game that is plainly lost is still a game played, and playing it out
+     * to be told so was the only way it reached the history. This ends it
+     * now, as the loss it is, and the history records it as one. A replay is
+     * not a game to concede, and a game already over has nothing to.
+     */
+    static doResign() {
+        if( Setting.replay_mode || Game.game_over ) {
+            return
+        }
+        if( !window.confirm('Resign this game? It ends now and goes into the history as a loss.') ) {
+            return
+        }
+        Button.doDebug("/resign", false)
+    }
+
     static disablePause(do_sync = false) {
         Game.is_pause = false
         UI.connection_manager.unpause()
@@ -764,6 +782,11 @@ export class Button{
         Button.createButtonBase(parent_div_right, {
             text: "QSave",
             onClick: () => {Button.doSave(0)}
+        })
+        Button.createButtonBase(parent_div_right, {
+            text: "Resign",
+            id: "resign-btn",
+            onClick: () => {Button.doResign()}
         })
 
         // Fix replay mode, we need to create `#pause-btn` first

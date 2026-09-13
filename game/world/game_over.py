@@ -9,6 +9,7 @@ GAME_OVER_REASON_RULE = Literal[
     "The Final Stage of the Villain was Defeated",
     "The Final Stage of the Main Scheme was Completed",
     "The Main Scheme was Completed",
+    "The players resigned",
 ]
 
 GAME_OVER_REASON_SIMPLE = Literal[
@@ -29,6 +30,7 @@ GAME_OVER_REASON_MAP: Dict[GAME_OVER_REASON, bool|None] = {
     "The Final Stage of the Villain was Defeated": True,
     "The Final Stage of the Main Scheme was Completed": False,
     "The Main Scheme was Completed": False,
+    "The players resigned": False,
     "Players Won": True,
     "Players Lost": False,
     "Exit": None,
@@ -93,6 +95,10 @@ class GameOverReason:
         scheme = Worlds.GetAllMainSchemes(self.world)[0]
         effect = GameRule(scheme, display_name=reason)
         return self.SetGameOver(reason, effect)
+
+    def SetResigned(self):
+        """The players concede: the game ends now, and as the loss it is."""
+        return self.SetGameOverByRule("The players resigned")
 
     def SetUndo(self):
         return self.SetGameOver("Undo", None)
