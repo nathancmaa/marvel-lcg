@@ -1,6 +1,7 @@
 import { Effect } from "./effect.js";
 import { SelectStep } from "./select.js";
 import { UI } from "./ui.js";
+import { keepOptionsClearNow } from "./prompt_dodge.js";
 
 export class BtnOk
 {
@@ -28,6 +29,9 @@ export class BtnOk
                 near.disabled = far.disabled;
                 near.innerHTML = far.innerHTML;
                 near.classList.toggle('overpay', far.classList.contains('overpay'));
+                // Enabled, the near confirm takes up room under the prompt
+                // for the first time; the prompt may already reach it.
+                keepOptionsClearNow();
             };
             new MutationObserver(mirror).observe(far, {
                 attributes: true,

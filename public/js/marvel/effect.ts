@@ -924,6 +924,8 @@ export class Effect {
                 Effect.options_button_div.appendChild(button)
             }
             Effect.assignOptionKeys()
+            // The options have their height now; the prompt may be over them.
+            UI.keepOptionsClear()
         }
     }
 

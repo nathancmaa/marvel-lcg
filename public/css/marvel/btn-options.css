@@ -6,7 +6,9 @@
     position: absolute;
     left: 50%;
     top: 34%;
-    transform: translate(-50%, -50%);
+    /* --dodge is set from the script when the prompt box above would
+       otherwise reach down over the options and their confirm. */
+    transform: translate(-50%, calc(-50% + var(--dodge, 0px)));
     z-index: var(--z-index-buttons);
 
     display: flex;

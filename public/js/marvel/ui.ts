@@ -8,7 +8,7 @@ import { BtnOk } from './btn_ok.js'
 import { Cards } from './cards.js'
 import { Message } from './message.js'
 import { centerDraggableDiv } from './draggable.js'
-import { dodgeHighlightedTargets } from './prompt_dodge.js'
+import { dodgeHighlightedTargets, keepOptionsClearAsSizesChange, keepOptionsClearOfPrompt } from './prompt_dodge.js'
 import { UserSettings } from '../user_settings.js'
 
 class ConnectionManager {
@@ -154,6 +154,7 @@ class PromptBox {
         document.querySelector<HTMLElement>('#prompt-box-close')!.onclick = () => {
             PromptBox.cleanPromptText()
         }
+        keepOptionsClearAsSizesChange(PromptBox.prompt_box_div)
 
         PromptBox.prompt_box_lock.onclick = (e) => {
             const btn = e.target as HTMLElement
@@ -220,8 +221,10 @@ class PromptBox {
             }
             // After the text is in place, so the box has its final height.
             PromptBox.dodgeAwayFromTargets()
+            PromptBox.keepOptionsClear()
         } else {
             PromptBox.resetPromptText(true)
+            PromptBox.keepOptionsClear()
         }
     }
 
@@ -238,11 +241,21 @@ class PromptBox {
         dodgeHighlightedTargets(
             PromptBox.prompt_box_div, PromptBox.prompt_box_lock)
     }
+
+    /** The options and their confirm, below the prompt rather than under it. */
+    static keepOptionsClear() {
+        keepOptionsClearOfPrompt(PromptBox.prompt_box_div)
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 //
 export class UI {
+    /** The options and their confirm, below the prompt rather than under it. */
+    static keepOptionsClear() {
+        PromptBox.keepOptionsClear()
+    }
+
     static btn_end_div      = document.getElementById('btn-end') as HTMLButtonElement;
     static btn_ok_div       = document.getElementById('btn-ok') as HTMLButtonElement;
     static prompt           = PromptBox

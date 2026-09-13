@@ -13,6 +13,9 @@
 /** Cards the current effect will accept as a target. */
 const TARGET_SELECTOR = '.highlight-targets';
 
+/** The options and the confirm under them, which sit at a fixed height too. */
+const OPTION_AREA_ID = 'option-area';
+
 const STEP = 8;    // px between candidate positions
 const MARGIN = 6;  // keep clear of the viewport edge
 const GAP = 4;     // breathing room around a card
@@ -26,6 +29,69 @@ function intersects(
         && right > other.left - GAP
         && top < other.bottom + GAP
         && bottom > other.top - GAP;
+}
+
+let watching = false;
+/** The prompt box, once its set-up has named it, for calls with no box to hand. */
+let promptBox: HTMLElement | null = null;
+
+/** Measure now, from wherever the confirm under the options has just changed. */
+export function keepOptionsClearNow(): void {
+    if (promptBox) {
+        keepOptionsClearOfPrompt(promptBox);
+    }
+}
+
+/**
+ * Measure again whenever the prompt box or the option area changes size.
+ *
+ * The confirm under the options is enabled -- and so first takes up room --
+ * after the prompt's text is set, and the prompt grows with its text after
+ * the options are drawn; neither goes through a call of its own. Sizes are
+ * what the observer reports, and the transform the measurement sets changes
+ * none, so this cannot loop. Installed once, from the prompt box's set-up.
+ */
+export function keepOptionsClearAsSizesChange(box: HTMLElement): void {
+    promptBox = box;
+    const area = document.getElementById(OPTION_AREA_ID);
+    if (watching || !area || typeof ResizeObserver === 'undefined') {
+        return;
+    }
+    watching = true;
+    const observer = new ResizeObserver(() => keepOptionsClearOfPrompt(box));
+    observer.observe(box);
+    observer.observe(area);
+}
+
+/**
+ * Keep the options, and the confirm under them, below the prompt box.
+ *
+ * The box opens at a fixed height and grows downward with its text; the
+ * options sit at a fixed height a little lower. A long prompt with a lone,
+ * already-chosen option reaches the confirm button, and what the button
+ * then covers is the line that says what is being confirmed. The area is
+ * pushed down by exactly the overlap, and the stylesheet's own centring is
+ * restored once there is none.
+ */
+export function keepOptionsClearOfPrompt(box: HTMLElement): void {
+    const area = document.getElementById(OPTION_AREA_ID);
+    if (!area) {
+        return;
+    }
+    area.style.setProperty('--dodge', '0px');
+    if (!box.isConnected || box.classList.contains('hide')) {
+        return;
+    }
+    const prompt = box.getBoundingClientRect();
+    const options = area.getBoundingClientRect();
+    if (prompt.height === 0 || options.height === 0) {
+        return;
+    }
+    const overlap = prompt.bottom + GAP - options.top;
+    if (overlap <= 0 || prompt.right <= options.left || prompt.left >= options.right) {
+        return;
+    }
+    area.style.setProperty('--dodge', `${Math.ceil(overlap)}px`);
 }
 
 /**
