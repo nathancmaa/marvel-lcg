@@ -224,6 +224,13 @@ class Controller:
                 if not prompt_text and check_message.prompt:
                     prompt_text = check_message.prompt.text_no_symbol
 
+                # A resignation that arrived between asks -- during set-up,
+                # or while the villain was taking its turn -- is applied
+                # before this ask opens rather than after it is answered:
+                # nothing woke the game thread then, so nothing would now.
+                if self.game.session.ConsumeResignation(message.world):
+                    return None, False
+
                 # Get input here
                 from engine.device.manager.base import AskOptionPayload
                 user_input = self.input.GetInput(
