@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+import json
 import os
 import tempfile
 import unittest
@@ -197,6 +198,34 @@ class TestMarvelCdbDeckSync(unittest.TestCase):
             self.assertFalse(result['ok'])
             self.assertIn('has no starter deck', result['errors'][0]['error'])
             self.assertFalse(os.path.exists(os.path.join(user_folder, '1130039.json')))
+
+    def test_a_bare_sync_time_from_an_older_state_file_says_it_is_utc(self):
+        with tempfile.TemporaryDirectory() as temp_folder:
+            state_file = os.path.join(temp_folder, '.sync-state.json')
+            with open(state_file, 'w', encoding='utf-8') as handle:
+                json.dump({
+                    'deck_ids': [],
+                    'last_sync': '2026-09-10T17:30:00',
+                    'last_result': {'ok': True, 'synced': [], 'errors': [],
+                                    'synced_at': '2026-09-10T17:30:00'},
+                }, handle)
+            service = MarvelCdbDeckSync(
+                user_deck_folder=temp_folder,
+                state_file=state_file,
+                starter_deck_folder=temp_folder,
+            )
+
+            status = service.GetStatus()
+
+            # A browser reads a bare time as its own local time; with the
+            # offset on, it shows the moment the sync actually happened.
+            self.assertEqual(status['last_sync'], '2026-09-10T17:30:00+00:00')
+            self.assertEqual(status['last_result']['synced_at'], '2026-09-10T17:30:00+00:00')
+            # One that already says so is left alone.
+            self.assertEqual(
+                MarvelCdbDeckSync._aware_iso('2026-09-10T10:30:00-07:00'),
+                '2026-09-10T10:30:00-07:00',
+            )
 
     def test_daily_schedule_is_due_after_interval(self):
         service = MarvelCdbDeckSync(interval_seconds=24 * 60 * 60)

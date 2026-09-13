@@ -462,7 +462,13 @@ class GameHistory:
         text = str(value or '').strip()
         if text:
             try:
-                return datetime.fromisoformat(text).isoformat()
+                parsed = datetime.fromisoformat(text)
+                # A bare time was read off the engine's own clock, which is
+                # local -- the same clock the older format below is read in.
+                # Stored bare, a browser would take it for its own local time.
+                if parsed.tzinfo is None:
+                    parsed = parsed.astimezone()
+                return parsed.isoformat()
             except ValueError:
                 try:
                     local_time = datetime.strptime(text, '%Y-%m-%d %H-%M')

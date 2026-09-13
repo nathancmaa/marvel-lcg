@@ -691,10 +691,34 @@ class MarvelCdbDeckSync:
                     merged[position[deck_id]] = ref
         return merged
 
+    @staticmethod
+    def _aware_iso(text: Any) -> str:
+        """A timestamp that says its zone, so the page shows it in the reader's.
+
+        The sync writes UTC with the offset on, but a state file from an older
+        build carries a bare time, and a browser reads a bare time as its own
+        local time -- hours out, in the wrong direction. Bare means UTC here,
+        which is the clock that wrote it.
+        """
+        value = str(text or '').strip()
+        if not value:
+            return ''
+        try:
+            parsed = datetime.fromisoformat(value)
+        except ValueError:
+            return value
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed.isoformat()
+
     def GetStatus(self) -> Dict[str, Any]:
         with self._condition:
             state = self._load_state()
             status = copy.deepcopy(state)
+        status['last_sync'] = self._aware_iso(status.get('last_sync', ''))
+        last_result = status.get('last_result')
+        if isinstance(last_result, dict):
+            last_result['synced_at'] = self._aware_iso(last_result.get('synced_at', ''))
         # The decks themselves, so the table can name them without waiting for
         # a sync to report on them. A deck synced last month is still a deck.
         status['decks'] = self.SyncedDecksOnDisk()

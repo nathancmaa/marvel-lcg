@@ -1,4 +1,5 @@
 from contextlib import closing
+from datetime import datetime
 import json
 from pathlib import Path
 import sqlite3
@@ -481,6 +482,35 @@ class GameHistoryTests(unittest.TestCase):
                 'SELECT card_id, entered_play FROM game_card_statistics'
             ).fetchone()
             self.assertEqual(tuple(row), ('01003', 2))
+
+    def test_a_bare_replay_time_is_stored_with_the_local_offset(self):
+        replay_path = self.replay_folder / 'bare-time.json'
+        replay_path.write_text(json.dumps({
+            'version': '0.6.0.0',
+            'metadata': {
+                'game_id': 'bare-time-game',
+                'game_result': 'win',
+                'game_over_reason': 'The Final Stage of the Villain was Defeated',
+                'seed': 1,
+                'time': '2026-08-10T12:00:00',
+                'statistics_eligible': True,
+            },
+            'rules': ['v18_all'],
+            'campaign': {'name': 'Rhino', 'villain': ['01094'], 'expert': False},
+            'players': [{'name': 'Spider-Man', 'hero': ['01001a,01001b'], 'metadata': {}}],
+            'inputs': [],
+        }), encoding='utf-8')
+
+        self.assertEqual(self.history.ImportReplays(), 1)
+        row = self.history.GetDashboard()['recent_games'][0]
+
+        # The same reading the older "2026-08-10 12-00" form gets: the clock
+        # that wrote it was the engine's own. Stored bare, a browser in
+        # another zone would show it hours out.
+        self.assertEqual(
+            row['finished_at'],
+            datetime(2026, 8, 10, 12, 0).astimezone().isoformat(),
+        )
 
     def test_legacy_replay_imports_metadata_as_unknown_and_deduplicates(self):
         replay_path = self.replay_folder / 'legacy.json'
