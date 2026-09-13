@@ -159,7 +159,12 @@ function splitCardIds(value: string): string[] {
 }
 
 async function fetchJson<T>(url: string): Promise<T> {
-    const response = await fetch(url);
+    // Ask the server every time rather than trust a copy for its lifetime:
+    // the deck and scenario files were once served with an hour's cache, and
+    // a copy stored under that lifetime is otherwise used for the hour
+    // whatever the server says now. With the server's ETag, asking costs a
+    // 304 and no body when nothing has changed.
+    const response = await fetch(url, {cache: 'no-cache'});
     if (!response.ok) {
         throw new Error(`${response.status} ${response.statusText}`);
     }

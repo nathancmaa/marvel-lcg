@@ -190,7 +190,8 @@ function emptyRow(columns: number, text: string): string {
 }
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
-    const response = await fetch(url, options);
+    // Asked of the server every time; see solo.ts for why.
+    const response = await fetch(url, {cache: 'no-cache', ...options});
     const body = await response.json() as T & {error?: string};
     if (!response.ok) {
         throw new Error(body.error || `${response.status} ${response.statusText}`);
