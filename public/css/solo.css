@@ -664,35 +664,32 @@ input {
     object-fit: fill;
 }
 
-/* The aspects a deck plays, between its art and its name: one pill each,
-   in the aspect's own colour, so a two-aspect deck reads as two at a glance.
-   The colours are the cards' own borders, dimmed to sit on the tile. */
-.aspect-badges {
+/* The aspects a deck plays, as a line along the bottom edge -- the same
+   mark the villain tiles wear for how far they have been beaten, in the
+   aspect's own colour. Two or more aspects split the line into a segment
+   each, so a two-aspect deck reads as two at a glance. */
+.aspect-stripe {
+    position: absolute;
+    left: 50%;
+    bottom: 0.42rem;
+    width: 45%;
+    height: 0.14rem;
+    transform: translateX(-50%);
     display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 0.2rem;
-    margin-top: -0.25rem;
+    gap: 0.22rem;
 }
 
-.aspect-badge {
-    padding: 0.08rem 0.4rem;
+.aspect-segment {
+    flex: 1;
     border-radius: 999px;
-    background: var(--aspect-colour, #5b6773);
-    color: #fff;
-    font-size: 0.55rem;
-    font-weight: 800;
-    letter-spacing: 0.06em;
-    line-height: 1.5;
-    text-transform: uppercase;
-    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.45);
+    background: var(--aspect-colour, #8b97a3);
 }
 
-.aspect-aggression { --aspect-colour: #b8322a; }
-.aspect-justice    { --aspect-colour: #b8931d; }
-.aspect-leadership { --aspect-colour: #2a6fc0; }
-.aspect-protection { --aspect-colour: #2f8f4e; }
-.aspect-pool       { --aspect-colour: #c23f8a; }
+.aspect-aggression { --aspect-colour: #e0473a; }
+.aspect-justice    { --aspect-colour: #e8c33a; }
+.aspect-leadership { --aspect-colour: #3d8ff0; }
+.aspect-protection { --aspect-colour: #3fbf63; }
+.aspect-pool       { --aspect-colour: #ec5aa8; }
 
 .choice-name {
     min-height: 2.35em;

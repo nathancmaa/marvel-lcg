@@ -267,34 +267,35 @@ function allAspectsNamed(choices: readonly DeckFilterChoice[]): boolean {
 }
 
 /**
- * Put the deck's aspects on its tile, as a row of small pills.
+ * Mark the deck's aspects on its tile, as a line along the bottom edge.
  *
- * The pills go where the server's reading puts them -- a deck of two
- * aspects wears two -- and a deck that came without the field wears none
- * rather than a guess. Exported so a tile the page builds outside the
- * picker, a netdeck just loaded, can be dressed the same.
+ * The same mark the villain tiles use to say how far they have been
+ * beaten: one line in the aspect's colour, and for a deck of two or more
+ * aspects the line splits into a segment each, most played first. No
+ * word: the colour is the aspect, and the line is there to be read at a
+ * glance across a grid. The names are on the tooltip. A deck that came
+ * without the field wears none rather than a guess. Exported so a tile
+ * the page builds outside the picker, a netdeck just loaded, is marked
+ * the same.
  */
 export function decorateWithAspects(tile: HTMLElement, choice: DeckFilterChoice): void {
-    tile.querySelector('.aspect-badges')?.remove();
+    // The page may hand over the slot that wraps a tile with its star; the
+    // line belongs on the card itself, whose edge it sits along.
+    const card = tile.matches('.choice-card') ? tile : tile.querySelector<HTMLElement>('.choice-card') ?? tile;
+    card.querySelector('.aspect-stripe')?.remove();
     const aspects = choice.data.aspects;
     if (!Array.isArray(aspects) || aspects.length === 0) {
         return;
     }
-    const row = document.createElement('span');
-    row.className = 'aspect-badges';
+    const stripe = document.createElement('span');
+    stripe.className = 'aspect-stripe';
+    stripe.title = aspects.map((aspect) => aspect.replace(/^'/, '')).join(' · ');
     for (const aspect of aspects) {
-        const badge = document.createElement('span');
-        badge.className = `aspect-badge aspect-${aspect.toLowerCase().replace(/[^a-z]/g, '')}`;
-        badge.textContent = aspect.replace(/^'/, '');
-        badge.title = aspect;
-        row.appendChild(badge);
+        const segment = document.createElement('span');
+        segment.className = `aspect-segment aspect-${aspect.toLowerCase().replace(/[^a-z]/g, '')}`;
+        stripe.appendChild(segment);
     }
-    const name = tile.querySelector('.choice-name');
-    if (name) {
-        name.before(row);
-    } else {
-        tile.appendChild(row);
-    }
+    card.appendChild(stripe);
 }
 
 /**
