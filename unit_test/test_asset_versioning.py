@@ -10,6 +10,9 @@ from urllib.parse import urljoin
 # Match the application's normal import order without starting the server.
 from engine import Engine
 
+from aiohttp import web
+from aiohttp.test_utils import make_mocked_request
+
 from engine.device.web.server.server_files import GameServerFiles
 from engine.network.web_server import AssetVersion, WebServer
 
@@ -179,6 +182,57 @@ class TestComputeToken(unittest.TestCase):
             self.assertEqual(AssetVersion.Token(), '0123456789ab')
         compute.assert_called_once()
         AssetVersion.Reset()
+
+
+class TestJsonRevalidation(unittest.TestCase):
+    """Deck, scenario and set JSON is checked with the server, not trusted for an hour."""
+
+    def setUp(self):
+        self.server = WebServer()
+
+    def json_response(self, content: str) -> web.Response:
+        # The shape ReadJsonFile and get_hero_json answer with: JSON under
+        # the unversioned hour's cache.
+        return web.Response(
+            body=content.encode('utf-8'), content_type='application/json',
+            headers=dict(self.server.HeaderCache))
+
+    def test_cached_json_carries_an_etag_and_asks_each_time(self):
+        response = self.json_response('{"aspects": ["Justice"]}')
+        self.assertIn('max-age', response.headers['Cache-Control'])
+
+        checked = WebServer.RevalidateJson(make_mocked_request('GET', '/get_hero_json?x'), response)
+
+        self.assertEqual(checked.headers['Cache-Control'], 'no-cache')
+        self.assertTrue(checked.headers['ETag'].startswith('"'))
+        self.assertEqual(checked.status, 200)
+
+    def test_a_copy_that_still_matches_costs_a_304(self):
+        first = WebServer.RevalidateJson(
+            make_mocked_request('GET', '/get_hero_json?x'),
+            self.json_response('{"aspects": ["Justice"]}'))
+        etag = first.headers['ETag']
+
+        same = WebServer.RevalidateJson(
+            make_mocked_request('GET', '/get_hero_json?x', headers={'If-None-Match': etag}),
+            self.json_response('{"aspects": ["Justice"]}'))
+        self.assertEqual(same.status, 304)
+        self.assertEqual(same.headers['ETag'], etag)
+
+        changed = WebServer.RevalidateJson(
+            make_mocked_request('GET', '/get_hero_json?x', headers={'If-None-Match': etag}),
+            self.json_response('{"aspects": ["Justice", "Aggression"]}'))
+        self.assertEqual(changed.status, 200)
+        self.assertNotEqual(changed.headers['ETag'], etag)
+
+    def test_other_answers_are_left_alone(self):
+        image = web.Response(body=b'PNG', content_type='image/png', headers=self.server.HeaderCache)
+        self.assertIs(WebServer.RevalidateJson(make_mocked_request('GET', '/x.png'), image), image)
+        self.assertIn('max-age', image.headers['Cache-Control'])
+
+        uncached = web.json_response({'live': True})
+        self.assertIs(WebServer.RevalidateJson(make_mocked_request('GET', '/live'), uncached), uncached)
+        self.assertNotIn('ETag', uncached.headers)
 
 
 class TestResponseHeaders(unittest.TestCase):

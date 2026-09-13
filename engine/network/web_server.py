@@ -201,6 +201,32 @@ class WebServer:
 
     ################################################################################
     #
+    @staticmethod
+    def RevalidateJson(request: web.Request, response: web.StreamResponse) -> web.StreamResponse:
+        """Make a cached JSON answer one the browser checks rather than trusts.
+
+        Deck, scenario and set files were served with an hour's blind cache,
+        so for an hour after a deploy or a deck sync the pickers read what the
+        files used to say -- a deck's new aspects, a new pack's tiles. They
+        now carry an ETag and `no-cache`: the browser keeps its copy but asks
+        each time, and a copy that still matches costs a 304 and no body.
+        Only JSON that was under that cache; images keep their hour, they do
+        not change under anyone.
+        """
+        if not isinstance(response, web.Response) or response.content_type != 'application/json':
+            return response
+        if response.headers.get('Cache-Control') != WebServer.HeaderCache['Cache-Control']:
+            return response
+        body = response.body
+        if not isinstance(body, (bytes, bytearray)):
+            return response
+        etag = f'"{hashlib.md5(bytes(body)).hexdigest()}"'
+        if request.headers.get('If-None-Match') == etag:
+            return web.Response(status=304, headers={'ETag': etag, 'Cache-Control': 'no-cache'})
+        response.headers['ETag'] = etag
+        response.headers['Cache-Control'] = 'no-cache'
+        return response
+
     @final
     def AddNonAwaitGetSecurity(self, path: str, handle: HandleNonAsyncType):
         async def new_handle(request: web.Request) -> web.StreamResponse:
@@ -209,7 +235,7 @@ class WebServer:
             elif not self.IsVersionMatch(request):
                 return self.LoadHtmlCleanCache()
             else:
-                return await TaskManager.ToThread(handle, request)
+                return self.RevalidateJson(request, await TaskManager.ToThread(handle, request))
         self.web_app.router.add_get(path, new_handle)
 
     @final
@@ -220,7 +246,7 @@ class WebServer:
             elif need_check_version and not self.IsVersionMatch(request):
                 return self.LoadHtmlCleanCache()
             else:
-                return await handle(request)
+                return self.RevalidateJson(request, await handle(request))
         self.web_app.router.add_get(path, new_handle)
 
     @final
