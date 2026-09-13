@@ -56,13 +56,23 @@ export type BgStatsGame = {
     decks?: string|null;
 };
 
-/** BG Stats wants UTC as `yyyy-MM-dd HH:mm:ss`. */
+/**
+ * The play's end as `yyyy-MM-dd HH:mm:ss`, in this device's local time.
+ *
+ * The deep-link documentation says UTC. The app files what it is given as
+ * local time regardless -- a play sent as 22:02 UTC came back out of the
+ * app's own export as 22:02 beside an entry time of 15:02 -- so a play
+ * sent in UTC sits hours late in the list. Local is what it wants, and
+ * the device the link is opened on is the one whose clock counts.
+ */
 function playDate(finishedAt: string): string {
     const when = new Date(finishedAt);
     if (Number.isNaN(when.getTime())) {
         return '';
     }
-    return when.toISOString().slice(0, 19).replace('T', ' ');
+    const two = (value: number): string => String(value).padStart(2, '0');
+    return `${when.getFullYear()}-${two(when.getMonth() + 1)}-${two(when.getDate())}`
+        + ` ${two(when.getHours())}:${two(when.getMinutes())}:${two(when.getSeconds())}`;
 }
 
 export function buildBgStatsPlay(
