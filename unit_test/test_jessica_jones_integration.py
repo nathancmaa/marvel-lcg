@@ -459,6 +459,17 @@ class JessicaJonesIntegrationTests(unittest.TestCase):
     def test_a_world_owes_no_skipped_villain_phases_to_begin_with(self):
         self.assertEqual(self.make_world().skip_villain_phase_count, 0)
 
+    def test_mitigated_threat_attaches_to_a_scheme(self):
+        from game.selector.selector_target_helper import TARGET_MAP_FUNC
+        module = load_card("cards.pack.jj.61040")
+        with patch.object(module.AbilityFactory, "CanPlayThisUpgradeCard",
+                          return_value=Mock()) as can_play:
+            module.GetAbilities()
+        selector = can_play.call_args.args[0]
+        # With no target the factory attaches an upgrade to the hero, where
+        # this one's icons have nothing to take away from.
+        self.assertIs(selector.selector_target.get_targets_fn, TARGET_MAP_FUNC["Scheme2"])
+
     def test_mitigated_threat_puts_the_icons_back_when_it_comes_off(self):
         module = load_card("cards.pack.jj.61040")
         with patch.object(module.AbilityFactory, "GiveKeywordToAttached",

@@ -34,7 +34,10 @@ def GetAbilities() -> Sequence['Ability']:
             Faces.DiscardAll([this], effect)
 
     return [
-        AbilityFactory.CanPlayThisUpgradeCard(),
+        # "Attach to a card." The card it is for is a scheme -- the four icons
+        # it takes away are a scheme's -- and with no target named it went on
+        # the hero, where it did nothing.
+        AbilityFactory.CanPlayThisUpgradeCard(Select.From("Scheme2")),
         *AbilityFactory.GiveKeywordToAttached(
             apply=mitigate,
         ),
