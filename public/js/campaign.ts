@@ -15,7 +15,7 @@ import {
     saveCampaignDeck,
 } from './marvelcdb_deck.js';
 import { withCardImageRevision } from './card_image_url.js';
-import { DeckFilters, buildHeroLabels, createDeckFilters, heroKeyOf } from './deck_filters.js';
+import { DeckFilters, buildHeroLabels, createDeckFilters, decorateWithAspects, heroKeyOf } from './deck_filters.js';
 import { AspectDeckPicker, createAspectDeckPicker } from './aspect_decks.js';
 
 type ScenarioData = {
@@ -359,6 +359,7 @@ function selectResolvedMarvelCdbDeck(deck: HeroData): string {
         () => selectHero(choice, true),
     );
     button.classList.add('user-deck', 'resolved-marvelcdb-deck');
+    decorateWithAspects(button, choice);
     heroList.prepend(button);
     selectHero(choice, true);
     button.scrollIntoView({block: 'nearest', behavior: 'smooth'});

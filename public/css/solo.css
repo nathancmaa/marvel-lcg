@@ -664,6 +664,36 @@ input {
     object-fit: fill;
 }
 
+/* The aspects a deck plays, between its art and its name: one pill each,
+   in the aspect's own colour, so a two-aspect deck reads as two at a glance.
+   The colours are the cards' own borders, dimmed to sit on the tile. */
+.aspect-badges {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.2rem;
+    margin-top: -0.25rem;
+}
+
+.aspect-badge {
+    padding: 0.08rem 0.4rem;
+    border-radius: 999px;
+    background: var(--aspect-colour, #5b6773);
+    color: #fff;
+    font-size: 0.55rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    line-height: 1.5;
+    text-transform: uppercase;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.45);
+}
+
+.aspect-aggression { --aspect-colour: #b8322a; }
+.aspect-justice    { --aspect-colour: #b8931d; }
+.aspect-leadership { --aspect-colour: #2a6fc0; }
+.aspect-protection { --aspect-colour: #2f8f4e; }
+.aspect-pool       { --aspect-colour: #c23f8a; }
+
 .choice-name {
     min-height: 2.35em;
     display: grid;

@@ -11,6 +11,9 @@ import { isFavorite } from './favorites.js';
 
 export type DeckFilterData = {
     name: string;
+    /** The aspects the deck plays, most cards first, as the server read them
+     *  off its cards; absent from a deck that came from an older server. */
+    aspects?: string[];
     /** The hero's name with the alter ego added when two heroes share it,
      *  as the server writes it: "Black Panther (Shuri)". */
     display_name?: string;
@@ -35,6 +38,7 @@ type ControlState = {
     sort: SortMode;
     hidePrecons: boolean;
     groupByHero: boolean;
+    groupByAspect: boolean;
     onlyFavorites: boolean;
 };
 
@@ -72,6 +76,7 @@ const DEFAULT_STATE: ControlState = {
     sort: 'deck',
     hidePrecons: false,
     groupByHero: false,
+    groupByAspect: false,
     onlyFavorites: false,
 };
 
@@ -90,6 +95,8 @@ function readState(storageKey: string): ControlState {
             sort,
             hidePrecons: parsed.hidePrecons === true,
             groupByHero: parsed.groupByHero === true,
+            // One grouping at a time; the hero one wins a stored clash.
+            groupByAspect: parsed.groupByAspect === true && parsed.groupByHero !== true,
             onlyFavorites: parsed.onlyFavorites === true,
         };
     } catch {
@@ -240,8 +247,65 @@ async function loadCardClasses(): Promise<Map<string, string>> {
     return cardClassPromise;
 }
 
-/** The aspect a deck plays, by majority of its aspect-restricted cards. */
+/**
+ * The aspects the server read off the deck, joined for a label; null if it
+ * sent none. In alphabetical order rather than the server's most-played
+ * order, so that two decks of the same two aspects share a group and a sort
+ * key whichever aspect each leans on.
+ */
+function namedAspects(choice: DeckFilterChoice): string | null {
+    const aspects = choice.data.aspects;
+    if (!Array.isArray(aspects)) {
+        return null;
+    }
+    return aspects.length ? [...aspects].sort(compareText).join(' · ') : ASPECT_NONE;
+}
+
+/** Whether every deck here already says its aspects, so no card data is needed. */
+function allAspectsNamed(choices: readonly DeckFilterChoice[]): boolean {
+    return choices.every((choice) => Array.isArray(choice.data.aspects));
+}
+
+/**
+ * Put the deck's aspects on its tile, as a row of small pills.
+ *
+ * The pills go where the server's reading puts them -- a deck of two
+ * aspects wears two -- and a deck that came without the field wears none
+ * rather than a guess. Exported so a tile the page builds outside the
+ * picker, a netdeck just loaded, can be dressed the same.
+ */
+export function decorateWithAspects(tile: HTMLElement, choice: DeckFilterChoice): void {
+    tile.querySelector('.aspect-badges')?.remove();
+    const aspects = choice.data.aspects;
+    if (!Array.isArray(aspects) || aspects.length === 0) {
+        return;
+    }
+    const row = document.createElement('span');
+    row.className = 'aspect-badges';
+    for (const aspect of aspects) {
+        const badge = document.createElement('span');
+        badge.className = `aspect-badge aspect-${aspect.toLowerCase().replace(/[^a-z]/g, '')}`;
+        badge.textContent = aspect.replace(/^'/, '');
+        badge.title = aspect;
+        row.appendChild(badge);
+    }
+    const name = tile.querySelector('.choice-name');
+    if (name) {
+        name.before(row);
+    } else {
+        tile.appendChild(row);
+    }
+}
+
+/**
+ * The aspect a deck plays: the server's reading when it sent one, else by
+ * majority of the deck's aspect-restricted cards from the card database.
+ */
 function aspectOf(choice: DeckFilterChoice, classes: Map<string, string>): string {
+    const named = namedAspects(choice);
+    if (named !== null) {
+        return named;
+    }
     const tally = new Map<string, number>();
     for (const cardId of choice.data.player_deck ?? []) {
         const cardClass = classes.get(cardId);
@@ -366,6 +430,7 @@ export function createDeckFilters<T extends DeckFilterChoice>(
     sortLabel.append(labelText('Sort by'), sortSelect);
 
     const groupToggle = createToggle('Group by hero', state.groupByHero);
+    const aspectGroupToggle = createToggle('Group by aspect', state.groupByAspect);
     const preconToggle = createToggle('Hide precons', state.hidePrecons);
     const favoriteToggle = createToggle('Favorites only', state.onlyFavorites);
 
@@ -373,7 +438,7 @@ export function createDeckFilters<T extends DeckFilterChoice>(
     count.className = 'deck-filter-count';
     count.setAttribute('aria-live', 'polite');
 
-    bar.append(heroLabel, sortLabel, groupToggle, preconToggle, favoriteToggle, count);
+    bar.append(heroLabel, sortLabel, groupToggle, aspectGroupToggle, preconToggle, favoriteToggle, count);
     listHost.parentElement?.insertBefore(bar, listHost);
 
     function labelText(text: string): HTMLSpanElement {
@@ -505,13 +570,17 @@ export function createDeckFilters<T extends DeckFilterChoice>(
 
     function arrange(choices: T[]): Section[] {
         const filtered = applyFilters(choices);
-        if (!state.groupByHero) {
+        if (!state.groupByHero && !state.groupByAspect) {
             return [{label: null, items: applySort(filtered, true)}];
         }
 
         const groups = new Map<string, T[]>();
         for (const choice of filtered) {
-            const hero = heroLabelOf(choice);
+            // By aspect, a two-aspect deck is its own group, "Aggression ·
+            // Justice", rather than filed under one of them or under both.
+            const hero = state.groupByAspect
+                ? (aspects ? aspectOf(choice, aspects) : namedAspects(choice) ?? ASPECT_NONE)
+                : heroLabelOf(choice);
             const bucket = groups.get(hero);
             if (bucket) {
                 bucket.push(choice);
@@ -545,7 +614,9 @@ export function createDeckFilters<T extends DeckFilterChoice>(
                 listHost.appendChild(heading);
             }
             for (const choice of section.items) {
-                listHost.appendChild(createButton(choice));
+                const tile = createButton(choice);
+                decorateWithAspects(tile, choice);
+                listHost.appendChild(tile);
             }
         }
 
@@ -565,7 +636,10 @@ export function createDeckFilters<T extends DeckFilterChoice>(
     }
 
     async function ensureAspectsThenDraw(): Promise<void> {
-        if (state.sort !== 'aspect' || aspects) {
+        // The card database is only needed for a deck the server did not
+        // read the aspects of, and only when aspects are being asked about.
+        const asked = state.sort === 'aspect' || state.groupByAspect;
+        if (!asked || aspects || allAspectsNamed(browsable())) {
             draw();
             return;
         }
@@ -596,9 +670,24 @@ export function createDeckFilters<T extends DeckFilterChoice>(
 
     groupToggle.addEventListener('click', () => {
         state.groupByHero = !state.groupByHero;
+        if (state.groupByHero) {
+            state.groupByAspect = false;
+            setPressed(aspectGroupToggle, false);
+        }
         setPressed(groupToggle, state.groupByHero);
         persist();
         draw();
+    });
+
+    aspectGroupToggle.addEventListener('click', () => {
+        state.groupByAspect = !state.groupByAspect;
+        if (state.groupByAspect) {
+            state.groupByHero = false;
+            setPressed(groupToggle, false);
+        }
+        setPressed(aspectGroupToggle, state.groupByAspect);
+        persist();
+        void ensureAspectsThenDraw();
     });
 
     preconToggle.addEventListener('click', () => {

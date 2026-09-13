@@ -85,8 +85,11 @@ class GameServerMarvelCdb(GameServerBase):
         except ValueError as exc:
             return web.json_response({'error': str(exc)}, status=400)
 
+        from game.statistics.deck_aspects import WithDeckAspects
         return await self._run(
-            self.device_manager.marvelcdb_deck_sync.ResolveDeck,
+            # With its aspects, as a deck read from a file arrives.
+            lambda reference: WithDeckAspects(
+                self.device_manager.marvelcdb_deck_sync.ResolveDeck(reference)),
             data.get('deck', ''),
         )
 

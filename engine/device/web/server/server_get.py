@@ -1,6 +1,7 @@
 from core import *
 from engine.lib import Json
 from game.statistics.hero_labels import HeroLabel
+from game.statistics.deck_aspects import WithDeckAspects
 from engine.file import FileManager
 from engine.device import *
 
@@ -136,6 +137,9 @@ class GameServerGet(GameServerBase):
         if isinstance(data, dict):
             code = str((data.get('hero') or [''])[0]).split(',')[0].strip()
             data['display_name'] = HeroLabel(code, str(data.get('name') or ''))
+            # And which aspects it plays, read off its cards, so the pickers
+            # can say so without the card database.
+            WithDeckAspects(data)
         compressed_data = Json.DumpGZip(data)
         return web.Response(body=compressed_data, content_type='application/json',
                             headers={'Content-Encoding': 'gzip', **self.HeaderCache})
