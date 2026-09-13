@@ -16,6 +16,9 @@ export class Message {
     private static retryButton: HTMLButtonElement
     private static saveReplayButton: HTMLButtonElement
     private static bgStatsButton: HTMLButtonElement
+    private static nextVillainButton: HTMLButtonElement
+    /** Sent once per game over, however many times the screen is drawn. */
+    private static bgStatsAutoSent = false
     private static replaySavePromise: Promise<string>|null = null
     private static autoSaveAttempted = false
     private static ratingPanel: HTMLElement
@@ -165,14 +168,27 @@ export class Message {
         Message.bgStatsButton.hidden = true;
         Message.bgStatsButton.addEventListener('click', () => void Message.sendToBgStats());
 
+        // Where the next game is set up, which is where a finished one leads.
         const buttonMainMenu = document.createElement('button');
-        buttonMainMenu.innerHTML = '<i class="fa fa-home" aria-hidden="true"></i> Main menu';
+        buttonMainMenu.innerHTML = '<i class="fa fa-th-large" aria-hidden="true"></i> Quick Game';
         buttonMainMenu.classList.add('main-menu');
         buttonMainMenu.addEventListener('click', function() {
-            window.location.assign('/');
+            window.location.assign('/solo.html');
+        });
+
+        // The villain after this one in release order, with the same hero,
+        // deck and difficulty, on a fresh seed. Quick Game does the choosing
+        // from what it remembers; this only asks it to.
+        Message.nextVillainButton = document.createElement('button');
+        Message.nextVillainButton.innerHTML = '<i class="fa fa-forward" aria-hidden="true"></i> Next villain';
+        Message.nextVillainButton.classList.add('next-villain');
+        Message.nextVillainButton.hidden = true;
+        Message.nextVillainButton.addEventListener('click', function() {
+            window.location.assign('/solo.html?next_villain=1');
         });
 
         game_over_buttons.appendChild(Message.retryButton);
+        game_over_buttons.appendChild(Message.nextVillainButton);
         game_over_buttons.appendChild(buttonMainMenu);
         game_over_buttons.appendChild(Message.saveReplayButton);
         game_over_buttons.appendChild(Message.bgStatsButton);
@@ -218,6 +234,7 @@ export class Message {
     static cleanGameOverMessage() {
         Message.game_over_div.classList.remove('active');
         Message.autoSaveAttempted = false
+        Message.bgStatsAutoSent = false
         Message.replaySavePromise = null
         Message.ratings = {hero: null, scenario: null}
         Message.renderRating('hero')
@@ -252,7 +269,13 @@ export class Message {
         Message.bgStatsButton.hidden = Setting.replay_mode
         Message.bgStatsButton.title = 'Send this game to BG Stats'
         Message.resetBgStatsButton()
+        Message.nextVillainButton.hidden = Setting.replay_mode
         Message.autoSaveReplay()
+        // The same handoff the button makes, made for you, once.
+        if( !Setting.replay_mode && !Message.bgStatsAutoSent && UserSettings.getBgStatsAutoSend() ) {
+            Message.bgStatsAutoSent = true
+            void Message.sendToBgStats()
+        }
     }
 
     static showMessage(text: string, original_duration: number|null = 1200) {

@@ -91,7 +91,7 @@ import {
     marvelCdbDeckUrl,
 } from './marvelcdb_deck.js';
 import { withCardImageRevision } from './card_image_url.js';
-import { DeckFilters, buildHeroLabels, createDeckFilters, heroKeyOf } from './deck_filters.js';
+import { DeckFilters, buildHeroLabels, createDeckFilters, decorateWithAspects, heroKeyOf } from './deck_filters.js';
 import { isFavorite, loadFavorites, onFavoritesChanged, toggleFavorite } from './favorites.js';
 import { UserSettings } from './user_settings.js';
 import { beatenClass, beatenLabel } from './beaten.js';
@@ -100,6 +100,8 @@ import { UniversalDeckPicker, createUniversalDeckPicker } from './universal_deck
 import { ScenarioFilters, createScenarioFilters } from './scenario_filters.js';
 
 const scenarioStorageKey = 'marvel_lcg_solo_scenario';
+/** Expert on or off, kept with the rest of the difficulty between visits. */
+const expertStorageKey = 'marvel_lcg_solo_expert';
 const heroStorageKey = 'marvel_lcg_solo_hero';
 /** Player 2's hero in a two-handed game, remembered the way player 1's is. */
 const secondHeroStorageKey = 'marvel_lcg_solo_hero_p2';
@@ -124,6 +126,8 @@ const requestedGame = (() => {
     return {
         hero: query.get('hero') ?? '',
         scenario: query.get('scenario') ?? '',
+        // From the game-over screen: the villain after the one just played.
+        nextVillain: query.has('next_villain'),
     };
 })();
 // Content that is in the game but has not yet been played through: the tile
@@ -521,9 +525,9 @@ function selectScenario(choice: ScenarioChoice): void {
 
     const hasExpertMode = choice.expertId !== null;
     expertMode.disabled = !hasExpertMode;
-    if (!hasExpertMode) {
-        expertMode.checked = false;
-    }
+    // Expert is remembered like the Standard set and Heroic are, so the
+    // next game -- or the next villain -- is played at the same difficulty.
+    expertMode.checked = hasExpertMode && localStorage.getItem(expertStorageKey) === 'true';
     expertModeDescription.textContent = hasExpertMode
         ? 'Villain stages II–III with the Expert encounter set.'
         : 'Expert setup is not available for this scenario.';
@@ -680,6 +684,7 @@ function selectResolvedMarvelCdbDeck(deck: HeroData): string {
         () => selectHero(choice, true),
     );
     button.classList.add('user-deck', 'resolved-marvelcdb-deck');
+    decorateWithAspects(button, choice);
     heroList.prepend(button);
     selectHero(choice, true);
     button.scrollIntoView({block: 'nearest', behavior: 'smooth'});
@@ -1230,6 +1235,36 @@ async function initialize(): Promise<void> {
     }
 
     updatePlayButton();
+    if (requestedGame.nextVillain) {
+        advanceToNextVillain();
+    }
+}
+
+/**
+ * Move on to the villain after the remembered one, and play if nothing is
+ * left to choose.
+ *
+ * Release order is the box order sets_info lists them in, which is what the
+ * tiles are sorted by; the last villain wraps round to the first. The hero,
+ * the deck, the Standard set, Expert and Heroic are all what the page
+ * remembers, and the seed is rolled fresh as it is for every game started
+ * here. A scenario that still wants an underling picked waits for it.
+ */
+function advanceToNextVillain(): void {
+    // Once: a reload of this page should not move on again.
+    window.history.replaceState(null, '', window.location.pathname);
+    const ordered = [...scenarioChoices].sort((left, right) =>
+        left.productOrder - right.productOrder || left.boxIndex - right.boxIndex);
+    if (!ordered.length) {
+        return;
+    }
+    const at = selectedScenario ? ordered.findIndex((choice) => choice.id === selectedScenario!.id) : -1;
+    const next = ordered[(at + 1) % ordered.length];
+    scenarioFilters.filterToBox(next.productLabel);
+    selectScenario(next);
+    if (!playButton.disabled) {
+        void startGame();
+    }
 }
 
 /**
@@ -1497,7 +1532,10 @@ async function startGame(): Promise<void> {
 }
 
 playButton.addEventListener('click', startGame);
-expertMode.addEventListener('change', updateDifficulty);
+expertMode.addEventListener('change', () => {
+    localStorage.setItem(expertStorageKey, String(expertMode.checked));
+    updateDifficulty();
+});
 standardSet.addEventListener('change', () => {
     localStorage.setItem(standardSetStorageKey, standardSet.value);
     updateDifficulty();
