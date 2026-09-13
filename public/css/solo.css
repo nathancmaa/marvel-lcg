@@ -679,6 +679,12 @@ input {
     gap: 0.22rem;
 }
 
+/* Room under a long title: the line sits in the tile's bottom padding, and
+   a title of three or four lines otherwise runs down to touch it. */
+.choice-card:has(.aspect-stripe) {
+    padding-bottom: 1.15rem;
+}
+
 .aspect-segment {
     flex: 1;
     border-radius: 999px;
