@@ -633,6 +633,28 @@ input {
 .beaten-heroic-3 { --beaten-colour: #a32d1d; }
 .beaten-heroic-4 { --beaten-colour: #731a0f; }
 
+/* Two-handed, the stripe is two: player 1's clear on the left, player 2's
+   on the right. A seat that has not beaten the villain keeps a faint
+   segment, so the split reads as a split and not as a shorter stripe. */
+.beaten-split {
+    position: absolute;
+    left: 50%;
+    bottom: 0.42rem;
+    width: 45%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0.22rem;
+}
+
+.beaten-split .beaten-stripe {
+    position: static;
+    flex: 1;
+    width: auto;
+    transform: none;
+}
+
+.beaten-none { --beaten-colour: rgba(225, 238, 248, 0.28); }
+
 .choice-card img {
     width: 100%;
     aspect-ratio: 0.714;

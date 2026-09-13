@@ -101,6 +101,12 @@ import { ScenarioFilters, createScenarioFilters } from './scenario_filters.js';
 
 const scenarioStorageKey = 'marvel_lcg_solo_scenario';
 const heroStorageKey = 'marvel_lcg_solo_hero';
+/** Player 2's hero in a two-handed game, remembered the way player 1's is. */
+const secondHeroStorageKey = 'marvel_lcg_solo_hero_p2';
+
+function heroStorageKeyFor(player: number): string {
+    return player === 1 ? secondHeroStorageKey : heroStorageKey;
+}
 const underlingStorageKey = 'marvel_lcg_solo_underling';
 const standardSetStorageKey = 'marvel_lcg_solo_standard_set';
 const heroicLevelStorageKey = 'marvel_lcg_solo_heroic_level'
@@ -626,7 +632,7 @@ function selectHero(choice: HeroChoice, keepMarvelCdbDeck = false): void {
     }
     selectedHero = choice;
     if (!choice.isResolvedMarvelCdb) {
-        localStorage.setItem(heroStorageKey, choice.id);
+        localStorage.setItem(heroStorageKeyFor(activePlayer), choice.id);
     }
     updateHeroSelection();
     refreshUniversalPanel();
@@ -760,25 +766,56 @@ function heroCodeOf(choice: HeroChoice): string {
     return String(choice.data.hero?.[0] ?? '').split(',')[0].trim().toLowerCase();
 }
 
-function beatenBySelectedHero(scenarioId: string): number {
-    if (!selectedHero) {
-        return 0;
-    }
-    const code = heroCodeOf(selectedHero);
+function beatenBy(hero: HeroChoice | null, scenarioId: string): number {
+    const code = hero ? heroCodeOf(hero) : '';
     return code ? beatenCells.get(`${code}|${scenarioId}`) ?? 0 : 0;
 }
 
+/** The hero in each seat, in seat order: the one on screen, and the other tab's. */
+function seatedHeroes(): Array<HeroChoice | null> {
+    return twoHanded
+        ? playerSlots.map((slot, player) => (player === activePlayer ? selectedHero : slot.hero))
+        : [selectedHero];
+}
+
+/**
+ * Mark a villain tile with how far it has been beaten.
+ *
+ * One hero, one stripe. Two-handed, the stripe splits: player 1's clear on
+ * the left, player 2's on the right, so a villain one of them has beaten
+ * and the other has not reads as exactly that rather than as done. A seat
+ * that has not beaten the villain gets a faint segment, so the split is
+ * visible and the empty half means what it says.
+ */
 function markBeaten(button: HTMLButtonElement, choice: ScenarioChoice): void {
-    const beaten = beatenBySelectedHero(choice.id);
-    const stripeClass = beatenClass(beaten);
-    const who = selectedHero ? selectedHero.data.name : 'this hero';
-    button.title = `${choice.name} — ${who}: ${beatenLabel(beaten)}`;
-    if (!stripeClass) {
+    const seats = seatedHeroes();
+    const clears = seats.map((hero) => beatenBy(hero, choice.id));
+    if (seats.length === 1) {
+        const who = seats[0] ? seats[0].data.name : 'this hero';
+        button.title = `${choice.name} — ${who}: ${beatenLabel(clears[0])}`;
+        const stripeClass = beatenClass(clears[0]);
+        if (!stripeClass) {
+            return;
+        }
+        const stripe = document.createElement('span');
+        stripe.className = `beaten-stripe ${stripeClass}`;
+        button.appendChild(stripe);
         return;
     }
-    const stripe = document.createElement('span');
-    stripe.className = `beaten-stripe ${stripeClass}`;
-    button.appendChild(stripe);
+    button.title = `${choice.name} — ` + seats.map((hero, player) =>
+        `P${player + 1} ${hero ? hero.data.name : 'not chosen'}: ${beatenLabel(clears[player])}`,
+    ).join(' · ');
+    if (clears.every((beaten) => beaten === 0)) {
+        return;
+    }
+    const split = document.createElement('span');
+    split.className = 'beaten-split';
+    clears.forEach((beaten) => {
+        const stripe = document.createElement('span');
+        stripe.className = `beaten-stripe ${beatenClass(beaten) || 'beaten-none'}`;
+        split.appendChild(stripe);
+    });
+    button.appendChild(split);
 }
 
 /**
@@ -1186,6 +1223,7 @@ async function initialize(): Promise<void> {
 
     if (heroResult.status === 'fulfilled') {
         renderHeroes(heroResult.value);
+        restoreSecondHero();
     } else {
         console.error(heroResult.reason);
         heroStatus.textContent = 'Could not load decks.';
@@ -1217,6 +1255,32 @@ function composeHeroDeck(hero: HeroChoice): HeroData {
     return prebuilt
         ? {...hero.data, player_deck: [...prebuilt.player_deck]}
         : hero.data;
+}
+
+/**
+ * Give player 2's tab the hero it had last time, as player 1's tab gets.
+ *
+ * Into the slot rather than onto the screen: the page opens on player 1,
+ * and the slot is what the summary, the Play button and the villain tiles
+ * read for the other seat. The deck is the hero's own; a netdeck or an
+ * aspect deck chosen for player 2 is not kept, the same as for player 1.
+ */
+function restoreSecondHero(): void {
+    const savedId = localStorage.getItem(secondHeroStorageKey);
+    const hero = savedId ? heroChoices.find((choice) => choice.id === savedId) : undefined;
+    if (!hero || activePlayer === 1) {
+        return;
+    }
+    playerSlots[1] = {
+        hero,
+        deck: hero.data,
+        source: 'precon',
+        marvelCdbDeck: null,
+        deckLabel: hero.isUserDeck ? hero.name : `${hero.name} (precon)`,
+    };
+    paintPlayerTabs();
+    updatePlayButton();
+    scenarioFilters.refresh();
 }
 
 /** Put what is on screen into the slot the tabs currently point at. */
@@ -1281,6 +1345,8 @@ function setHandMode(wanted: boolean): void {
     }
     paintPlayerTabs();
     updatePlayButton();
+    // The villain tiles are marked for one hero or for two.
+    scenarioFilters.refresh();
 }
 
 function paintPlayerTabs(): void {
@@ -1307,6 +1373,9 @@ function switchToPlayer(player: number): void {
     restoreSlot(playerSlots[player]);
     paintPlayerTabs();
     updateMatchupSummary();
+    // The tiles' P1 and P2 halves are read off the slots, and a slot with
+    // no hero yet does not go through selectHero to redraw them.
+    scenarioFilters.refresh();
 }
 
 /** Both heroes, in player order, for a two-handed game. */
