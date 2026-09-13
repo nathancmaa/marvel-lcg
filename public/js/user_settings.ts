@@ -7,6 +7,7 @@ const autoSaveReplaysKey = 'marvel_lcg_autosave_replays'
 const skipSingleTargetConfirmKey = 'marvel_lcg_skip_single_target_confirm'
 const bgStatsPlayerKey = 'marvel_lcg_bgstats_player'
 const bgStatsLocationKey = 'marvel_lcg_bgstats_location'
+const bgStatsAutoSendKey = 'marvel_lcg_bgstats_auto_send'
 const twoHandedKey = 'marvel_lcg_two_handed_solo'
 const confirmKeyKey = 'marvel_lcg_confirm_key'
 const denyKeyKey = 'marvel_lcg_deny_key'
@@ -105,6 +106,19 @@ export class UserSettings {
      */
     static getBgStatsLocation(): string {
         return readStorage(bgStatsLocationKey)?.trim() ?? ''
+    }
+
+    /**
+     * Whether a finished game is handed to BG Stats on its own, as the
+     * button on the game-over screen would. Off by default: on a device
+     * without the app, the handoff opens a page explaining how to get it.
+     */
+    static getBgStatsAutoSend(): boolean {
+        return readStorage(bgStatsAutoSendKey) === 'true'
+    }
+
+    static setBgStatsAutoSend(enabled: boolean) {
+        writeStorage(bgStatsAutoSendKey, enabled.toString())
     }
 
     static setBgStatsLocation(location: string) {

@@ -991,19 +991,21 @@ export class Effect {
     }
 
     /**
-     * Whether the Attack or Thwart just chosen with the mouse needs no OK.
+     * Whether the option just chosen with the mouse needs no OK.
      *
-     * Only with the setting on, only for the two basic powers, and only when
-     * there was exactly one legal target and auto-targeting has already taken
-     * it -- the same state the option keys confirm from. Anything still to
-     * choose, a target or a payment, keeps the OK where it is.
+     * Only with the setting on, and only when the option takes a target,
+     * there was exactly one legal one, and auto-targeting has already taken
+     * it -- the same state the option keys confirm from. Attack, Thwart, or
+     * an action that wants a card: the click was the choice. Anything still
+     * to choose, a target or a payment, keeps the OK where it is, and an
+     * option with nothing to target is not this case at all.
      */
     private static confirmsOnTheClick(): boolean {
         if( ButtonSetting.is_replay || !UserSettings.getSkipSingleTargetConfirm() ) {
             return false
         }
         const effect = Effect.select_effect_obj
-        if( !['Attack', 'Thwart'].includes(effect.name_with_space) ) {
+        if( effect.target_num_range[1] < 1 ) {
             return false
         }
         if( effect.all_legal_targets.length !== 1 || Effect.needsTargetChoice() ) {

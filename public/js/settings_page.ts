@@ -50,6 +50,7 @@ function readOptionKeys(): string[] {
 const answerKeyWarning = document.getElementById('answer-key-warning') as HTMLElement
 const bgStatsPlayer = document.getElementById('bgstats-player') as HTMLInputElement
 const bgStatsLocation = document.getElementById('bgstats-location') as HTMLInputElement
+const bgStatsAutoSend = document.getElementById('bgstats-auto-send') as HTMLInputElement
 const marvelCdbDeckIds = document.getElementById('marvelcdb-deck-ids') as HTMLInputElement
 const marvelCdbSync = document.getElementById('marvelcdb-sync') as HTMLButtonElement
 const marvelCdbStatus = document.getElementById('marvelcdb-status') as HTMLElement
@@ -444,6 +445,7 @@ undoKey.value = UserSettings.getUndoKey()
 updateKeyWarning()
 bgStatsPlayer.value = UserSettings.getBgStatsPlayerName()
 bgStatsLocation.value = UserSettings.getBgStatsLocation()
+bgStatsAutoSend.checked = UserSettings.getBgStatsAutoSend()
 // The deck box starts empty and is not remembered. It names decks to add;
 // what is already here is the table, which the server keeps.
 updateMarvelCdbControls()
@@ -593,6 +595,9 @@ bgStatsPlayer.addEventListener('input', () => {
 })
 bgStatsLocation.addEventListener('input', () => {
     UserSettings.setBgStatsLocation(bgStatsLocation.value)
+})
+bgStatsAutoSend.addEventListener('change', () => {
+    UserSettings.setBgStatsAutoSend(bgStatsAutoSend.checked)
 })
 marvelCdbDeckIds.addEventListener('input', () => updateMarvelCdbControls())
 marvelCdbSync.addEventListener('click', async () => {

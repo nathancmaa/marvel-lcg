@@ -450,11 +450,11 @@
         </section>
 
         <section class="setting">
-            <span class="setting-title">Attack and thwart</span>
-            <p class="setting-description">When you choose Attack or Thwart and there is only one thing it could hit, the game picks that target for you and still waits for OK. Turn this on to have the choice count as the confirmation. It never applies when a target or a payment is still yours to pick.</p>
+            <span class="setting-title">One target</span>
+            <p class="setting-description">When you choose an option and there is only one thing it could apply to, the game picks that target for you and still waits for OK. Turn this on to have the choice count as the confirmation, whether it is Attack, Thwart or an action that needs a card. It never applies when a target or a payment is still yours to pick, and a lone option with nothing to target still asks.</p>
             <label class="switch-row" for="skip-single-target-confirm">
                 <input type="checkbox" id="skip-single-target-confirm">
-                <span>Skip OK for a single-target attack or thwart</span>
+                <span>Skip OK when a choice has a single target</span>
             </label>
         </section>
 
@@ -499,6 +499,15 @@
             <div class="setting-control">
                 <input type="text" id="bgstats-location" autocomplete="off" maxlength="80" placeholder="Marvel Champions Digital">
             </div>
+        </section>
+
+        <section class="setting">
+            <span class="setting-title">Send finished games to BG Stats</span>
+            <p class="setting-description">Hand each game to BG Stats the moment it ends, the way the BG Stats button on the game-over screen does, without the press. The button stays for a game that did not get through. On a device without the app the handoff opens a page about getting it, so leave this off there.</p>
+            <label class="switch-row" for="bgstats-auto-send">
+                <input type="checkbox" id="bgstats-auto-send">
+                <span>Send each finished game to BG Stats automatically</span>
+            </label>
         </section>
 
         <section class="setting">
