@@ -142,6 +142,13 @@ export class BtnOk
         }
         else
         if( UI.event_name == 'WhenUnitBeingAttack' ) {
+            // A forced defence -- something at the table must answer the
+            // attack -- has no "no defender" to offer, and sending one was
+            // an error from the engine. The other kinds of ask already hide
+            // the button for a forced one; this one did not.
+            if( !Effect.show_cancel ){
+                BtnOk.btn_end_div.classList.add("forced_action")
+            }
             text = 'End<br/>Defense'
             BtnOk.btn_end_div.classList.add("defense")
         }
