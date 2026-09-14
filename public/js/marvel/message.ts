@@ -19,6 +19,8 @@ export class Message {
     private static nextVillainButton: HTMLButtonElement
     /** Sent once per game over, however many times the screen is drawn. */
     private static bgStatsAutoSent = false
+    private static bgStatsHint: HTMLElement
+    private static bgStatsTapHandler: ((event: Event) => void)|null = null
     private static replaySavePromise: Promise<string>|null = null
     private static autoSaveAttempted = false
     private static ratingPanel: HTMLElement
@@ -126,6 +128,11 @@ export class Message {
         // Message.end_overlay = document.getElementById('message-overlay')!;
         Message.end_messageElement = document.getElementById('game-over-text')!;
         Message.end_messageElementText = document.getElementById('game-over-text-2')!;
+        Message.bgStatsHint = document.createElement('p');
+        Message.bgStatsHint.className = 'bg-stats-hint';
+        Message.bgStatsHint.textContent = 'Tap anywhere to send this game to BG Stats';
+        Message.bgStatsHint.hidden = true;
+        Message.end_messageElementText.after(Message.bgStatsHint);
         const game_over_buttons = document.getElementById('game-over-buttons')!;
         Message.initRatings()
 
@@ -231,8 +238,42 @@ export class Message {
         }
     }
 
+    /**
+     * Hand the game to BG Stats without the button being pressed.
+     *
+     * A touch browser opens another app only on a tap: sent on its own the
+     * moment the game ended, the handoff went nowhere on the iPad, while the
+     * button, which is a tap, worked. So on a touch screen the tap is
+     * borrowed -- the first one anywhere on the game-over screen sends,
+     * whatever else it does -- and the screen says so. A play sent twice is
+     * one play to BG Stats, which keys them by id, so a tap on the BG Stats
+     * button itself costs nothing. A mouse needs no gesture; it sends now.
+     */
+    private static autoSendToBgStats() {
+        Message.disarmBgStatsTap()
+        if( !window.matchMedia('(pointer: coarse)').matches ) {
+            void Message.sendToBgStats()
+            return
+        }
+        Message.bgStatsHint.hidden = false
+        Message.bgStatsTapHandler = () => {
+            Message.disarmBgStatsTap()
+            void Message.sendToBgStats()
+        }
+        document.addEventListener('pointerup', Message.bgStatsTapHandler, {capture: true})
+    }
+
+    private static disarmBgStatsTap() {
+        if( Message.bgStatsTapHandler ) {
+            document.removeEventListener('pointerup', Message.bgStatsTapHandler, {capture: true})
+            Message.bgStatsTapHandler = null
+        }
+        Message.bgStatsHint.hidden = true
+    }
+
     static cleanGameOverMessage() {
         Message.game_over_div.classList.remove('active');
+        Message.disarmBgStatsTap()
         Message.autoSaveAttempted = false
         Message.bgStatsAutoSent = false
         Message.replaySavePromise = null
@@ -274,7 +315,7 @@ export class Message {
         // The same handoff the button makes, made for you, once.
         if( !Setting.replay_mode && !Message.bgStatsAutoSent && UserSettings.getBgStatsAutoSend() ) {
             Message.bgStatsAutoSent = true
-            void Message.sendToBgStats()
+            Message.autoSendToBgStats()
         }
     }
 

@@ -88,6 +88,14 @@
     font-style: italic;
 }
 
+/* Under the result, while the first tap is what sends the game on. */
+.bg-stats-hint {
+    margin: 0.5rem 0 0;
+    color: #c9b8ff;
+    font-size: 1rem;
+    font-style: italic;
+}
+
 #game-over-ratings {
     width: min(32rem, calc(100vw - 12rem));
     margin-top: 0.8rem;
