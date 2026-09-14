@@ -447,6 +447,11 @@ class AbilityFactoryScheme:
         def check_by_character(effect: 'Effect', message: 'Message.WhenSchemeWouldRemoveThreat') -> bool:
             if by_character == None:
                 return True
+            # The restriction names characters: "characters other than Cable
+            # cannot remove threat". A support or an event removing threat --
+            # E.V.A. -- is not a character, and is not what it stops.
+            if message.by_face not in Worlds.GetOnFieldCharacters(effect):
+                return False
             return by_character.Check(message.by_face)
 
         def check_while_who_is_in_play(effect: 'Effect', message: 'Message.WhenSchemeWouldRemoveThreat') -> bool:
