@@ -21,16 +21,20 @@ def GetAbilities() -> Sequence['Ability']:
 
 
     return [
+        # Two actions on one card come up as "Action" and "Action 1" unless
+        # they are named; these say what each does.
         AbilityFactory.WhenInYourPlayTurn(
             AbilityType.Action,
             beat_cop
         ).SetCostFunc(CostFunc.Exhaust("This"))
-        .SetTarget(Scheme2),
+        .SetTarget(Scheme2)
+        .SetName("Move 1 threat here"),
         AbilityFactory.WhenInYourPlayTurn(
             AbilityType.Action,
             beat_cop_deal
         ).SetCostFunc(CostFunc.Exhaust("This"))
         .SetCostFunc(CostFunc.Discard("This"))
-        .SetTarget(Minion),
+        .SetTarget(Minion)
+        .SetName("Discard: damage a minion"),
     ]
 
