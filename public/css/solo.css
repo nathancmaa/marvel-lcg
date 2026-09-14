@@ -160,6 +160,16 @@ input {
    settings page: it changes what this screen asks you for, so it belongs on
    this screen. Built like the P1/P2 tabs below it so the two read as the same
    kind of control -- this one says how many, those say which. */
+/* The rule that catches people out two-handed, said where the switch is. */
+.mode-note {
+    max-width: 22rem;
+    margin: 0.4rem 0 0;
+    color: #9fb3c2;
+    font-size: 0.78rem;
+    line-height: 1.35;
+    text-align: right;
+}
+
 .mode-switch {
     display: inline-flex;
     padding: 0.15rem;

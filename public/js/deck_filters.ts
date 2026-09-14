@@ -40,6 +40,7 @@ type ControlState = {
     groupByHero: boolean;
     groupByAspect: boolean;
     onlyFavorites: boolean;
+    onlyPlayed: boolean;
 };
 
 // The default, kept as it was so Quick Game remembers what it always has.
@@ -78,6 +79,7 @@ const DEFAULT_STATE: ControlState = {
     groupByHero: false,
     groupByAspect: false,
     onlyFavorites: false,
+    onlyPlayed: false,
 };
 
 function readState(storageKey: string): ControlState {
@@ -98,6 +100,7 @@ function readState(storageKey: string): ControlState {
             // One grouping at a time; the hero one wins a stored clash.
             groupByAspect: parsed.groupByAspect === true && parsed.groupByHero !== true,
             onlyFavorites: parsed.onlyFavorites === true,
+            onlyPlayed: parsed.onlyPlayed === true,
         };
     } catch {
         // A private window, cleared storage, or a hand-edited value should
@@ -342,6 +345,14 @@ export type DeckFiltersOptions<T extends DeckFilterChoice> = {
     onRendered?: () => void;
     /** Where this bar remembers itself. Defaults to the Quick Game picker's. */
     storageKey?: string;
+    /**
+     * Whether a deck's hero has been played, for a "Played only" toggle.
+     *
+     * Given by the page, which is what knows the history; a picker without
+     * it shows no such toggle. Read at each redraw, so it may answer from
+     * data that arrives after the bar is built.
+     */
+    isPlayed?: (choice: T) => boolean;
 };
 
 export type DeckFilters<T extends DeckFilterChoice> = {
@@ -392,7 +403,7 @@ export type DeckFilters<T extends DeckFilterChoice> = {
 export function createDeckFilters<T extends DeckFilterChoice>(
     options: DeckFiltersOptions<T>,
 ): DeckFilters<T> {
-    const {listHost, createButton, onRendered} = options;
+    const {listHost, createButton, onRendered, isPlayed} = options;
     const storageKey = options.storageKey ?? STORAGE_KEY;
     const state = readState(storageKey);
 
@@ -434,12 +445,17 @@ export function createDeckFilters<T extends DeckFilterChoice>(
     const aspectGroupToggle = createToggle('Group by aspect', state.groupByAspect);
     const preconToggle = createToggle('Hide precons', state.hidePrecons);
     const favoriteToggle = createToggle('Favorites only', state.onlyFavorites);
+    const playedToggle = isPlayed ? createToggle('Played only', state.onlyPlayed) : null;
 
     const count = document.createElement('span');
     count.className = 'deck-filter-count';
     count.setAttribute('aria-live', 'polite');
 
-    bar.append(heroLabel, sortLabel, groupToggle, aspectGroupToggle, preconToggle, favoriteToggle, count);
+    bar.append(heroLabel, sortLabel, groupToggle, aspectGroupToggle, preconToggle, favoriteToggle);
+    if (playedToggle) {
+        bar.append(playedToggle);
+    }
+    bar.append(count);
     listHost.parentElement?.insertBefore(bar, listHost);
 
     function labelText(text: string): HTMLSpanElement {
@@ -514,6 +530,9 @@ export function createDeckFilters<T extends DeckFilterChoice>(
                 return false;
             }
             if (state.onlyFavorites && !isFavorite(choice.id)) {
+                return false;
+            }
+            if (state.onlyPlayed && isPlayed && !isPlayed(choice)) {
                 return false;
             }
             if (state.heroId && heroKeyOf(choice) !== state.heroId) {
@@ -701,6 +720,13 @@ export function createDeckFilters<T extends DeckFilterChoice>(
     favoriteToggle.addEventListener('click', () => {
         state.onlyFavorites = !state.onlyFavorites;
         setPressed(favoriteToggle, state.onlyFavorites);
+        persist();
+        draw();
+    });
+
+    playedToggle?.addEventListener('click', () => {
+        state.onlyPlayed = !state.onlyPlayed;
+        setPressed(playedToggle, state.onlyPlayed);
         persist();
         draw();
     });

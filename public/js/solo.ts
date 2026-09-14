@@ -19,7 +19,7 @@ type ScenarioData = {
 /** Only the part of /get_matchup_matrix a villain tile needs. */
 type MatchupMatrix = {
     available: boolean;
-    cells?: Record<string, {best_beaten?: number}>;
+    cells?: Record<string, {best_beaten?: number; games?: number}>;
 };
 
 type UnderlingData = {
@@ -187,6 +187,9 @@ const deckFilters: DeckFilters<HeroChoice> = createDeckFilters<HeroChoice>({
     },
     // Re-drawing the list discards the selected styling, so put it back.
     onRendered: () => markSelected(heroList, selectedHero?.id ?? ''),
+    // "Played only": the hero has at least one game in the history, with
+    // any deck -- the history keeps heroes by identity card, not by deck.
+    isPlayed: (choice) => playedHeroCodes.has(heroCodeOf(choice)),
 });
 
 const scenarioFilters: ScenarioFilters<ScenarioChoice> =
@@ -242,6 +245,7 @@ type PlayerSlot = {
     deckLabel: string;
 };
 
+const handModeNote = document.querySelector<HTMLElement>('#hand-mode-note')!;
 const handModeButtons = [
     document.querySelector<HTMLButtonElement>('#hand-mode-1')!,
     document.querySelector<HTMLButtonElement>('#hand-mode-2')!,
@@ -753,22 +757,28 @@ function createChoiceButton(
  * mark is for.
  */
 let beatenCells = new Map<string, number>();
+/** Heroes with a game in the history, by identity card, for "Played only". */
+let playedHeroCodes = new Set<string>();
 
-async function loadBeatenScenarios(): Promise<Map<string, number>> {
+async function loadBeatenScenarios(): Promise<{cells: Map<string, number>; played: Set<string>}> {
     const cells = new Map<string, number>();
+    const played = new Set<string>();
     try {
         const matrix = await fetchJson<MatchupMatrix>('/get_matchup_matrix?');
         if (!matrix.available || !matrix.cells) {
-            return cells;
+            return {cells, played};
         }
         for (const [key, cell] of Object.entries(matrix.cells)) {
             cells.set(key, cell.best_beaten ?? 0);
+            if ((cell.games ?? 0) > 0) {
+                played.add(key.split('|')[0]);
+            }
         }
     } catch (error) {
         // History is optional, and a picker that cannot reach it still picks.
         console.warn('Could not load which villains have been beaten', error);
     }
-    return cells;
+    return {cells, played};
 }
 
 /** The identity card the game history keys a hero on, e.g. `40001a`. */
@@ -1221,7 +1231,8 @@ async function initialize(): Promise<void> {
     // Before the tiles are built, so each one is drawn with its stripe rather
     // than gaining one a moment later.
     if (beatenResult.status === 'fulfilled') {
-        beatenCells = beatenResult.value;
+        beatenCells = beatenResult.value.cells;
+        playedHeroCodes = beatenResult.value.played;
     }
 
     if (scenarioResult.status === 'fulfilled') {
@@ -1391,6 +1402,7 @@ function setHandMode(wanted: boolean): void {
 
 function paintPlayerTabs(): void {
     playerTabs.hidden = !twoHanded;
+    handModeNote.hidden = !twoHanded;
     playerTabButtons.forEach((button, player) => {
         const slot = playerSlots[player];
         const isActive = player === activePlayer;
