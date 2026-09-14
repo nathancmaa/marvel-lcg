@@ -183,6 +183,13 @@ class Cheat:
             return do_comment(game.scene.campaign.encounter_sets[index])
 
         def do_undo(args: str|Literal["auto"]="1"):
+            # An undo replays the game up to its target; a second press that
+            # lands while that is still running reads the checkpoints of the
+            # replay in progress and jumps somewhere else entirely. It waits.
+            skip = game.controller_manager.skip
+            replay = game.controller_manager.replay
+            if skip.is_skipping or skip.skip_to > replay.current_step_id:
+                return "Undo is still catching up"
             if args:
                 current_step_id = game.controller_manager.replay.current_step_id
                 undo_count = game.scene.step + [f"{current_step_id}_{args}"]
@@ -224,6 +231,13 @@ class Cheat:
             game.session.StepTo(step)
 
         def do_skip(args: str):
+            if args == "0":
+                # Redo replays the next recorded input. With none recorded
+                # past this point, the skip fed the ask an empty answer,
+                # which on your own turn is End Turn.
+                replay = game.controller_manager.replay
+                if replay.replay_step_id >= replay.GetReplayOperationLen():
+                    return "Nothing to redo"
             if args == "round":
                 game.session.SkipTo("Round")
             elif args == "turn":

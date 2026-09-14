@@ -58,6 +58,13 @@ class InputModule:
     ################################################################################
     #
     def Push(self, operation: 'OperationDescriptor'):
+        # A choice the player makes after an undo puts the game on a new
+        # path. What was recorded beyond this point belongs to the old one,
+        # and a redo would replay it onto a table it no longer describes.
+        if not self.manager.skip.is_skipping and \
+                self.manager.skip.skip_to <= self.current_step_id and \
+                self.replay_step_id < len(self.replay_inputs):
+            del self.replay_inputs[self.replay_step_id:]
         self.history_inputs.append(operation)
         self.current_step_id += 1
         self.replay_step_id += 1

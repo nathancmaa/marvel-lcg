@@ -133,8 +133,9 @@ export class WindowLoad {
         else
         if( WindowLoad.denyWouldEndTheTurn() ) {
             // The only negative on offer is End Turn, and a key meant as
-            // "no" must never be that. Left as it always was.
-            Button.doRedo()
+            // "no" must never be that. Nothing to say no to: nothing happens.
+            // (It used to redo, which with nothing recorded ahead was an
+            // empty answer to the ask -- End Turn by another route.)
         }
         else {
             // Otherwise the key is the button on the far left, whatever it is
