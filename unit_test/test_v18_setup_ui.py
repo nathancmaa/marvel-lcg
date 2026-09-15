@@ -173,7 +173,10 @@ class V18SetupUiTests(unittest.TestCase):
         self.assertIn('id="continue-game"', source)
         self.assertIn("fetch('/active_session')", source)
         self.assertIn("fetch('/continue_game', {method: 'POST'})", source)
-        self.assertIn("window.location.assign('/table?p=0')", source)
+        # One seat for a solo game; a two-handed game is a hot seat, as Quick
+        # Game opens it, or its set-up waits for a second player who never comes.
+        self.assertIn("window.location.assign(Number(result.seats) > 1 ? '/table?hot_seat=1' : '/table?p=0')", source)
+        self.assertIn("'seats': self.game.ActiveSessionSeats()", server)
         self.assertIn("self.AddAwaitGetSecurity('/active_session'", server)
         self.assertIn("self.AddPostSecurity('/continue_game'", server)
         self.assertIn('self.controller_manager.game.SaveActiveSession()', world)

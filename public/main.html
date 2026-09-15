@@ -224,7 +224,10 @@
                 if (!response.ok) {
                     throw new Error(result.error ?? `Continue failed: ${response.status}`);
                 }
-                window.location.assign('/table?p=0');
+                // A two-handed game is a hot seat, as Quick Game opens it.
+                // Opened for one seat, it waits for the other player to
+                // connect before set-up can run, and the table stays blank.
+                window.location.assign(Number(result.seats) > 1 ? '/table?hot_seat=1' : '/table?p=0');
             } catch (error) {
                 console.error(error);
                 alert(error instanceof Error ? error.message : 'Could not continue the game.');

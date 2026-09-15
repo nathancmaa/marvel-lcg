@@ -181,6 +181,30 @@ class Game:
     def HasActiveSession(self) -> bool:
         return self.HasLiveActiveSession() or FileManager.IsFile(self.active_session_file)
 
+    @staticmethod
+    def SeatsInSavedGame(file_path: str) -> int:
+        """How many players a saved game seats; 1 when the file cannot say."""
+        import json
+        try:
+            with open(file_path, encoding='utf-8') as handle:
+                players = json.load(handle).get('players') or []
+            return max(1, len(players))
+        except Exception:
+            return 1
+
+    def ActiveSessionSeats(self) -> int:
+        """How many players the game Continue would open seats.
+
+        The table page is opened for one seat or as a hot seat for two, and
+        a two-handed game opened for one seat waits for the other player to
+        connect before its set-up can run: a blank table, forever.
+        """
+        if self.HasLiveActiveSession() and self.world:
+            return max(1, len(self.world.const_players))
+        if FileManager.IsFile(self.active_session_file):
+            return self.SeatsInSavedGame(self.active_session_file)
+        return 0
+
     def SaveActiveSession(self) -> bool:
         from game.test import Test
 

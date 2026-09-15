@@ -31,6 +31,7 @@ class GameServerNewGame(GameServerBase):
         return web.json_response({
             'available': self.game.HasActiveSession(),
             'live': self.game.HasLiveActiveSession(),
+            'seats': self.game.ActiveSessionSeats(),
         })
 
     async def continue_game(self, request: web.Request) -> web.Response:
@@ -46,7 +47,7 @@ class GameServerNewGame(GameServerBase):
 
         if result is None:
             return web.json_response({'error': "There is no active game to continue"}, status=404)
-        return web.json_response({'result': result})
+        return web.json_response({'result': result, 'seats': self.game.ActiveSessionSeats()})
 
     async def retry_game(self, request: web.Request) -> web.Response:
         world = self.game.world
