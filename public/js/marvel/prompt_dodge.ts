@@ -87,11 +87,23 @@ export function keepOptionsClearOfPrompt(box: HTMLElement): void {
     if (prompt.height === 0 || options.height === 0) {
         return;
     }
-    const overlap = prompt.bottom + GAP - options.top;
-    if (overlap <= 0 || prompt.right <= options.left || prompt.left >= options.right) {
+    // Only a prompt that actually lies across the options moves them. One
+    // that has stepped below them -- dodging a target card, or dragged
+    // there -- is clear of them already, and measuring it as an overlap
+    // pushed the options off the bottom of the screen with nothing to press.
+    const crosses = prompt.left < options.right && prompt.right > options.left
+        && prompt.top < options.bottom + GAP && prompt.bottom + GAP > options.top;
+    if (!crosses) {
         return;
     }
-    area.style.setProperty('--dodge', `${Math.ceil(overlap)}px`);
+    const overlap = prompt.bottom + GAP - options.top;
+    // And never past the bottom edge: below the screen is worse than under
+    // the prompt.
+    const room = window.innerHeight - MARGIN - options.bottom;
+    if (overlap <= 0 || room <= 0) {
+        return;
+    }
+    area.style.setProperty('--dodge', `${Math.ceil(Math.min(overlap, room))}px`);
 }
 
 /**
