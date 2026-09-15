@@ -53,6 +53,15 @@ class Select:
             if isinstance(effect.initiator, Player):
                 return effect.GetInitiator()
             else:
+                # A card attached to a hero -- Seduced, "attach to your
+                # identity" -- means the hero's player by "you". Its own rule
+                # effects have no initiator and no player on the message they
+                # are checked against, and read as nobody's.
+                attached_to = getattr(effect.this, 'bind_face', None)
+                if attached_to is not None:
+                    controller = attached_to.GetControlBy()
+                    if isinstance(controller, Player):
+                        return controller
                 message = effect.bind_message
                 
                 if isinstance(message, TriggerNonePlayerMessage) and message.to_player:

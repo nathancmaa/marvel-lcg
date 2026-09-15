@@ -57,7 +57,9 @@ class _ReplayAnalysisDeviceManager(DeviceManager):
         # isolated analysis game cleanly and raise from Analyze() afterwards.
         from engine import Engine
         game = Engine.game
-        if data.replay_input:
+        # An empty recorded input, "{}", is what the ask carries once the
+        # recording has run out; only a real one means a divergence.
+        if data.replay_input and data.replay_input != '{}':
             step = game.controller_manager.replay.current_step_id
             self.failure_reason = (
                 f'Replay diverged at recorded input {step}; the saved choice '
