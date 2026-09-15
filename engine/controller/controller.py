@@ -317,14 +317,14 @@ class Controller:
                     # longer describes -- a choice made on one branch of the
                     # game, replayed after an undo onto another. Not a reason
                     # to stop the game with an error and a suggestion to
-                    # undo: the recording, if that is what answered, ends
-                    # here, and the ask is put to the player again.
+                    # undo: the ask is put to the player again, whose answer
+                    # takes the recorded one's place, and what was recorded
+                    # after it waits for Redo.
                     if Test.IsInTesting():
                         assert False, f"{why}: {select_effect=} {user_input=}"
                     Log.Warn(CATEGORY_NAME, f"{why}; asking again: {user_input}")
-                    replay = controller_manager.replay
-                    if replay.replay_step_id < len(replay.replay_inputs):
-                        del replay.replay_inputs[replay.replay_step_id:]
+                    if controller_manager.skip.is_skipping or controller_manager.skip.skip_to > 0:
+                        Notify.Command("The recorded choice no longer fits here. Choose again; Redo continues the recording.")
                     if controller_manager.skip.SetIsSkipping(False):
                         if self.world:
                             self.world.render.PresentForceNoWait()

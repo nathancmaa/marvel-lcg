@@ -1,5 +1,5 @@
 """Undo waits for the last undo to land, redo needs something recorded ahead,
-and a fresh choice after an undo drops the recording it departs from."""
+and a fresh choice after an undo takes its recording's place and keeps the rest."""
 import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
@@ -67,7 +67,7 @@ class UndoRedoGuardTests(unittest.TestCase):
         game.session.Load.assert_called_once()
         self.assertTrue(game.active_session_enabled)
 
-    def test_a_new_choice_after_an_undo_drops_the_old_recording(self):
+    def test_a_new_choice_after_an_undo_replaces_its_recording_and_keeps_the_rest(self):
         manager = SimpleNamespace(skip=SimpleNamespace(is_skipping=False, skip_to=0))
         replay = InputModule(manager)
         old = [SimpleNamespace(id=f'old{i}') for i in range(5)]
@@ -79,9 +79,12 @@ class UndoRedoGuardTests(unittest.TestCase):
 
         replay.Push(fresh)
 
-        self.assertEqual([op.id for op in replay.replay_inputs], ['old0', 'old1'])
+        # The recorded choice at this step is replaced; what follows is kept
+        # for Redo, each taken if the table can still take it.
+        self.assertEqual([op.id for op in replay.replay_inputs], ['old0', 'old1', 'fresh', 'old3', 'old4'])
         self.assertEqual(replay.history_inputs, [fresh])
         self.assertEqual(replay.current_step_id, 3)
+        self.assertEqual(replay.replay_step_id, 3)
 
     def test_a_replayed_input_keeps_the_recording(self):
         manager = SimpleNamespace(skip=SimpleNamespace(is_skipping=True, skip_to=4))
