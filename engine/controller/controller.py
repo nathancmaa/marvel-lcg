@@ -265,8 +265,13 @@ class Controller:
                 if not self.game.state.is_running:
                     return None, False
 
-                # When click auto
-                if controller_manager.skip.is_skipping or controller_manager.skip.skip_to > 0:
+                # When click auto. Only with a recorded input to give: with
+                # the recording run out, the fallthrough is "{}", an empty
+                # answer, which on your own turn is End Turn -- a skip target
+                # left standing by a step or a redo used to end the turn
+                # this way. A skip to the next round or turn answers empty
+                # on purpose and keeps doing so.
+                if (controller_manager.skip.is_skipping or controller_manager.skip.skip_to > 0) and                         (replay_input or controller_manager.skip.skip_to_next):
                     user_input = convert_fallthrough_input
                     controller_manager.console.SetCommand(replay_debug_cmd, message.world)
                     if controller_manager.console.Execute(message.GetReplayText(), message.world, effect_list):
