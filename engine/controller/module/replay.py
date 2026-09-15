@@ -78,22 +78,46 @@ class InputModule:
     ################################################################################
     #
     @staticmethod
-    def SameChoice(a: 'OperationDescriptor', b: 'OperationDescriptor') -> bool:
+    def _choice_text(text: str) -> str:
+        """A recorded id without its effect number.
+
+        "e9 Change_Form c1 43001b" and "e10 Change_Form c1 43001b" are the
+        same choice: the number is the effect object's, handed out afresh
+        each run, and a replay maps it by the rest of the text. Comparing
+        the number cut a recording off at the first step it differed.
+        """
+        parts = str(text).split(' ', 1)
+        if len(parts) == 2 and parts[0][:1] == 'e' and parts[0][1:].isdigit():
+            return parts[1]
+        return str(text)
+
+    @classmethod
+    def SameChoice(cls, a: 'OperationDescriptor', b: 'OperationDescriptor') -> bool:
         """The same option, targets and payment: a choice made over again."""
-        return a.effect.id == b.effect.id and \
+        return cls._choice_text(a.effect.id) == cls._choice_text(b.effect.id) and \
             list(a.effect.targets) == list(b.effect.targets) and \
-            list(a.effect.resources) == list(b.effect.resources)
+            [cls._choice_text(x) for x in a.effect.resources] == [cls._choice_text(x) for x in b.effect.resources]
+
+    def IsReplaying(self) -> bool:
+        """Whether the next input comes from the recording, not the player."""
+        skip = self.manager.skip
+        return bool(skip.is_skipping) or self.replay_step_id < skip.skip_to
 
     def Push(self, operation: 'OperationDescriptor'):
-        # A choice made where the recording already has one -- after an
-        # undo. Made over again, the same as recorded, it leaves the rest of
-        # the recording for Redo to carry on with. Made differently, the
-        # game is on a new path, and what was recorded beyond this point
-        # belongs to the old one: replayed, it stopped the next undo short
-        # and fed Redo choices for a table that no longer existed. It goes.
-        # A choice made in place of a recorded one that was dropped as a
-        # misfit is slotted in, so the recording after it is kept.
-        if self.insert_on_next_push:
+        # While the recording itself is being replayed, it is not edited:
+        # the choice pushed is the recorded one, regenerated. Only a choice
+        # the player makes touches it. Made where the recording already
+        # has one -- after an undo -- and the same as recorded, it leaves
+        # the rest of the recording for Redo to carry on with. Made
+        # differently, the game is on a new path, and what was recorded
+        # beyond this point belongs to the old one: replayed, it stopped
+        # the next undo short and fed Redo choices for a table that no
+        # longer existed. It goes. A choice made in place of a recorded one
+        # that was dropped as a misfit is slotted in, so the recording
+        # after it is kept.
+        if self.IsReplaying():
+            pass
+        elif self.insert_on_next_push:
             self.insert_on_next_push = False
             self.replay_inputs.insert(self.replay_step_id, operation)
         elif self.replay_step_id < len(self.replay_inputs):

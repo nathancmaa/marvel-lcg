@@ -135,17 +135,31 @@ class UndoRedoGuardTests(unittest.TestCase):
         replay.replay_step_id = 9
         self.assertFalse(replay.DropMisfit())
 
-    def test_a_replayed_input_keeps_the_recording(self):
-        manager = SimpleNamespace(skip=SimpleNamespace(is_skipping=True, skip_to=4))
-        replay = InputModule(manager)
-        old = [recorded(f'old{i}') for i in range(5)]
-        replay.SetReplayInputs(old)
-        replay.current_step_id = 2
-        replay.replay_step_id = 2
+    def test_a_replayed_input_never_edits_the_recording(self):
+        # The replayed choice is the recorded one regenerated, and its
+        # effect number can differ from run to run. Cutting the recording on
+        # that difference ended every load and undo at the first such step.
+        for manager in (
+            SimpleNamespace(skip=SimpleNamespace(is_skipping=True, skip_to=4)),
+            SimpleNamespace(skip=SimpleNamespace(is_skipping=False, skip_to=4)),
+        ):
+            replay = InputModule(manager)
+            old = [recorded(f'e{i} Play c{i}') for i in range(5)]
+            replay.SetReplayInputs(old)
+            replay.current_step_id = 2
+            replay.replay_step_id = 2
 
-        replay.Push(old[2])
+            replay.Push(recorded('e99 Play c2'))
 
-        self.assertEqual(len(replay.replay_inputs), 5)
+            self.assertEqual([op.id for op in replay.replay_inputs], [f'e{i} Play c{i}' for i in range(5)])
+            self.assertEqual(replay.replay_step_id, 3)
+
+    def test_the_same_choice_is_known_whatever_its_effect_number(self):
+        a = recorded('e9 Change_Form c1 43001b', resources=['e20 Discard c26 01090'])
+        b = recorded('e10 Change_Form c1 43001b', resources=['e21 Discard c26 01090'])
+        self.assertTrue(InputModule.SameChoice(a, b))
+        self.assertFalse(InputModule.SameChoice(a, recorded('e9 Thwart c1 43001a')))
+        self.assertFalse(InputModule.SameChoice(a, recorded('e9 Change_Form c1 43001b', targets=['c5'])))
 
 
 if __name__ == '__main__':

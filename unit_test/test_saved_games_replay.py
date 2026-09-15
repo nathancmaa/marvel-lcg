@@ -51,6 +51,13 @@ class SavedGameReplayTests(unittest.TestCase):
     def test_the_two_handed_loki_opening_replays_whole(self):
         self.replay_whole('loki_x23_cable_opening.json')
 
+    def test_build_support_chosen_by_both_players_replays_whole(self):
+        # A fresh game, one undo in: Cable defeats Build Support and both
+        # players pick a support. The live load of this save once stopped at
+        # input 6 because the replay's regenerated effect numbers differed
+        # from the recording's.
+        self.replay_whole('loki_x23_cable_build_support.json')
+
     def test_the_same_game_at_round_eight_replays_whole(self):
         # Eight rounds and thirty-one undos of X-23 and Cable against Loki:
         # the recording a replay of a late undo has to get through.
