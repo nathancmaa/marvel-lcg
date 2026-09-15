@@ -51,6 +51,11 @@ class SavedGameReplayTests(unittest.TestCase):
     def test_the_two_handed_loki_opening_replays_whole(self):
         self.replay_whole('loki_x23_cable_opening.json')
 
+    def test_the_same_game_at_round_eight_replays_whole(self):
+        # Eight rounds and thirty-one undos of X-23 and Cable against Loki:
+        # the recording a replay of a late undo has to get through.
+        self.replay_whole('loki_x23_cable_round_eight.json')
+
 
 if __name__ == '__main__':
     unittest.main()

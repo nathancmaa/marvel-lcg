@@ -309,20 +309,29 @@ class Controller:
                 if select_effect == None and len(effect_descriptors) == 1 and input_effect.resources == []:
                     select_effect = effect_list[0]
 
-                if select_effect == None:
-                    # An input naming an option this ask does not have: a
-                    # page still showing the ask from before an undo landed,
-                    # or a recording replayed onto a table it no longer
-                    # describes. Not a reason to stop the game with an error
-                    # and a suggestion to undo: the ask is put again, and a
-                    # recording that answered stops here.
+                def ask_again(why: str) -> None:
+                    # An input this ask cannot take: an option it does not
+                    # have, or a target that is not legal for it. It comes
+                    # from a page still showing the ask from before an undo
+                    # landed, or from a recording replayed onto a table it no
+                    # longer describes -- a choice made on one branch of the
+                    # game, replayed after an undo onto another. Not a reason
+                    # to stop the game with an error and a suggestion to
+                    # undo: the recording, if that is what answered, ends
+                    # here, and the ask is put to the player again.
                     if Test.IsInTesting():
-                        assert False, f"{select_effect=} {user_input=}"
-                    Log.Warn(CATEGORY_NAME, f"Input named no option of this ask; asking again: {user_input}")
+                        assert False, f"{why}: {select_effect=} {user_input=}"
+                    Log.Warn(CATEGORY_NAME, f"{why}; asking again: {user_input}")
+                    replay = controller_manager.replay
+                    if replay.replay_step_id < len(replay.replay_inputs):
+                        del replay.replay_inputs[replay.replay_step_id:]
                     if controller_manager.skip.SetIsSkipping(False):
                         if self.world:
                             self.world.render.PresentForceNoWait()
                     controller_manager.skip.skip_to = 0
+
+                if select_effect == None:
+                    ask_again("Input named no option of this ask")
                     continue
 
                 select_effect.targets.clear()
@@ -333,15 +342,20 @@ class Controller:
                             select_effect.context.targets_internal.append(target)
                             found = True
                             break
-                    # TODO, update to warning
-                    assert found, f"{select_effect=}"
+                    if not found:
+                        break
+                if input_effect.targets and not found:
+                    ask_again("Input named a target the option cannot take")
+                    continue
                 if select_effect.targets == [] and select_effect.context.target_range[0] > 0:
-                    assert False, f"{select_effect=} {select_effect.targets=} {select_effect.context.target_range=}"
+                    ask_again("Input named no target for an option that needs one")
+                    continue
 
                 if len(select_effect.targets) < select_effect.context.target_range[0] and \
                     select_effect.ability.selectors[0] and \
                     not select_effect.ability.selectors[0].selector_range.select_rule.startswith('VillainAnd'):
-                    assert False, f"{select_effect=} {select_effect.targets=} {select_effect.context.target_range=}"
+                    ask_again("Input named too few targets for the option")
+                    continue
 
                 select_effect.context.paid_this_res_effects.clear()
                 for resources in input_effect.resources:
