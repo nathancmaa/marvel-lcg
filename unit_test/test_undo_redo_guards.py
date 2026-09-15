@@ -86,6 +86,32 @@ class UndoRedoGuardTests(unittest.TestCase):
         self.assertEqual(replay.current_step_id, 3)
         self.assertEqual(replay.replay_step_id, 3)
 
+    def test_a_dropped_misfit_makes_room_for_the_answer_in_its_place(self):
+        manager = SimpleNamespace(skip=SimpleNamespace(is_skipping=False, skip_to=0))
+        replay = InputModule(manager)
+        old = [SimpleNamespace(id=f'old{i}') for i in range(5)]
+        replay.SetReplayInputs(old)
+        replay.current_step_id = 2
+        replay.replay_step_id = 2
+
+        # The recorded choice at step 2 did not fit the ask and is dropped;
+        # what was recorded after it moves up, ready for Redo.
+        self.assertTrue(replay.DropMisfit())
+        self.assertEqual([op.id for op in replay.replay_inputs], ['old0', 'old1', 'old3', 'old4'])
+
+        # The player's answer goes in where the misfit was, not over old3.
+        replay.Push(SimpleNamespace(id='answer'))
+        self.assertEqual([op.id for op in replay.replay_inputs], ['old0', 'old1', 'answer', 'old3', 'old4'])
+        self.assertEqual(replay.replay_step_id, 3)
+
+        # And the next push is an ordinary one again.
+        replay.Push(SimpleNamespace(id='next'))
+        self.assertEqual([op.id for op in replay.replay_inputs], ['old0', 'old1', 'answer', 'next', 'old4'])
+
+        # Nothing to drop past the end of the recording.
+        replay.replay_step_id = 9
+        self.assertFalse(replay.DropMisfit())
+
     def test_a_replayed_input_keeps_the_recording(self):
         manager = SimpleNamespace(skip=SimpleNamespace(is_skipping=True, skip_to=4))
         replay = InputModule(manager)

@@ -324,7 +324,8 @@ class Controller:
                         assert False, f"{why}: {select_effect=} {user_input=}"
                     Log.Warn(CATEGORY_NAME, f"{why}; asking again: {user_input}")
                     if controller_manager.skip.is_skipping or controller_manager.skip.skip_to > 0:
-                        Notify.Command("The recorded choice no longer fits here. Choose again; Redo continues the recording.")
+                        controller_manager.replay.DropMisfit()
+                        Notify.Command("A recorded choice no longer fits here and was dropped. Choose again; Redo carries on from the next one.")
                     if controller_manager.skip.SetIsSkipping(False):
                         if self.world:
                             self.world.render.PresentForceNoWait()

@@ -24,6 +24,11 @@ class InputModule:
 
         self.is_replay: bool = False
 
+        # Set when a recorded choice was dropped as a misfit: the player's
+        # answer in its place goes into the recording rather than over the
+        # choice that was recorded after it.
+        self.insert_on_next_push: bool = False
+
         self.break_on: List[int] = []
 
         self.manager = manager
@@ -31,6 +36,7 @@ class InputModule:
     def Clean(self):
         self.replay_inputs = []
         self.history_inputs = []
+        self.insert_on_next_push = False
 
         self.current_step_id = 0
         self.replay_step_id = 0
@@ -42,6 +48,20 @@ class InputModule:
 
     def SetReplayInputs(self, inputs: List['OperationDescriptor']):
         self.replay_inputs = inputs
+        self.insert_on_next_push = False
+
+    def DropMisfit(self) -> bool:
+        """Take the recorded choice at this step out of the recording.
+
+        It did not fit the ask; left in, every Redo would trip over it
+        again. The player's answer in its place is slotted in, and Redo
+        goes on from the choice recorded after it.
+        """
+        if self.replay_step_id >= len(self.replay_inputs):
+            return False
+        del self.replay_inputs[self.replay_step_id]
+        self.insert_on_next_push = True
+        return True
 
     def SetIsReplay(self, replay: bool):
         self.is_replay = replay
@@ -59,13 +79,18 @@ class InputModule:
     #
     def Push(self, operation: 'OperationDescriptor'):
         # A choice made where the recording already has one -- after an
-        # undo, or at a recorded input the table could not take -- replaces
-        # it in the recording, and what was recorded beyond it stays: Redo
-        # then offers those choices one at a time, each taken if the table
-        # can still take it and put to the player again if not. Dropping
-        # them meant replaying a dozen actions by hand after every undo
-        # that met a recording the table had drifted from.
-        if self.replay_step_id < len(self.replay_inputs):
+        # undo -- replaces it in the recording, and what was recorded
+        # beyond it stays: Redo then offers those choices one at a time,
+        # each taken if the table can still take it and put to the player
+        # again if not. Dropping them meant replaying a dozen actions by
+        # hand after every undo that met a recording the table had
+        # drifted from. A choice made in place of a recorded one that was
+        # dropped as a misfit is slotted in, so the recording after it is
+        # not overwritten a second time.
+        if self.insert_on_next_push:
+            self.insert_on_next_push = False
+            self.replay_inputs.insert(self.replay_step_id, operation)
+        elif self.replay_step_id < len(self.replay_inputs):
             self.replay_inputs[self.replay_step_id] = operation
         self.history_inputs.append(operation)
         self.current_step_id += 1
