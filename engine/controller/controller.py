@@ -309,7 +309,21 @@ class Controller:
                 if select_effect == None and len(effect_descriptors) == 1 and input_effect.resources == []:
                     select_effect = effect_list[0]
 
-                assert select_effect != None, f"{select_effect=}"
+                if select_effect == None:
+                    # An input naming an option this ask does not have: a
+                    # page still showing the ask from before an undo landed,
+                    # or a recording replayed onto a table it no longer
+                    # describes. Not a reason to stop the game with an error
+                    # and a suggestion to undo: the ask is put again, and a
+                    # recording that answered stops here.
+                    if Test.IsInTesting():
+                        assert False, f"{select_effect=} {user_input=}"
+                    Log.Warn(CATEGORY_NAME, f"Input named no option of this ask; asking again: {user_input}")
+                    if controller_manager.skip.SetIsSkipping(False):
+                        if self.world:
+                            self.world.render.PresentForceNoWait()
+                    controller_manager.skip.skip_to = 0
+                    continue
 
                 select_effect.targets.clear()
                 for check_target in input_effect.targets:

@@ -59,6 +59,14 @@ class UndoRedoGuardTests(unittest.TestCase):
             self.assertTrue(Cheat.PreDebugExec('/skip 0', None))
         ahead.session.SkipTo.assert_called_once_with(10)
 
+    def test_a_quick_load_is_a_live_game_for_continue_and_the_autosave(self):
+        game = fake_game()
+        game.active_session_enabled = False
+        with patch.object(Engine, 'game', game, create=True):
+            self.assertTrue(Cheat.PreDebugExec('/load save_1.json:-1', None))
+        game.session.Load.assert_called_once()
+        self.assertTrue(game.active_session_enabled)
+
     def test_a_new_choice_after_an_undo_drops_the_old_recording(self):
         manager = SimpleNamespace(skip=SimpleNamespace(is_skipping=False, skip_to=0))
         replay = InputModule(manager)

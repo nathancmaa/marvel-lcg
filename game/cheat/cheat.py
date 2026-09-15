@@ -152,6 +152,9 @@ class Cheat:
                 None,
                 "Load",
             )
+            # A quick-loaded game is a live game: Continue should know it,
+            # and the autosave should follow it, as after a new game.
+            game.active_session_enabled = True
 
         # def do_save_level(args: List[str]):
         #     name = game.scene.scene.save_name
