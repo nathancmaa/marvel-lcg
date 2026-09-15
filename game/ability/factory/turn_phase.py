@@ -9,12 +9,28 @@ class AbilityFactoryTurnPhase:
                            conditions: ConditionsType[Message.WhenPlayerInTurn]=[],
                            ) -> 'Ability':
 
+        def is_this_players(effect: 'Effect', message: 'Message.WhenPlayerInTurn') -> bool:
+            if effect.initiator != message.to_player:
+                return False
+            # An action on a card attached to an identity -- Frozen, Seduced,
+            # "attach to your identity" -- is that identity's player's to
+            # take. Every player is offered every card's actions on their
+            # turn and the ability says whose it is; without this, Cable in
+            # alter-ego form could pay to discard the Frozen on X-23.
+            from game.card.face.card_type import Identity
+            from game.player import Player
+            attached_to = getattr(effect.this, 'bind_face', None)
+            if attached_to is not None and Identity.IsType(attached_to):
+                controller = attached_to.GetControlBy()
+                if isinstance(controller, Player) and controller != message.to_player:
+                    return False
+            return True
+
         return Ability(
             ability_type,
             Message.WhenPlayerInTurn,
             [
-                lambda effect, message:
-                    effect.initiator == message.to_player,
+                is_this_players,
                 *conditions
             ],
             operation)
