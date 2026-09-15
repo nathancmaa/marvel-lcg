@@ -202,7 +202,7 @@
                 const session = await response.json();
                 continueGameButton.disabled = !session.available;
                 continueGameButton.title = session.available
-                    ? (session.live ? 'Open the active game table' : 'Restore the last completed turn')
+                    ? (session.live ? 'Open the active game table' : 'Restore the game where it was left')
                     : 'No active game is saved';
             } catch (error) {
                 console.error(error);

@@ -154,6 +154,10 @@ class Controller:
                     if controller_manager.skip.SetIsSkipping(False):
                         if self.world:
                             self.world.render.PresentForceNoWait()
+                        # An undo has just replayed to its target: what
+                        # Continue would restore is this shorter history,
+                        # not the longer one the last choice wrote.
+                        self.game.SaveActiveSession()
 
                 if (controller_manager.skip.is_skipping or controller_manager.replay.replay_step_id < controller_manager.skip.skip_to) and replay_input:
                     user_input = convert_fallthrough_input
@@ -358,6 +362,13 @@ class Controller:
         controller_manager.replay.Push(operation)
 
         self.game.statistics.RecordValue("operation", 1)
+
+        # Every choice the player makes is kept, so Continue comes back to
+        # the last one rather than to the end of the last round. Not while a
+        # recording is being replayed: that state is not new, and a replay of
+        # a hundred inputs would write a hundred files.
+        if not controller_manager.skip.is_skipping and                 controller_manager.skip.skip_to <= controller_manager.replay.current_step_id:
+            self.game.SaveActiveSession()
 
         if controller_manager.replay.current_step_id > controller_manager.skip.skip_to:
             if controller_manager.skip.SetIsSkipping(False):
