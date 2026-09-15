@@ -10,6 +10,14 @@ from engine.controller.module.replay import InputModule
 from game.cheat.cheat import Cheat
 
 
+def recorded(effect_id, targets=(), resources=()):
+    """A recorded choice, as the replay compares them."""
+    return SimpleNamespace(
+        id=effect_id,
+        effect=SimpleNamespace(id=effect_id, targets=list(targets), resources=list(resources)),
+    )
+
+
 def fake_game(*, is_skipping=False, skip_to=0, current=10, replay_step=10, recorded=10):
     replay = SimpleNamespace(
         current_step_id=current,
@@ -67,29 +75,44 @@ class UndoRedoGuardTests(unittest.TestCase):
         game.session.Load.assert_called_once()
         self.assertTrue(game.active_session_enabled)
 
-    def test_a_new_choice_after_an_undo_replaces_its_recording_and_keeps_the_rest(self):
+    def test_the_same_choice_made_again_after_an_undo_keeps_the_recording(self):
         manager = SimpleNamespace(skip=SimpleNamespace(is_skipping=False, skip_to=0))
         replay = InputModule(manager)
-        old = [SimpleNamespace(id=f'old{i}') for i in range(5)]
+        old = [recorded(f'old{i}') for i in range(5)]
         replay.SetReplayInputs(old)
-        # Undone back to step 2, and now the player chooses something new.
         replay.current_step_id = 2
         replay.replay_step_id = 2
-        fresh = SimpleNamespace(id='fresh')
+        again = recorded('old2')
+
+        replay.Push(again)
+
+        # Redo can carry on with what was recorded after it.
+        self.assertEqual([op.id for op in replay.replay_inputs], ['old0', 'old1', 'old2', 'old3', 'old4'])
+        self.assertIs(replay.replay_inputs[2], again)
+        self.assertEqual(replay.replay_step_id, 3)
+
+    def test_a_different_choice_after_an_undo_drops_the_old_path(self):
+        manager = SimpleNamespace(skip=SimpleNamespace(is_skipping=False, skip_to=0))
+        replay = InputModule(manager)
+        old = [recorded(f'old{i}') for i in range(5)]
+        replay.SetReplayInputs(old)
+        replay.current_step_id = 2
+        replay.replay_step_id = 2
+        fresh = recorded('fresh')
 
         replay.Push(fresh)
 
-        # The recorded choice at this step is replaced; what follows is kept
-        # for Redo, each taken if the table can still take it.
-        self.assertEqual([op.id for op in replay.replay_inputs], ['old0', 'old1', 'fresh', 'old3', 'old4'])
+        # What was recorded beyond belongs to the old path: replayed, it
+        # stopped the next undo short and fed Redo choices for a table that
+        # no longer existed.
+        self.assertEqual([op.id for op in replay.replay_inputs], ['old0', 'old1', 'fresh'])
         self.assertEqual(replay.history_inputs, [fresh])
         self.assertEqual(replay.current_step_id, 3)
-        self.assertEqual(replay.replay_step_id, 3)
 
     def test_a_dropped_misfit_makes_room_for_the_answer_in_its_place(self):
         manager = SimpleNamespace(skip=SimpleNamespace(is_skipping=False, skip_to=0))
         replay = InputModule(manager)
-        old = [SimpleNamespace(id=f'old{i}') for i in range(5)]
+        old = [recorded(f'old{i}') for i in range(5)]
         replay.SetReplayInputs(old)
         replay.current_step_id = 2
         replay.replay_step_id = 2
@@ -100,13 +123,13 @@ class UndoRedoGuardTests(unittest.TestCase):
         self.assertEqual([op.id for op in replay.replay_inputs], ['old0', 'old1', 'old3', 'old4'])
 
         # The player's answer goes in where the misfit was, not over old3.
-        replay.Push(SimpleNamespace(id='answer'))
+        replay.Push(recorded('answer'))
         self.assertEqual([op.id for op in replay.replay_inputs], ['old0', 'old1', 'answer', 'old3', 'old4'])
         self.assertEqual(replay.replay_step_id, 3)
 
-        # And the next push is an ordinary one again.
-        replay.Push(SimpleNamespace(id='next'))
-        self.assertEqual([op.id for op in replay.replay_inputs], ['old0', 'old1', 'answer', 'next', 'old4'])
+        # A different choice at the next step is a new path from there.
+        replay.Push(recorded('next'))
+        self.assertEqual([op.id for op in replay.replay_inputs], ['old0', 'old1', 'answer', 'next'])
 
         # Nothing to drop past the end of the recording.
         replay.replay_step_id = 9
@@ -115,7 +138,7 @@ class UndoRedoGuardTests(unittest.TestCase):
     def test_a_replayed_input_keeps_the_recording(self):
         manager = SimpleNamespace(skip=SimpleNamespace(is_skipping=True, skip_to=4))
         replay = InputModule(manager)
-        old = [SimpleNamespace(id=f'old{i}') for i in range(5)]
+        old = [recorded(f'old{i}') for i in range(5)]
         replay.SetReplayInputs(old)
         replay.current_step_id = 2
         replay.replay_step_id = 2

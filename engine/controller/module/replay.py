@@ -77,21 +77,31 @@ class InputModule:
 
     ################################################################################
     #
+    @staticmethod
+    def SameChoice(a: 'OperationDescriptor', b: 'OperationDescriptor') -> bool:
+        """The same option, targets and payment: a choice made over again."""
+        return a.effect.id == b.effect.id and \
+            list(a.effect.targets) == list(b.effect.targets) and \
+            list(a.effect.resources) == list(b.effect.resources)
+
     def Push(self, operation: 'OperationDescriptor'):
         # A choice made where the recording already has one -- after an
-        # undo -- replaces it in the recording, and what was recorded
-        # beyond it stays: Redo then offers those choices one at a time,
-        # each taken if the table can still take it and put to the player
-        # again if not. Dropping them meant replaying a dozen actions by
-        # hand after every undo that met a recording the table had
-        # drifted from. A choice made in place of a recorded one that was
-        # dropped as a misfit is slotted in, so the recording after it is
-        # not overwritten a second time.
+        # undo. Made over again, the same as recorded, it leaves the rest of
+        # the recording for Redo to carry on with. Made differently, the
+        # game is on a new path, and what was recorded beyond this point
+        # belongs to the old one: replayed, it stopped the next undo short
+        # and fed Redo choices for a table that no longer existed. It goes.
+        # A choice made in place of a recorded one that was dropped as a
+        # misfit is slotted in, so the recording after it is kept.
         if self.insert_on_next_push:
             self.insert_on_next_push = False
             self.replay_inputs.insert(self.replay_step_id, operation)
         elif self.replay_step_id < len(self.replay_inputs):
-            self.replay_inputs[self.replay_step_id] = operation
+            if self.SameChoice(self.replay_inputs[self.replay_step_id], operation):
+                self.replay_inputs[self.replay_step_id] = operation
+            else:
+                del self.replay_inputs[self.replay_step_id:]
+                self.replay_inputs.append(operation)
         self.history_inputs.append(operation)
         self.current_step_id += 1
         self.replay_step_id += 1
@@ -177,20 +187,21 @@ class InputModule:
                             get_diff_text(a_value, b_value),
                         )
 
+                from game.test import Test
                 if not disable_assert:
-#                     tip_info = """
-#  N : player id + exhaust + health + states + atk + thw + def + rec + counter + scheme + ...
-# -2 : in hand
-# -3 : deck top
-# -4 : deck bottom
-
-#  Key | Read\t| Curr
-# """
                     tip_info = f""" Key | Read | Curr | (#{self.current_step_id} / {len(self.replay_inputs)})
 """
-                    Log.Assert(CATEGORY_NAME, f'{tip_info}{diff_text}')
+                    if Test.IsInTesting():
+                        Log.Assert(CATEGORY_NAME, f'{tip_info}{diff_text}')
+                    else:
+                        # In play, the table's state differing from the
+                        # recording's is worth knowing and not worth
+                        # stopping for: the recorded choice is still tried
+                        # against the ask, and put to the player again if it
+                        # no longer fits. Stopping here dropped the player
+                        # wherever the first difference lay.
+                        Log.Warn(CATEGORY_NAME, f'{tip_info}{diff_text}')
 
-                from game.test import Test
                 if Engine.in_unit_test:
                     Engine.SaveCrash()
                 if Test.IsInTesting():
@@ -200,10 +211,8 @@ class InputModule:
                         Beep.Warning()
                         return replay_input, False
                     pass
-                if all(x for x in diff_ids if x in CRC_IGNORE_IDS.value):
-                    return replay_input, True
-                else:
-                    return replay_input, False
+                # Outside the tests the recording goes on regardless; see above.
+                return replay_input, True
             return replay_input, True
         else:
             return None, True

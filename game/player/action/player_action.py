@@ -382,11 +382,26 @@ class PlayerAction:
 
             if effect != fallthrough_effect:
                 if type(message) == Message.WhenPlayerInTurn:
-                    game.controller_manager.replay.Pop()
+                    # An attempt that changed nothing is taken out of the
+                    # recording, so a replay does not stop to try it again.
+                    # One that changed the table stays: a stunned hero's
+                    # attack "fails" -- it is replaced by losing the stun,
+                    # with its costs paid -- and a recording without that
+                    # step puts every replay of the game a stun behind the
+                    # table it was recorded on, which no later choice
+                    # survives. The table's checksum, taken when the ask was
+                    # put, says which.
+                    replay = game.controller_manager.replay
+                    before = replay.calculated_crc[0] if replay.calculated_crc else None
+                    after = message.world.render.CalculateCRC()[0]
+                    if before is None or after == before:
+                        replay.Pop()
+                        Log.Assert(CATEGORY_NAME, f"{effect} failed")
+                    else:
+                        Log.Warn(CATEGORY_NAME, f"{effect} failed, but changed the table; kept in the recording")
                     if not Build.release:
                         game.controller_manager.skip.Clean()
                     message.world.render.PresentForceNoWait(is_update=False)
-                    Log.Assert(CATEGORY_NAME, f"{effect} failed")
                     # engine.DebugBreak()
                     break
                 elif fallthrough_effect != None:
