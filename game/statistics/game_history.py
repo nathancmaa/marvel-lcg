@@ -767,7 +767,56 @@ class GameHistory:
             )
 
             outcome_updated = False
-            if not inserted and values.get('replay_file'):
+            # A live game that ends a second time -- lost, undone, and then
+            # won -- is the same game: its id is the key. The earlier ending
+            # was undone with the rest, so the later one is the outcome, and
+            # the cards' figures are the later game's too.
+            if not inserted and not values['imported_from_replay'] and \
+                    values['result'] in ('win', 'loss') and \
+                    not bool(record.get('_keep_recorded_outcome')):
+                connection.execute(
+                    'UPDATE games SET result = ?, game_over_reason = ?, '
+                    'finished_at = ?, rounds = COALESCE(?, rounds), '
+                    'playtime_seconds = COALESCE(?, playtime_seconds), '
+                    'undo_count = COALESCE(?, undo_count), '
+                    'remaining_hit_points = COALESCE(?, remaining_hit_points), '
+                    'minions_in_play = COALESCE(?, minions_in_play), '
+                    'side_schemes_in_play = COALESCE(?, side_schemes_in_play) '
+                    'WHERE id = ?',
+                    (
+                        values['result'],
+                        values.get('game_over_reason', ''),
+                        values['finished_at'],
+                        values.get('rounds'),
+                        values.get('playtime_seconds'),
+                        values.get('undo_count'),
+                        values.get('remaining_hit_points'),
+                        values.get('minions_in_play'),
+                        values.get('side_schemes_in_play'),
+                        database_game_id,
+                    ),
+                )
+                if card_statistics is not None:
+                    connection.execute(
+                        'DELETE FROM game_card_statistics WHERE game_id = ?',
+                        (database_game_id,),
+                    )
+                    connection.executemany(
+                        'INSERT INTO game_card_statistics '
+                        '(game_id, card_id, card_name, damage_dealt, damage_taken, '
+                        'thwarted_threat, entered_play) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                        [(
+                            database_game_id,
+                            item['card_id'],
+                            item['card_name'],
+                            item['damage_dealt'],
+                            item['damage_taken'],
+                            item['thwarted_threat'],
+                            item['entered_play'],
+                        ) for item in card_statistics],
+                    )
+                outcome_updated = True
+            elif not inserted and values.get('replay_file'):
                 connection.execute(
                     'UPDATE games SET replay_file = ?, '
                     'playtime_seconds = COALESCE(?, playtime_seconds), '

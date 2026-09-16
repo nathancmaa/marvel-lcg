@@ -512,6 +512,41 @@ class GameHistoryTests(unittest.TestCase):
             datetime(2026, 8, 10, 12, 0).astimezone().isoformat(),
         )
 
+    def test_a_game_lost_then_undone_and_won_is_a_win(self):
+        # The same game, by id, ending twice: the loss was undone with the
+        # rest of what followed it, so the win is the outcome.
+        base = {
+            'source_key': 'game:same-game', 'source': 'digital',
+            'hero_code': '01001a', 'hero_name': 'Spider-Man', 'deck_name': 'Spider-Man',
+            'villain_code': '01094', 'villain_name': 'Rhino', 'scenario_name': 'Rhino',
+            'scenario_key': 'rhino', 'finished_at': '2026-09-15T20:00:00+00:00',
+        }
+        self.history._store_game(dict(base, result='loss', rounds=6, undo_count=0,
+                                      game_over_reason='The Main Scheme was Completed'),
+                                 [{'card_id': '01001a', 'card_name': 'Spider-Man', 'damage_dealt': 3,
+                                   'damage_taken': 9, 'thwarted_threat': 2, 'entered_play': 1}])
+        outcome = self.history._store_game(
+            dict(base, result='win', rounds=8, undo_count=1,
+                 finished_at='2026-09-15T20:30:00+00:00',
+                 game_over_reason='The Final Stage of the Villain was Defeated'),
+            [{'card_id': '01001a', 'card_name': 'Spider-Man', 'damage_dealt': 14,
+              'damage_taken': 5, 'thwarted_threat': 6, 'entered_play': 1}])
+
+        self.assertFalse(outcome['inserted'])
+        self.assertTrue(outcome['updated'])
+        dashboard = self.history.GetDashboard()
+        self.assertEqual(dashboard['overview']['wins'], 1)
+        self.assertEqual(dashboard['overview']['losses'], 0)
+        row = dashboard['recent_games'][0]
+        self.assertEqual(row['result'], 'win')
+        self.assertEqual(row['rounds'], 8)
+        self.assertEqual(row['finished_at'], '2026-09-15T20:30:00+00:00')
+        with self.history._connect() as connection:
+            dealt = connection.execute(
+                'SELECT damage_dealt FROM game_card_statistics gs JOIN games g ON g.id = gs.game_id '
+                "WHERE g.source_key = 'game:same-game'").fetchall()
+        self.assertEqual([r[0] for r in dealt], [14])
+
     def test_legacy_replay_imports_metadata_as_unknown_and_deduplicates(self):
         replay_path = self.replay_folder / 'legacy.json'
         replay_path.write_text(json.dumps({
