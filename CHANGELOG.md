@@ -1,6 +1,6 @@
 # Marvel Champions Digital: Cerebro Changelog
 
-> Current release version: 0.7.12
+> Current release version: 0.7.13
 
 This document records the user-visible and development changes made in this
 fork after it diverged from the original
@@ -15,6 +15,114 @@ Versions 0.7.2 and 0.7.3 were briefly published as 0.8.0 and 0.8.1 and were
 renumbered onto the 0.7 line. Their tags and releases carry the new numbers
 and point at the same commits; the commits that cut them still name the old
 ones.
+
+Versions 0.7.13 and 0.7.13.1 were cut in arrears, on 2026-09-17, from the
+commits that closed them; their tags point at those commits, which still
+name 0.7.12.
+
+## Version 0.7.13.2 (2026-09-17)
+
+Every scenario starts, and a game that ends twice is recorded once.
+
+- **Enchantress starts.** Puppet Master and Love Triangle asked their
+  factory to stop allies' defense abilities, which it asserted against, and
+  the assertion fired while the encounter deck was being built, taking the
+  engine down with it. The factory now decides whose defense abilities a
+  restriction stops by whose unit it names; an ally-only restriction stops
+  nobody's. Rollin' Rollin' and Tracking Display had the same misuse, and
+  Going Underground named a card type it had not imported. A new test
+  builds every card script's abilities -- some 2,400 of them -- so the next
+  such card is caught before a game finds it.
+- **The Hood starts.** Making Connections picks one of seven modular sets by
+  a pair of names, and numpy refused the list of pairs. A random pick is now
+  an index into the list, drawn so a saved game's seed still deals the same
+  cards.
+- **Every scenario launched, every hero launched.** All 124 scenario files,
+  standard and expert, were started on the dev server with a different hero
+  each time, so each of the 69 heroes launched at least once, and every one
+  reached the mulligan. The setup asks that some scenarios put -- The
+  Widow's Web, Cut Off Support, Hope's Captor -- were answered along the way.
+- **A game that ends again after an undo records its latest ending.** A game
+  lost, undone and then won stayed a loss: the history row is keyed by the
+  game's id, which an undo keeps, and a second ending only replaced a result
+  that was still unknown. The later ending now supersedes the earlier one,
+  card statistics and achievements included; replay imports and physical
+  games are untouched.
+
+## Version 0.7.13.1 (2026-09-15)
+
+Undo, Redo and Continue made to hold up over a long two-handed game.
+
+- **The recording is never edited while it is being replayed.** A load or an
+  undo replays the recording, and the replayed choice is the recorded one
+  regenerated, with an effect number that can differ from run to run. The
+  recording was being cut at the first such difference, which is why a load
+  stopped at its sixth input and an undo jumped back a turn or more. A choice
+  is compared without its number, and only a choice the player makes touches
+  the recording: the same one again keeps what follows for Redo, a different
+  one starts a new path.
+- **An input that no longer fits is asked again.** After an undo the table can
+  differ from the one a choice was recorded on: the option may be gone, or the
+  target no longer legal. Either used to be an assertion. The ask is put again,
+  the misfit is dropped so Redo carries on from the next one, and a notice
+  says so. An empty answer is never taken from the recording, which is what
+  made Redo and the cancel key end the turn.
+- **Continue lands where the game was.** The active game is kept after every
+  choice rather than once a round, so Continue no longer lands a round early,
+  and a two-handed game continues as a hot seat rather than a blank table.
+- **Attachments know whose they are.** Seduced asked who "you" is on a hero
+  and got an assertion every time a card was checked; the answer is the
+  attached card's controller. Frozen on X-23 was offered to Cable in alter-ego
+  form; an action on a card attached to an identity is that identity's
+  player's.
+- **A failed action that changed the table stays recorded.** Plasma Rifle
+  fired while stunned: the action fails, the table changed, and dropping it
+  from the recording made the replay diverge. A replay also runs past a
+  checksum it disagrees with rather than stopping there.
+- **The options move only for a prompt that lies across them,** and are capped
+  at the bottom of the screen, so a prompt below the options no longer pushes
+  them off it.
+
+## Version 0.7.13 (2026-09-13)
+
+A resignation, aspects on the deck tiles, and the game-over screen leading
+somewhere.
+
+- **Resign.** A button on the table ends the game as the loss it is, after a
+  confirmation, and the history records it as one. A resignation that arrives
+  between asks is applied at the next.
+- **Decks show their aspects.** A line under each deck tile's title carries a
+  segment per aspect the deck plays -- three or more cards of an aspect count,
+  and 'Pool counts for Deadpool -- so Spider-Woman and Adam Warlock read as
+  what they are. The pickers can group by aspect, and a "Played only" filter
+  shows the heroes with a game in the history. Quick Game notes the
+  two-handed rule that two players cannot bring the same hero or unique
+  cards.
+- **Game over leads on.** The main menu button goes to Quick Game, and a new
+  "Next villain" option starts the next scenario with the same heroes and
+  settings on a fresh seed. A setting sends every finished game to BG Stats on
+  its own; on iPad it needs the first tap on the screen, and a hint says so.
+- **Two-handed picks remembered.** Player 2's hero is stored and restored like
+  player 1's, and the villain-beaten stripe splits per seat, player 1 on the
+  left and player 2 on the right.
+- **One legal target needs no OK.** The setting that let Attack and Thwart
+  confirm on the click now applies to any option with exactly one legal
+  target, picking a card for an action included.
+- **Times carry their zone.** Every timestamp the server sends is zoned, so
+  the deck sync time is right, and a BG Stats play ends at local time, which
+  is how the app reads it; the earlier UTC value showed the wrong hour.
+- **JSON is checked with the server, not trusted for an hour.** Deck, scenario
+  and set files carry an ETag and are asked for every time, so a deploy or a
+  deck sync shows at once. This is what kept the aspect lines from appearing
+  after the first deploy.
+- **Table fixes.** Mitigated Threat attaches to a scheme. E.V.A., a support,
+  removes threat from Technovirus Purge, whose restriction names characters.
+  Beat Cop's two actions are named rather than "Action". The confirm under
+  the options keeps off the prompt. End Defense is hidden on a forced
+  defence, and the cancel key ends the defence and the turn as the far-left
+  button would. Undo waits for the last undo to land before taking another,
+  and Redo with nothing recorded ahead does nothing rather than ending the
+  turn.
 
 ## Version 0.7.12 (2026-09-12)
 
