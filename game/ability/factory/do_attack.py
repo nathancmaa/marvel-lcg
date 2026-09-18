@@ -1117,15 +1117,25 @@ class AbilityFactoryDoAttack:
             )
         ]
 
+        # A unit that cannot defend has no defense ability to trigger
+        # either. Whose abilities that stops depends on whose unit it is:
+        # an identity's are its player's, a found unit's are those of the
+        # player who controls it, and when no character at all may defend,
+        # nobody may trigger one. Allies carry no defense abilities of their
+        # own, so a restriction naming only allies -- Puppet Master, Love
+        # Triangle -- leaves the players' abilities alone. An assertion
+        # here used to stop those cards being built, and with them any
+        # scenario that dealt them: Enchantress could not be started.
+        from game.card.face.base import Unit2
+        check_player: Any = None
         if cannot_trigger_defense_ability != False:
-            if cannot_trigger_defense_ability == True and \
-                which_unit == "AttachedIdentity":
+            if cannot_trigger_defense_ability == True and                 which_unit == "AttachedIdentity":
                 check_player = "AttachedPlayer"
-            elif which_unit:
-                assert isinstance(which_unit, CardFinder)
+            elif isinstance(which_unit, CardFinder):
                 check_player = PlayerFinder(which_unit)
-            else:
+            elif which_unit in (None, "Character", Unit2):
                 check_player = "AnyPlayer"
+        if check_player is not None:
             def check_attacker2(effect: 'Effect', message: 'Message.CheckEffectCondition') -> bool:
                 return Condition.CheckWhichCard(who_attacker, message.GetAttacker(), effect)
             abilities.append(

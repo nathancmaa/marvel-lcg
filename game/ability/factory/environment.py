@@ -137,6 +137,7 @@ class AbilityFactoryEnvironment:
         if card_finder == "You":
             card_finder = "YourIdentity"
         if card_finder == "EnemyLeader":
+            from game.card.face.card_type import Leader
             card_finder = Leader
 
         abilities: List['Ability'] = []
