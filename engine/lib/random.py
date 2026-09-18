@@ -47,7 +47,13 @@ class Random:
         else:
             import numpy.random
             Random.states.append(numpy.random.get_state())
-            return numpy.random.choice(input_list) # type: ignore
+            # Draw an index rather than hand numpy the list: it turns a list
+            # of tuples -- the modular set identities The Hood picks from --
+            # into a 2-D array and refuses it. The index draw consumes the
+            # generator exactly as the draw over the list did, so a seed
+            # still deals the same cards, and the pick is the caller's own
+            # object rather than numpy's copy of it.
+            return input_list[int(numpy.random.choice(len(input_list)))]
 
     @staticmethod
     def RandomChoice2(input_list: Sequence[T], x: int) -> List[T]:
