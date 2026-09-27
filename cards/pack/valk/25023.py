@@ -20,6 +20,9 @@ def GetAbilities() -> Sequence['Ability']:
         )
         if face:
             initiator.PlayAnAlly(face, True)
+            # A search that finds nothing already shuffles the deck; after a
+            # find (not_move leaves the deck alone), shuffle it here.
+            initiator.player_deck.Shuffle(effect)
 
     return [
         AbilityFactory.CanPlayThisSupportCard(
