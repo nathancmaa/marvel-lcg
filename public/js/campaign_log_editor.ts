@@ -42,8 +42,10 @@ export const campaignLogFields: Record<string, CampaignLogField[]> = {
     rise_of_red_skull: [
         hitPoints,
         {key: 'Player 1 Tech Upgrade', label: 'Tech upgrade', type: 'select', options: ['04155', '04156', '04157', '04158']},
+        {key: 'Player 1 tech upgrade removed from campaign', label: 'Tech upgrade removed from the campaign', type: 'yes'},
         {key: 'Player 1 Basic Upgrade', label: 'Basic upgrade', type: 'select',
             options: ['04159a', '04160a', '04161a', '04162a']},
+        {key: 'Player 1 Basic Condition replaced with Improved side', label: 'Basic condition replaced with its Improved side', type: 'yes'},
         {key: 'Player 1 Obligations', label: 'Obligations', type: 'multi', options: ['04163', '04164', '04165', '04166']},
         {key: 'Player 1 Rescued Allies', label: 'Rescued allies', type: 'multi', options: ['04097', '04098', '04099', '04100']},
         {key: 'Experimental Weapons added to encounter deck', type: 'multi', options: ['04072', '04073', '04074', '04075']},

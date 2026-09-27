@@ -1,4 +1,5 @@
 from . import *
+from ..campaign import CampaignSetup
 
 # Attack on Mount Athena
 
@@ -19,6 +20,7 @@ def GetAbilities() -> Sequence['Ability']:
 
 
     return [
+        *CampaignSetup(1),
         AbilityFactory.WhenCardSetup(
             "This",
             attack_on_mount_athena

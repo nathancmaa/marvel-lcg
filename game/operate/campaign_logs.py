@@ -13,7 +13,9 @@ PLAYER_LIST_KEY: TypeAlias = Literal[
 
 PLAYER_STR_KEY: TypeAlias = Literal[
     "Tech Upgrade",
+    "tech upgrade removed from campaign",
     "Basic Upgrade",
+    "Basic Condition replaced with Improved side",
     "Role",
     "S.H.I.E.L.D. Tech: Reputation Track Reward",
     "Planning Ahead: Reputation Track Reward",
@@ -246,6 +248,40 @@ class CampaignLog:
             if value:
                 return value
         return 0
+
+    # Cards whose text removes them from the campaign log or pool.
+    RED_SKULL_TECH_UPGRADES = ("04155", "04156", "04157", "04158")
+    MUTANT_GENESIS_ROLE_UPGRADES = tuple(str(card_id) for card_id in range(32176, 32196))
+
+    @staticmethod
+    def RecordRemovedFromCampaign(face: 'CardFace', player: 'Player|None', by_effect: 'Effect') -> bool:
+        """Write down that ``face`` was removed from the campaign.
+
+        The log decides the next scenario's setup: a removed Red Skull tech
+        upgrade is not put into play again, and a removed Mutant Genesis role
+        upgrade is not offered again.
+        """
+        card_id = face.paper.card_id
+        world = by_effect.world
+        if card_id in CampaignLog.RED_SKULL_TECH_UPGRADES:
+            owner = player if player is not None else face.GetOwner()
+            player_id = getattr(owner, 'player_id', None)
+            if player_id is None:
+                return False
+            CampaignLog.SetStr(
+                f"Player {player_id + 1} tech upgrade removed from campaign",
+                "Yes",
+                world,
+            )
+            return True
+        if card_id in CampaignLog.MUTANT_GENESIS_ROLE_UPGRADES:
+            key = "Role Upgrades removed from campaign"
+            removed = CampaignLog.GetListInternal(key, by_effect)
+            if card_id not in removed:
+                CampaignLog.SetStr(key, ";".join(removed + [card_id]), world)
+            return True
+        Log.Warn("GAME", f"{face.name} ({card_id}) left the campaign, but no campaign log entry records it.")
+        return False
 
     @staticmethod
     def SetStr(key: str, value: str, world: 'World'):
