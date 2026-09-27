@@ -243,11 +243,18 @@ export class CardAnimation
         function animation_dealt_encounter_card(card_div: HTMLElement) {
             card_div.classList.remove(dealt_encounter_card)
 
+            // The clean-up timer can fire before the next frame -- with the
+            // animations set fast or while skipping -- and the class added
+            // after it would then stay on the card for good.
+            let finished = false
             requestAnimationFrame(() => {
-                card_div.classList.add(dealt_encounter_card)
+                if( !finished ) {
+                    card_div.classList.add(dealt_encounter_card)
+                }
             })
 
             CardAnimation.setAnimeTime('dealt', () => {
+                finished = true
                 card_div.classList.remove(dealt_encounter_card)
             })
         }
@@ -298,11 +305,18 @@ export class CardAnimation
 
             card_div.classList.add(ClassName.card_moving)
 
+            // As above: a clean-up that runs before the next frame must not
+            // be followed by the move, which would leave the card displaced
+            // over the table.
+            let finished = false
             requestAnimationFrame(() => {
-                card_div.style.transform = `translate3d(${nx}px, ${ny}px, 10px) rotate(${deg}deg)`;
+                if( !finished ) {
+                    card_div.style.transform = `translate3d(${nx}px, ${ny}px, 10px) rotate(${deg}deg)`;
+                }
             })
 
             CardAnimation.setAnimeTime('attack', () => {
+                finished = true
                 card_div.style.transform = ""
             })
 
