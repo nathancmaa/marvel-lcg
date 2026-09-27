@@ -12,7 +12,7 @@ def GetAbilities() -> Sequence['Ability']:
 
         Faces.ReadyAll(effect.targets, effect)
         initiator.DrawUp(1, effect)
-        villain = Worlds.FindVillain(effect)
+        villain = Worlds.ChooseVillain(effect)
         if villain:
             villain.DoAttackYou(initiator, effect)
 

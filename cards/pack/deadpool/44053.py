@@ -51,7 +51,11 @@ def GetAbilities() -> Sequence['Ability']:
 
             if check_all_filled():
                 Faces.DiscardAll([this], effect)
-                villain = Worlds.FindVillain(effect)
+                villain = Worlds.ChooseVillain(
+                    effect,
+                    CardFinder(canbe_confused=True),
+                    prompt="Choose a villain to confuse",
+                )
                 if villain:
                     Faces.GiveStatus([villain], "Confused", effect)
 

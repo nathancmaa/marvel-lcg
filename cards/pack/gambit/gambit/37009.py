@@ -9,7 +9,7 @@ def GetAbilities() -> Sequence['Ability']:
         Unused(this)
 
         def action():
-            villain = Worlds.FindVillain(effect)
+            villain = Worlds.ChooseVillain(effect)
             if villain:
                 Faces.GiveStatus([villain], "Confused", effect)
 

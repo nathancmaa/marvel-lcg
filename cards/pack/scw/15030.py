@@ -9,7 +9,7 @@ def GetAbilities() -> Sequence['Ability']:
         Unused(this)
 
         initiator = effect.GetInitiator()
-        villain = Worlds.FindVillain(effect)
+        villain = Worlds.ChooseVillain(effect)
         if villain:
             villain.DoAttackYou(initiator, effect)
         this.RemoveThreatFromSchemes(effect.targets, 4, effect)

@@ -11,7 +11,7 @@ def GetAbilities() -> Sequence['Ability']:
         initiator = effect.GetInitiator()
 
         message.CancelWhenRevealedEffect(effect)
-        villain = Worlds.FindVillain(effect)
+        villain = Worlds.ChooseVillain(effect)
         if villain:
             villain.DoAttackYou(initiator, effect)
 

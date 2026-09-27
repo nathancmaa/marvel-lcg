@@ -14,10 +14,12 @@ def GetAbilities() -> Sequence['Ability']:
         get_attack(effect, message)
 
         initiator = effect.GetInitiator()
+        # "The villain" is the villain that is attacking, not every villain.
+        attacking_villain = message.trigger.CastTo(Villain)
         this.effect.RegisterTemp(
             AbilityFactory.WhenUnitAttackYou(
                 AbilityType.Temp0,
-                initiator.GetEngagedMinions() + Worlds.GetVillains(effect),
+                [attacking_villain] + initiator.GetEngagedMinions(),
                 get_attack,
             ),
             unregister_after_exec=False,

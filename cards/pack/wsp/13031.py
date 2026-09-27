@@ -9,7 +9,7 @@ def GetAbilities() -> Sequence['Ability']:
         Unused(this)
 
         value = 2
-        villain = Worlds.FindVillain(effect)
+        villain = Worlds.ChooseVillain(effect)
         if villain:
             value += min(3, villain.printed_stage)
 

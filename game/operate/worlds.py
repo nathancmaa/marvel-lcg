@@ -195,6 +195,47 @@ class Worlds:
             )
 
     @staticmethod
+    def ChooseVillain(by_effect: 'Effect', finder: 'CardFinder|None'=None, *, prompt: str="Choose a villain") -> 'Villain|None':
+        """Resolve "the villain" for a player card while it resolves.
+
+        With several villains in play (The Tower Defense, The Four Horsemen)
+        the player resolving the card chooses one. A scenario that defines
+        its villain (a GettingVillain override, such as Sinister Six's active
+        villain) and The Wrecking Crew, where only the active villain counts,
+        keep that single villain. ``finder`` limits the eligible villains.
+        """
+        from game.message import Message
+        from game.player import Player
+
+        def eligible(villain: 'Villain|None') -> 'Villain|None':
+            if villain and (finder is None or finder.Check(villain)):
+                return villain
+            return None
+
+        this = by_effect.this
+        if CanAttach.IsType(this) and this.refers_to_the_villain_refers_to_attached:
+            return eligible(Worlds.FindVillain(by_effect))
+
+        world = by_effect.world
+        getting = Message.GettingVillain(world.CastGameArea(this.card.game_area), world)
+        getting.Send()
+        if getting.return_value:
+            return eligible(getting.return_value)
+
+        if world.scene.campaign.name == "The Wrecking Crew":
+            return eligible(Worlds.FindVillain(by_effect))
+
+        villains = Worlds.GetVillains(by_effect, finder)
+        if not villains:
+            return None
+        if len(villains) == 1:
+            return villains[0]
+        initiator = by_effect.GetInitiator()
+        if not isinstance(initiator, Player):
+            return eligible(Worlds.FindVillain(by_effect)) or villains[0]
+        return initiator.AskChooseFace(villains, by_effect, prompt=prompt)
+
+    @staticmethod
     def GetVillains(game_area_effect: 'GameArea|Effect', finder: 'CardFinder|None'=None) -> List['Villain']:
         game_area = Worlds.CastGameArea(game_area_effect)
         world = game_area.world

@@ -8,7 +8,11 @@ def GetAbilities() -> Sequence['Ability']:
         this = effect.this.CastTo(Ally)
         Unused(this)
 
-        value = Worlds.GetVillainStage(effect)
+        villain = Worlds.ChooseVillain(
+            effect,
+            prompt="Choose a villain for White Tiger's stage value",
+        )
+        value = villain.printed_stage if villain else 0
         value = Math.MinMax(value, 1, 3)
         for target in effect.targets:
             player = target.GetControlByPlayer()

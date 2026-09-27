@@ -12,7 +12,7 @@ def GetAbilities() -> Sequence['Ability']:
 
         initiator = effect.GetInitiator()
         if initiator.IsControl(CardFinder(name="Milano")):
-            villain = Worlds.FindVillain(effect)
+            villain = Worlds.ChooseVillain(effect)
             if villain:
                 targets.append(villain)
 
