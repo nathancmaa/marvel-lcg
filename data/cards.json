@@ -45872,7 +45872,7 @@
                 "ATK": "3",
                 "SCH": "3",
                 "Toughness": "1",
-                "Steady": "1",
+                "Stalwart": "1",
                 "Stage": "4"
             },
             "traits": [
@@ -66519,5 +66519,5 @@
             "full_link": "56128b"
         }
     ],
-    "checksum": "78079be370b6c518088a8afd703af8de7bc8bbd695bc378ae901a6d2fdeed6bb"
+    "checksum": "5e100a4454d08ddac8fe42baaf86217cc52999bf5840fe386013c672eda49ffc"
 }
