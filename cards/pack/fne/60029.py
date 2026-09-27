@@ -27,7 +27,7 @@ def GetAbilities() -> Sequence['Ability']:
         AbilityFactory.CanPlayThisSupportCard(),
         AbilityFactory.WhenUnitUseBasicPower(
             AbilityType.Interrupt,
-            CardFinder(card_type=Unit2, trait="MARTIAL ARTIST"),
+            CardFinder(card_type=Friend, trait="MARTIAL ARTIST"),
             stick,
         ),
     ]

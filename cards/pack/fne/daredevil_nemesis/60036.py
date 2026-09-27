@@ -8,7 +8,7 @@ def GetAbilities() -> Sequence['Ability']:
     def eye_on_the_target(effect: 'Effect', message: 'Message.WhenCardRevealed') -> None:
         this = effect.this.CastTo(Treachery)
         player = message.GetToPlayer()
-        bullseye = BullseyeInPlay(effect)
+        bullseye = BullseyeInPlay(effect, player)
         removable = player.GetControlCards(
             CardFinder(card_type=Ally|Support, check_face_fn=lambda face:
                 Ally.IsType(face) or face.HasTrait("PERSONA"))
@@ -36,7 +36,7 @@ def GetAbilities() -> Sequence['Ability']:
         if choices:
             player.ChooseAbilities(effect, *choices)
 
-        if not BullseyeInPlay(effect):
+        if not BullseyeInPlay(effect, player):
             found = FindBullseye(effect, player)
             if found:
                 found.Reveal(player, effect)

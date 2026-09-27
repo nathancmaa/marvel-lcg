@@ -12,5 +12,9 @@ def GetAbilities() -> Sequence['Ability']:
             AbilityType.ForcedResponse,
             Unit2,
             character_entered,
+            conditions=[
+                lambda effect, message: EnteredPlayFresh(message),
+                lambda effect, message: IsInThisPlayArea(message.trigger, effect),
+            ],
         ),
     ]

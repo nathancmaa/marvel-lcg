@@ -5,8 +5,8 @@ from . import *
 
 def GetAbilities() -> Sequence['Ability']:
 
-    def enhanced_olfaction(effect: 'Effect') -> None:
-        Faces.DiscardAll([effect.this], effect)
+    def enhanced_olfaction(effect: 'Effect', message: 'Message2') -> None:
+        Unused(message)
         Worlds.UpdateNextCardPlayCost(
             effect.GetInitiator(),
             -2,

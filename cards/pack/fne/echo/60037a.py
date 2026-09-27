@@ -12,11 +12,12 @@ def GetAbilities() -> Sequence['Ability']:
         )
 
     def is_playing_tucked_event(effect: 'Effect', play_effect: 'Effect') -> bool:
-        tucked_area = effect.this.GetPlacedCardArea()
-        return (
-            play_effect.this.card.area == tucked_area or
-            play_effect.context.declared_play_from_area == tucked_area
-        )
+        return IsPlayingTuckedEvent(effect.GetInitiator(), play_effect)
+
+    def can_spend_reflexes_on(effect: 'Effect', play_effect: 'Effect') -> bool:
+        # A copy must be kept out of the payment: that is the one discarded.
+        initiator = effect.GetInitiator()
+        return initiator.IsHero() and bool(SpareReflexes(initiator, play_effect))
 
     def watch_and_learn(effect: 'Effect', message: 'Message.AfterPlayerPlayedCard') -> None:
         this = effect.this.CastTo(Hero)
@@ -36,12 +37,10 @@ def GetAbilities() -> Sequence['Ability']:
             this.GetControlByPlayer().AskDiscardFaces(tucked_cards, (excess, excess), effect)
 
     def spend_photographic_reflexes(effect: 'Effect', message: 'Message.WhenPlayerWouldPlayCard') -> None:
+        # The payment is already spent, so every copy left in hand was kept
+        # back from it.
         initiator = effect.GetInitiator()
-        reflexes = initiator.hand_cards.FindCards(
-            name="Photographic Reflexes",
-            card_type=Event,
-        )
-        chosen = initiator.AskChooseFace(reflexes, effect)
+        chosen = initiator.AskChooseFace(PhotographicReflexesInHand(initiator), effect)
         if chosen:
             Faces.DiscardAll([chosen], effect)
 
@@ -74,7 +73,7 @@ def GetAbilities() -> Sequence['Ability']:
             conditions=[
                 lambda effect, message:
                     is_playing_tucked_event(effect, message.check_effect) and
-                    has_photographic_reflexes(effect)
+                    can_spend_reflexes_on(effect, message.check_effect)
             ],
         ),
         AbilityFactory.WhenPlayerWouldPlayCard(

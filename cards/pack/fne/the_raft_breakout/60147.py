@@ -7,7 +7,7 @@ def GetAbilities() -> Sequence['Ability']:
         player = message.GetAgainstPlayer()
         if not player:
             return
-        for face in list(message.boost_cards):
+        for face in ActivationBoostCards(message):
             if Treachery.IsType(face):
                 player.DealEncounterCard(face, effect)
 

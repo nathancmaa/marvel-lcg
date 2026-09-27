@@ -1,0 +1,188 @@
+"""Fear No Evil cards that raised in real play now resolve as printed.
+
+Each test plays a real game to the situation and checks the card's effect,
+not just the absence of an error.
+"""
+
+import unittest
+
+from engine import Engine  # noqa: F401 - project import order
+
+from unit_test.fne_headless import build_scene, initialize_database, play
+from game.scene.replay.operation import CommandDescriptor
+from game.test.headless import HeadlessDeviceManager
+
+
+HERO_FORM = 'Puzzle.ChangeFormFor(0, "Identity")'
+
+
+def on_field(world, card_id):
+    return [face for face in world.FindCardsOnField() if face.paper.card_id == card_id]
+
+
+class KingpinFinaleAttachmentTests(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        initialize_database()
+
+    def kingpin_game(self, *commands, seed=11, render=False):
+        run = play(build_scene("kingpin", None, ["spider_man"], seed), [HERO_FORM, *commands], render=render)
+        self.assertEqual(run.Exceptions(), [])
+        return run
+
+    def test_james_wesley_attaches_and_gives_kingpin_a_facedown_boost_card(self):
+        run = self.kingpin_game('Puzzle.Reveal("60165")')
+        wesley = on_field(run.world, "60165")
+        self.assertEqual(len(wesley), 1)
+        kingpin = wesley[0].GetBindFace()
+        self.assertTrue(kingpin.IsName("Kingpin"))
+        self.assertEqual(kingpin.components.boostable.GetDeck().GetSize(), 1)
+
+    def test_kingpins_cane_stuns_the_revealing_hero(self):
+        run = self.kingpin_game('Puzzle.Reveal("60166")')
+        self.assertEqual(len(on_field(run.world, "60166")), 1)
+        self.assertTrue(run.world.GetFirstPlayer().GetIdentity().IsStunned())
+
+    def test_vanessa_fisk_confuses_then_her_boost_adds_threat(self):
+        run = self.kingpin_game('Puzzle.Reveal("60168")')
+        self.assertEqual(len(on_field(run.world, "60168")), 1)
+        self.assertTrue(run.world.GetFirstPlayer().GetIdentity().IsConfused())
+
+    def test_vanessa_fisk_boost_places_threat_when_already_confused(self):
+        run = self.kingpin_game(
+            'Puzzle.Confuse(c1)',
+            'Puzzle.Boost("60168")',
+            render=True,
+        )
+        self.assertRegex(
+            run.output,
+            r"would place 1\S* \(\(\^!\d+\) \[\(\d+,60168\) Vanessa Fisk\] \(AbilityType\.Boost\)",
+        )
+
+
+class SensoryOverloadTests(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        initialize_database()
+
+    def test_sense_upgrade_deals_damage_against_purple_man(self):
+        # The obligation's effect is initiated by Purple Man here; it used to
+        # assert in GetInitiator instead of dealing the damage.
+        run = play(
+            build_scene("the_getaway", "purple_man", ["daredevil"], 7),
+            [HERO_FORM, 'Puzzle.Reveal("60032")', 'Puzzle.PutIntoPlay("60004")'],
+            render=False,
+        )
+        self.assertEqual(run.Exceptions(), [])
+        player = run.world.GetFirstPlayer()
+        self.assertEqual([face.paper.card_id for face in player.obligations_area.Get()], ["60032"])
+        self.assertEqual(player.GetIdentity().GetLostHealth(), 1)
+
+
+class ImprisonedTests(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        initialize_database()
+
+    def test_imprisoned_sits_in_your_area_and_blocks_attack_thwart_and_alter_ego(self):
+        state = {}
+
+        def try_change_form(prompt):
+            if state.get("armed") and prompt.event_name == "WhenPlayerInTurn" and not state.get("tried"):
+                state["options"] = [option.get("name") for option in prompt.options]
+                for option in prompt.options:
+                    if option.get("name") == "Change_Form":
+                        state["tried"] = True
+                        return CommandDescriptor(HeadlessDeviceManager._DescriptorId(option), [], [])
+            return None
+
+        def arm(_world):
+            state["armed"] = True
+            return "Puzzle.End()"
+
+        run = play(
+            build_scene("the_raft_breakout", "hammerhead", ["spider_man"], 7),
+            [HERO_FORM, 'Puzzle.Reveal("60150")', arm, "Puzzle.End()"],
+            on_prompt=try_change_form,
+            render=False,
+        )
+        self.assertEqual(run.Exceptions(), [])
+        player = run.world.GetFirstPlayer()
+        self.assertEqual([face.paper.card_id for face in player.obligations_area.Get()], ["60150"])
+        self.assertNotIn("Attack", state["options"])
+        self.assertNotIn("Thwart", state["options"])
+        self.assertIn("Spend_3_resources_to_discard_Imprisoned", state["options"])
+        # Choosing Change Form does not take Spider-Man to alter-ego.
+        self.assertEqual(player.GetIdentity().paper.card_id, "01001a")
+
+
+class CarjackingTests(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        initialize_database()
+
+    def test_the_choice_names_the_discarded_vehicle(self):
+        seen = {}
+
+        def reveal_it(prompt):
+            names = [option.get("name") or "" for option in prompt.options]
+            reveal = [option for option in prompt.options if (option.get("name") or "").startswith("Reveal_")]
+            if reveal:
+                seen["names"] = names
+                return CommandDescriptor(HeadlessDeviceManager._DescriptorId(reveal[0]), [], [])
+            return None
+
+        run = play(
+            build_scene("the_getaway", "bullseye", ["spider_man"], 13),
+            [HERO_FORM, 'Puzzle.Reveal("60190")'],
+            on_prompt=reveal_it,
+            render=False,
+        )
+        self.assertEqual(run.Exceptions(), [])
+        vehicles = [
+            face for face in run.world.FindCardsOnField()
+            if face.HasTrait("VEHICLE") and face.paper.card_id != "60129a"
+        ]
+        self.assertEqual(len(vehicles), 1)
+        vehicle = vehicles[0].name.replace(" ", "_")
+        self.assertEqual(
+            seen["names"],
+            [f"Spend_3_resources_of_the_same_type_to_attach_{vehicle}_to_your_identity", f"Reveal_{vehicle}"],
+        )
+
+    def test_spending_three_of_a_kind_attaches_the_vehicle_to_you(self):
+        seen = {}
+
+        def spend(prompt):
+            options = [option for option in prompt.options if (option.get("name") or "").startswith("Spend_3_")]
+            if not options:
+                return None
+            option = options[0]
+            seen["payment"] = option["target_payment"]
+            payers = [key for group in option["target_payment"]["0"]["payment"] for key in group]
+            return CommandDescriptor(HeadlessDeviceManager._DescriptorId(option), [], payers[:2])
+
+        run = play(
+            build_scene("the_getaway", "bullseye", ["spider_man"], 13),
+            [
+                HERO_FORM,
+                "Puzzle.ClearHand()",
+                'Puzzle.CreateHandCards("01088", "01088")',
+                'Puzzle.Reveal("60190")',
+            ],
+            on_prompt=spend,
+            render=False,
+        )
+        self.assertEqual(run.Exceptions(), [])
+        self.assertIn("payment", seen)
+        identity = run.world.GetFirstPlayer().GetIdentity()
+        attached = [face for face in identity.GetAttachedAttachments() if face.HasTrait("VEHICLE")]
+        self.assertEqual(len(attached), 1)
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -205,7 +205,7 @@ class RaftBreakoutCardTests(unittest.TestCase):
             ability.operation(effect, message)
 
         this.TuckCardUnderHere.assert_called_once_with(top_card, effect)
-        message.GainAttackForThisAttack.assert_called_once_with(3, effect)
+        message.GainATKForThisAttack.assert_called_once_with(3, effect)
 
     def test_baron_zemo_turns_the_chosen_ally_into_a_deceived_minion(self):
         module = load_raft_card("60145")

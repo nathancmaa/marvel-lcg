@@ -19,7 +19,6 @@ def GetAbilities() -> Sequence['Ability']:
         return Faces.ExhaustAll(targets, effect) == list(targets)
 
     return [
-        AbilityFactory.AttachToFaceWhenPutIntoPlay("YourIdentity"),
         AbilityFactory.PlayersCannotAttackWhile("You", Enemy),
         AbilityFactory.PlayersCannotThwartWhile("You", Scheme2),
         AbilityFactory.PlayersCannotChangeForms(

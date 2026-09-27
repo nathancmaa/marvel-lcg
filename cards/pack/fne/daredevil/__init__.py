@@ -96,32 +96,60 @@ def SenseCanAttachToEnemyOrScheme() -> 'Ability':
     )
 
 
-def SenseCompletionAbilities(operation: Callable[['Effect'], None]) -> Sequence['Ability']:
-    def enemy_defeated(effect: 'Effect', message: 'Message.WhenUnitBeDefeated') -> None:
-        operation(effect)
+def SenseCompletedByYou(effect: 'Effect', face: 'CardFace|None') -> bool:
+    """Whether ``face`` counts as "you" for a Sense interrupt.
 
-    def scheme_defeated(effect: 'Effect', message: 'Message.WhenSchemeBeDefeated') -> None:
-        operation(effect)
+    Your identity, or a card you play or control that is not a character
+    (an event's damage or threat removal). An ally defeating the enemy or
+    thwarting the scheme is not you.
+    """
+    if face is None or Ally.IsType(face):
+        return False
+    if Condition.CheckWhichCard("YourIdentity", face, effect):
+        return True
+    return not Unit2.IsType(face) and face.GetControlByOrOwner() == effect.this.GetOwnerPlayer()
+
+
+def SenseCompletionAbilities(operation: Callable[['Effect', 'Message2'], None]) -> Sequence['Ability']:
+    """"When you defeat attached enemy or remove the last threat from
+    attached scheme, discard this card → ..."
+
+    Both are interrupts before the event: the enemy would be defeated (the
+    upgrade would otherwise be discarded with it, before a When Defeated
+    ability runs) or threat would be removed that leaves none. Discarding
+    the Sense returns it to the bottom of the Sense deck, so it can be put
+    back into play straight away, as Focus the Senses does when defeated.
+    """
+
+    def you_would_defeat(effect: 'Effect', message: 'Message.WhenUnitWouldBeDefeated') -> bool:
+        return not message.is_be_instead and SenseCompletedByYou(effect, message.killer)
+
+    def you_would_remove_last_threat(effect: 'Effect', message: 'Message.WhenSchemeWouldRemoveThreat') -> bool:
+        return (
+            not message.is_be_instead
+            and not message.cannot_be_removed
+            and 0 < message.trigger.CastTo(Scheme2).threat <= message.value
+            and SenseCompletedByYou(effect, message.by_face)
+        )
+
+    def discard_then(effect: 'Effect', message: 'Message2') -> None:
+        # Not a CostFunc.Discard: Matt Murdock's Forced Interrupt replaces
+        # the discard with the bottom of the Sense deck, which a discard
+        # cost counts as unpaid, and the effect would never resolve.
+        Faces.DiscardAll([effect.this], effect)
+        operation(effect, message)
 
     return [
-        AbilityFactory.WhenUnitBeDefeated(
+        AbilityFactory.WhenUnitWouldBeDefeated(
             AbilityType.Interrupt,
             "AttachedEnemy",
-            enemy_defeated,
-            has_defeating_player=True,
-            conditions=[
-                lambda effect, message:
-                    message.defeating_player == effect.this.GetOwnerPlayer()
-            ],
+            discard_then,
+            conditions=[you_would_defeat],
         ),
-        AbilityFactory.WhenSchemeBeDefeated(
+        AbilityFactory.WhenSchemeWouldRemoveThreat(
             AbilityType.Interrupt,
             "AttachedScheme",
-            scheme_defeated,
-            has_defeating_player=True,
-            conditions=[
-                lambda effect, message:
-                    message.defeating_player == effect.this.GetOwnerPlayer()
-            ],
+            discard_then,
+            conditions=[you_would_remove_last_threat],
         ),
     ]
