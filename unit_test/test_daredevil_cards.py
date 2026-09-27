@@ -253,31 +253,6 @@ class DaredevilAbilityTests(TestCase):
 
         check_card.assert_called_once_with("YourIdentity", source, effect)
 
-    def test_enhanced_olfaction_interrupt_is_available_when_owner_defeats_attached_scheme(self):
-        module = importlib.import_module("cards.pack.fne.daredevil.60003")
-        factory_module = importlib.import_module("game.ability.factory.defeated")
-        interrupt = next(
-            ability for ability in module.GetAbilities()
-            if ability.when.__name__ == "WhenSchemeBeDefeated"
-        )
-        owner = Mock()
-        effect = Mock()
-        effect.this.GetOwnerPlayer.return_value = owner
-        effect.ability.type.flags.is_when_defeated = False
-        message = Mock(defeating_player=owner)
-
-        with patch.object(
-            factory_module.Condition,
-            "CheckWhichCard",
-            return_value=True,
-        ) as check_card:
-            self.assertTrue(all(
-                condition(effect, message)
-                for condition in interrupt.conditions
-            ))
-
-        check_card.assert_called_once_with("AttachedScheme", message.trigger, effect)
-
     def test_know_your_enemy_rechecks_crisis_before_each_threat_removal(self):
         module = importlib.import_module("cards.pack.fne.60023")
         ability = module.GetAbilities()[1]
@@ -404,3 +379,171 @@ class DaredevilAbilityTests(TestCase):
         ability.operation(effect, message)
 
         message.ChangeDealtToTarget.assert_called_once_with(daredevil, effect)
+
+
+class SenseInterruptRealGameTests(TestCase):
+    """Acute Tactility and Enhanced Olfaction in real games.
+
+    "When you defeat attached enemy or remove the last threat from attached
+    scheme" is offered when Daredevil takes the last threat off any scheme
+    (a main scheme is not defeated by that) or defeats the enemy, and not
+    when an ally does it. The discarded Sense goes back to the Sense deck in
+    time for Focus the Senses to put it back into play.
+    """
+
+    SENSES = ("60002", "60003")
+
+    @classmethod
+    def setUpClass(cls):
+        from game.test.harness import initialize_database
+        initialize_database()
+
+    def run_table(self, sense_id, setup, acts, attach_to, seed=99):
+        """Play Rhino as Daredevil: set up, attach the Sense, then act.
+
+        ``acts`` are (option name, acting card id, target card id) actions
+        taken on the player's turn, with Daredevil readied between them.
+        Returns the run and what the Sense's interrupt prompt saw (None if it
+        was never offered) and Focus the Senses' put-into-play prompt.
+        """
+        from game.scene.replay.operation import CommandDescriptor
+        from game.test.headless import HeadlessDeviceManager
+        from unit_test.fne_headless import build_scene, play
+
+        state = {"armed": False, "acted": 0, "interrupt": None, "put": None}
+
+        def face_of(world, card_id):
+            found = [face for face in world.FindCardsOnField() if face.paper.card_id == card_id]
+            return found[0] if found else None
+
+        def choose(prompt):
+            world = Engine.game.world
+            player = world.GetFirstPlayer()
+            for option in prompt.options:
+                bind = world.object_manager.card_dict.get(option.get("bind_id"))
+                if prompt.ability_type == "Interrupt" and bind and bind.face.paper.card_id == sense_id:
+                    scheme_or_enemy = face_of(world, attach_to)
+                    state["interrupt"] = {
+                        "event": prompt.event_name,
+                        "threat": getattr(scheme_or_enemy, "threat", None),
+                        "exhausted": player.GetIdentity().IsExhaust(),
+                    }
+                    return CommandDescriptor(
+                        HeadlessDeviceManager._DescriptorId(option),
+                        [str(target) for target in option.get("all_legal_targets", [])],
+                        [],
+                    )
+                if option.get("name") == "Choose_Sense_upgrades_to_put_into_play":
+                    state["put"] = {
+                        "targets": list(option.get("all_legal_targets", [])),
+                        "exhausted": player.GetIdentity().IsExhaust(),
+                    }
+                    return None
+            if prompt.event_name == "WhenPlayerChooseAbility" and not state["armed"]:
+                target = face_of(world, attach_to)
+                for option in prompt.options:
+                    if target and target.card.object_id in option.get("all_legal_targets", []):
+                        return CommandDescriptor(
+                            HeadlessDeviceManager._DescriptorId(option),
+                            [str(target.card.object_id)],
+                            [],
+                        )
+            if prompt.event_name == "WhenPlayerInTurn" and state["armed"] and state["acted"] < len(acts):
+                name, actor_id, target_id = acts[state["acted"]]
+                actor = face_of(world, actor_id)
+                target = face_of(world, target_id)
+                if actor.IsExhaust():
+                    return None  # the next command readies Daredevil
+                for option in prompt.options:
+                    if option.get("name") == name and option.get("bind_id") == actor.card.object_id:
+                        state["acted"] += 1
+                        return CommandDescriptor(
+                            HeadlessDeviceManager._DescriptorId(option),
+                            [str(target.card.object_id)],
+                            [],
+                        )
+                raise AssertionError(f"no {name} for {actor_id} in {prompt.options}")
+            return None
+
+        def arm(_world):
+            state["armed"] = True
+            return "Puzzle.End()"
+
+        commands = [
+            'Puzzle.ChangeFormFor(0, "Identity")',
+            *setup,
+            f'Puzzle.PutIntoPlay("{sense_id}")',
+            arm,
+            "Puzzle.Ready(c1)",
+            "Puzzle.End()",
+        ]
+        run = play(
+            build_scene("rhino", None, ["daredevil"], seed),
+            commands,
+            on_prompt=choose,
+            render=False,
+            max_prompts=80,
+        )
+        self.assertEqual(run.Exceptions(), [])
+        self.assertEqual(state["acted"], len(acts))
+        return run, state
+
+    def test_removing_the_last_threat_from_focus_the_senses_lets_it_replay_the_sense(self):
+        for sense_id in self.SENSES:
+            with self.subTest(sense=sense_id):
+                # Focus starts with 4 threat; Daredevil (THW 2) thwarts once,
+                # readies, then takes the last 2 off.
+                run, state = self.run_table(
+                    sense_id,
+                    ['Puzzle.PutIntoPlay("60012")'],
+                    [("Thwart", "60001a", "60012")] * 2,
+                    "60012",
+                )
+                self.assertEqual(
+                    state["interrupt"],
+                    {"event": "WhenSchemeWouldRemoveThreat", "threat": 2, "exhausted": True},
+                )
+                self.assertIsNotNone(state["put"])
+                from cards.pack.fne.daredevil import GetSenseDeck
+                deck = GetSenseDeck(run.world.GetFirstPlayer())
+                returned = [face for face in deck.GetAll() if face.paper.card_id == sense_id]
+                self.assertTrue(any(face.card.object_id in state["put"]["targets"] for face in returned))
+                if sense_id == "60002":
+                    self.assertFalse(state["put"]["exhausted"])
+
+    def test_removing_the_last_main_scheme_threat_is_offered(self):
+        for sense_id in self.SENSES:
+            with self.subTest(sense=sense_id):
+                run, state = self.run_table(
+                    sense_id,
+                    ['Puzzle.SetThreat("01097b", 2)'],
+                    [("Thwart", "60001a", "01097b")],
+                    "01097b",
+                )
+                self.assertEqual(state["interrupt"]["event"], "WhenSchemeWouldRemoveThreat")
+                self.assertEqual(state["interrupt"]["threat"], 2)
+
+    def test_defeating_the_attached_minion_is_offered(self):
+        for sense_id in self.SENSES:
+            with self.subTest(sense=sense_id):
+                run, state = self.run_table(
+                    sense_id,
+                    ['Puzzle.PutIntoPlay("01101")', 'Puzzle.Damage("01101", 1)'],
+                    [("Attack", "60001a", "01101")],
+                    "01101",
+                )
+                self.assertIsNotNone(state["interrupt"])
+                self.assertEqual(state["interrupt"]["event"], "WhenUnitWouldBeDefeated")
+
+    def test_an_ally_thwarting_the_attached_side_scheme_is_not_you(self):
+        for sense_id in self.SENSES:
+            with self.subTest(sense=sense_id):
+                run, state = self.run_table(
+                    sense_id,
+                    ['Puzzle.PutIntoPlay("01107")', 'Puzzle.PutIntoPlay("60019")'],
+                    [("Thwart", "60019", "01107")],
+                    "01107",
+                )
+                self.assertIsNone(state["interrupt"])
+                side = [face for face in run.world.FindCardsOnField() if face.paper.card_id == "01107"]
+                self.assertEqual(side, [], "Blindspot should have cleared the side scheme")

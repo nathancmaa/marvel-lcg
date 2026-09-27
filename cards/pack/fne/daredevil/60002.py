@@ -5,8 +5,8 @@ from . import *
 
 def GetAbilities() -> Sequence['Ability']:
 
-    def acute_tactility(effect: 'Effect') -> None:
-        Faces.DiscardAll([effect.this], effect)
+    def acute_tactility(effect: 'Effect', message: 'Message2') -> None:
+        Unused(message)
         Faces.ReadyAll([effect.GetInitiator().GetIdentity()], effect)
 
     return [
