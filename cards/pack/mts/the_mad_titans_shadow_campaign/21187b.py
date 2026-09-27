@@ -6,6 +6,12 @@ def GetAbilities() -> Sequence['Ability']:
         effect.this.HealthUnits(effect.targets, 1, effect)
 
     return [
+        *AbilityFactory.GiveKeywordToAttached(
+            Hero,
+            thwart=1,
+            attack=1,
+            defense=1,
+        ),
         AbilityFactory.WhenInYourPlayTurn(
             AbilityType.AlterEgoAction,
             norn_stone,

@@ -16,8 +16,7 @@ def GetAbilities() -> Sequence['Ability']:
         odin = Worlds.FindCardOnField(effect, name="Odin", card_type=Ally)
         if odin:
             effect.this.HealthUnits([odin], "All", effect)
-            if odin.HasTrait("WOUNDED"):
-                odin.card.Flip(effect)
+            odin.FlipTo(effect, trait="KING")
 
     return [
         AbilityFactory.ThreatCannotBeRemovedFromWhile(
