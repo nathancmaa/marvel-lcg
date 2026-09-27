@@ -1013,6 +1013,27 @@ p:has(#timeout_text) {
                     },
                 }
 
+                function campaignPlayerNumber(description) {
+                    const playerMatch = description.match(/^Player (\d+)/)
+                    const legacyMatch = description.match(/ P(\d+)$/)
+                    const match = playerMatch || legacyMatch
+                    return match ? parseInt(match[1]) : 0
+                }
+
+                // Show only the rows of players that have a hero. Run again
+                // whenever a hero is picked or cleared, not only when the
+                // rows are built, so adding a second hero shows Player 2.
+                function updateCampaignPlayerRows() {
+                    const selectedHeroes = typeof heroes === "undefined"
+                        ? 0
+                        : Object.values(heroes).filter(hero => hero).length
+                    const visiblePlayers = Math.max(1, selectedHeroes)
+
+                    document.querySelectorAll('#campaign_log_container tr[data-player-number]').forEach(row => {
+                        row.hidden = parseInt(row.dataset.playerNumber) > visiblePlayers
+                    })
+                }
+
                 function generateInputs(current_package) {
                     if( current_package ) {
                         last_current_package = current_package
@@ -1277,29 +1298,12 @@ p:has(#timeout_text) {
                     const container = document.getElementById('campaign_log_container');
                     container.replaceChildren()
 
-                    let length_of_heroes = 0
-                    for( key in heroes ) {
-                        if( heroes[key] ) {
-                            length_of_heroes += 1
-                        }
-                    }
-
                     playerStrings[campaign_id].forEach(item => {
                         const row = document.createElement('tr');
-
-                        if( length_of_heroes < 2 && (item.description.startsWith("Player 2") || item.description.endsWith("P2")) ) {
-                            return
+                        const playerNumber = campaignPlayerNumber(item.description)
+                        if( playerNumber ) {
+                            row.dataset.playerNumber = playerNumber
                         }
-                        if( length_of_heroes < 3 && (item.description.startsWith("Player 3") || item.description.endsWith("P3")) ) {
-                            return
-                        }
-                        if( length_of_heroes < 4 && (item.description.startsWith("Player 4") || item.description.endsWith("P4")) ) {
-                            return
-                        }
-                        // const playerNumber = parseInt(item.description.match(/Player (\d+)/)?.[1]); // Extract player number from description
-                        // if (playerNumber && Object.keys(heroes).length < playerNumber ) {
-                        //     return; // Skip if there are not enough heroes for the player
-                        // }
 
                         row.innerHTML = `<td>${item.description}</td>`;
                         
@@ -1344,6 +1348,7 @@ p:has(#timeout_text) {
 
                         container.appendChild(row);
                     });
+                    updateCampaignPlayerRows()
                 }
             </script>
         </details>
@@ -1670,6 +1675,9 @@ p:has(#timeout_text) {
                 input.disabled = true
                 timeout_update(true)
             }
+            if( typeof updateCampaignPlayerRows === "function" ) {
+                updateCampaignPlayerRows()
+            }
         }
 
         async function Load(e) {
@@ -1792,7 +1800,12 @@ p:has(#timeout_text) {
                 }
                 const jsonData = {};
                 const inputs = document.querySelector('#campaign_log_container').querySelectorAll('input[type="text"], input[type="number"], select');
+                // A hidden row belongs to a player with no hero.
+                const inHiddenRow = input => input.closest('tr')?.hidden === true
                 inputs.forEach(input => {
+                    if( inHiddenRow(input) ) {
+                        return
+                    }
                     const inputValue = input.value.trim();
                     const key = input.getAttribute('data-key');
                     if (inputValue) {
@@ -1802,6 +1815,9 @@ p:has(#timeout_text) {
 
                 const input_hidden = document.querySelector('#campaign_log_container').querySelectorAll('input[type="hidden"]');
                 input_hidden.forEach(input => {
+                    if( inHiddenRow(input) ) {
+                        return
+                    }
                     const input_checkboxes = input.parentElement.querySelectorAll('input[type="checkbox"], input[type="radio"]')
                     let checked_list = []
                     input_checkboxes.forEach(i => {
