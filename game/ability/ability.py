@@ -227,7 +227,7 @@ class Ability:
                 check_sub_type([], ["Play"])
             elif self.when == Message.WhenCardPutIntoPlay:
                 check_sub_type([], ["AttachToWhenEnterPlay"])
-            elif self.when == Message.WhenCardEnterPlay:
+            elif self.when in (Message.WhenCardEnterPlay, Message.WhenCardEnterPlay|Message.WhenCardFaceActivated):
                 check_sub_type([], ["TreatAttachedCardAsMinion"])
             elif self.when == Message.CheckIfAllyCountLimit:
                 check_sub_type([], ["CheckAllyLimit"])
