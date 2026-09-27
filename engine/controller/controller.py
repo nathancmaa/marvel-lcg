@@ -107,6 +107,7 @@ class Controller:
 
         Notify.Clean()
 
+        restore_failed = False
         try:
             # Convert replay data
             def convert_replay_data(check_object: CommandDescriptor) -> str:
@@ -132,8 +133,46 @@ class Controller:
             if fallthrough_cmd.id and not replay_debug_cmd:
                 convert_fallthrough_input = convert_replay_data(fallthrough_cmd)
         except Exception as exc:
-            # Log.FailedTrace(CATEGORY_NAME, exc)
-            pass
+            # The recorded choice names no option of this ask. Falling back
+            # to its raw number is not safe: option numbers restart with
+            # every ask, so the stale number can name a different option and
+            # resolve it silently. It is treated as a misfit instead.
+            Log.Warn(CATEGORY_NAME, f"Could not restore recorded choice {fallthrough_cmd.id}: {exc}")
+            restore_failed = True
+
+        # Set once the recorded choice for this ask has been dropped as a
+        # misfit. What is left in `replay_input` and the fallthrough is then
+        # stale and must never be fed to this ask again.
+        misfit = False
+
+        def stop_skipping() -> None:
+            if controller_manager.skip.SetIsSkipping(False):
+                if self.world:
+                    self.world.render.PresentForceNoWait()
+            controller_manager.skip.skip_to = 0
+
+        def drop_recorded_choice() -> None:
+            # Take the recorded choice out of the recording (the player's
+            # answer takes its place, and Redo carries on from the choice
+            # recorded after it) and forget it here, so a later Redo, Next
+            # or Auto press at this same ask does not resubmit it: each
+            # resubmission would be dropped again, deleting the next valid
+            # recorded choice every time.
+            nonlocal replay_input, replay_debug_cmd, fallthrough_input, convert_fallthrough_input, misfit
+            if replay_input and (controller_manager.skip.is_skipping or controller_manager.skip.skip_to > 0):
+                controller_manager.replay.DropMisfit()
+                Notify.Command("A recorded choice no longer fits here and was dropped. Choose again; Redo carries on from the next one.")
+            replay_input = None
+            replay_debug_cmd = ""
+            fallthrough_input = "{}"
+            convert_fallthrough_input = "{}"
+            misfit = True
+
+        if restore_failed and replay_input:
+            if Test.IsInTesting():
+                assert False, f"Could not restore recorded choice: {fallthrough_cmd.id}"
+            drop_recorded_choice()
+            stop_skipping()
 
         if by_effect != None and by_effect.GetDisplayName() == 'End Phase':
             message_name = "End Turn"
@@ -275,6 +314,15 @@ class Controller:
                 # left standing by a step or a redo used to end the turn
                 # this way. A skip to the next round or turn answers empty
                 # on purpose and keeps doing so.
+                if misfit and not controller_manager.skip.skip_to_next and \
+                    (controller_manager.skip.is_skipping or controller_manager.skip.skip_to > 0):
+                    # Redo or Auto pressed at an ask whose recorded choice
+                    # was dropped: the wake-up is not an answer, and there is
+                    # no recorded one to give. Put the ask again.
+                    controller_manager.skip.Clean()
+                    if self.world:
+                        self.world.render.PresentForceNoWait()
+                    continue
                 if (controller_manager.skip.is_skipping or controller_manager.skip.skip_to > 0) and                         (replay_input or controller_manager.skip.skip_to_next):
                     user_input = convert_fallthrough_input
                     controller_manager.console.SetCommand(replay_debug_cmd, message.world)
@@ -291,8 +339,19 @@ class Controller:
                 input_effect = Json.LoadsAs(user_input, CommandDescriptor)
                 input_effect_id = CardEffectInt(input_effect.id)
                 if input_effect_id == 0:
-                    if is_forced:
-                        assert len(effect_descriptors) == 1 and effect_descriptors[0].target_num_range[0] == 0, f"{is_forced}"
+                    if is_forced and not (len(effect_descriptors) == 1 and effect_descriptors[0].target_num_range[0] == 0):
+                        # An empty answer to an ask that must be answered,
+                        # such as the discard down to hand size at the end
+                        # of the phase, from a Cancel button or a page still
+                        # showing an older ask. It is put again rather than
+                        # stopping the game with an error dialog.
+                        if Test.IsInTesting() and replay_input:
+                            assert False, f"Empty answer to a forced ask: {user_input=}"
+                        Log.Warn(CATEGORY_NAME, f"Empty answer to a forced ask; asking again: {user_input}")
+                        if controller_manager.skip.is_skipping or controller_manager.skip.skip_to > 0:
+                            drop_recorded_choice()
+                        stop_skipping()
+                        continue
                     break
 
                 # Update selected
@@ -324,12 +383,8 @@ class Controller:
                         assert False, f"{why}: {select_effect=} {user_input=}"
                     Log.Warn(CATEGORY_NAME, f"{why}; asking again: {user_input}")
                     if controller_manager.skip.is_skipping or controller_manager.skip.skip_to > 0:
-                        controller_manager.replay.DropMisfit()
-                        Notify.Command("A recorded choice no longer fits here and was dropped. Choose again; Redo carries on from the next one.")
-                    if controller_manager.skip.SetIsSkipping(False):
-                        if self.world:
-                            self.world.render.PresentForceNoWait()
-                    controller_manager.skip.skip_to = 0
+                        drop_recorded_choice()
+                    stop_skipping()
 
                 if select_effect == None:
                     ask_again("Input named no option of this ask")
