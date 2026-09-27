@@ -175,7 +175,7 @@ def RevealTeleportedAwayWithCampaignThreat() -> 'Ability':
     return AbilityFactoryCampaign.WhenCampaignSetup(action, campaign_id=CAMPAIGN_ID)
 
 
-def ApplyPreviousHopeDamage(previous_scenario: int, destination_key: str) -> 'Ability':
+def ChoosePreviousHopeDamagePlacement(previous_scenario: int, scheme_name: str) -> 'Ability':
     def action(effect: 'Effect', message: 'Message.WhenCampaignSetup') -> None:
         from game.operate.campaign_logs import CampaignLog
 
@@ -186,19 +186,31 @@ def ApplyPreviousHopeDamage(previous_scenario: int, destination_key: str) -> 'Ab
         if damage <= 0:
             return
 
-        destination = CampaignLog.GetStrInternal(destination_key, effect)
-        if destination == "Hope Summers":
-            hope = Worlds.FindCardOnField(effect, name="Hope Summers", card_type=Ally)
-            if hope:
-                hope.TakeDamage(effect.this, damage, effect)
-        elif destination:
-            scheme = Worlds.FindCardOnField(
-                effect,
-                name=destination,
-                card_type=EncounterSideScheme,
+        hope = Worlds.FindCardOnField(effect, name="Hope Summers", card_type=Ally)
+        scheme = Worlds.FindCardOnField(
+            effect,
+            name=scheme_name,
+            card_type=EncounterSideScheme,
+        )
+
+        choices: List['Ability'] = []
+        if hope:
+            choices.append(
+                AbilityFactory.ForChoiceAbility(
+                    f"Place {damage} damage on Hope Summers",
+                    lambda targets: hope.TakeDamage(effect.this, damage, effect),
+                )
             )
-            if scheme:
-                effect.this.PlaceThreatOnSchemes([scheme], damage, effect)
+        if scheme:
+            choices.append(
+                AbilityFactory.ForChoiceAbility(
+                    f"Place {damage} threat on {scheme_name}",
+                    lambda targets: effect.this.PlaceThreatOnSchemes([scheme], damage, effect),
+                )
+            )
+
+        if choices:
+            Worlds.GetFirstPlayer(effect).ChooseAbilities(effect, *choices)
 
     return AbilityFactoryCampaign.WhenCampaignSetup(action, campaign_id=CAMPAIGN_ID)
 
@@ -275,12 +287,12 @@ def CampaignSetup(level: int) -> List['Ability']:
     elif level == 4:
         abilities.extend([
             RevealTeleportedAwayWithCampaignThreat(),
-            ApplyPreviousHopeDamage(3, "Scenario 4 Hope Damage Placement"),
+            ChoosePreviousHopeDamagePlacement(3, "Teleported Away"),
         ])
     elif level == 5:
         abilities.extend([
             AddThreatToStryfesGrasp(),
-            ApplyPreviousHopeDamage(4, "Scenario 5 Hope Damage Placement"),
+            ChoosePreviousHopeDamagePlacement(4, "Stryfe's Grasp"),
             EachPlayerRevealMinionOrPsionicAttachment(),
         ])
 

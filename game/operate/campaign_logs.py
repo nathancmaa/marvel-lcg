@@ -88,8 +88,6 @@ LOG_STR_KEY: TypeAlias = Literal[
     "Scenario 3 Player Side Scheme",
     "Scenario 4 Player Side Scheme",
     "Scenario 5 Player Side Scheme",
-    "Scenario 4 Hope Damage Placement",
-    "Scenario 5 Hope Damage Placement",
     "Age of Apocalypse Scenario",
     "Power Stone Control",
     "Reveal Kree Supremacy",
