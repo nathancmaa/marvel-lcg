@@ -241,6 +241,8 @@ class PlayerAction:
         player.world.object_manager.ResetChooseEffect()
         effects: List['Effect'] = []
         identity = player.GetIdentity()
+        has_payment_option = False
+        has_other_option = False
         for ability in abilities:
             if ability == None:
                 continue
@@ -248,11 +250,21 @@ class PlayerAction:
             effects.append(effect)
 
             if "ForChoiceAbilityWithCost" in ability.func_names:
-                forced = False
+                has_payment_option = True
+            else:
+                has_other_option = True
+
+        # An ask made only of payments is an offer: "you may spend" (Erratic
+        # Teleportation, "39019"), declined with Cancel. One that also has
+        # something else is a choice between the halves -- "spend X or
+        # suffer Y" (Sonic Boom, "01123") -- and Cancel would skip both. It
+        # stays forced; backing out of the payment asks it again (see
+        # `ChoiceAndSpellEffect`).
+        if has_payment_option and not has_other_option:
+            forced = False
 
         message = Message.WhenPlayerChooseAbility(player, by_effect, step, for_second_target)
         message.Send()
-        # Cannot set `forced=True`, see "39019"
         return self.ChooseEffects(effects, message, forced=forced, priority=priority)
 
     def MayChooseOneAbility(self, by_effect: 'Effect', *abilities: 'Ability') -> 'Effect|None':
@@ -287,7 +299,12 @@ class PlayerAction:
                     fallthrough_effect.context.targets_internal = fallthrough_effect.context.all_legal_targets[:min_target_num]
                     if not forced:
                         assert not fallthrough_effect.ability.NeedCost(), f"{fallthrough_effect.ability}"
-                    if min_target_num == max_target_num:
+                    if fallthrough_effect.ability.NeedCost():
+                        # A payment is never made for the player: which
+                        # resources to spend is theirs to choose, even when
+                        # it is the one option left.
+                        pass
+                    elif min_target_num == max_target_num:
                         if min_target_num <= 1:
                             if len(find_effect.context.all_legal_targets) <= find_effect.context.target_range[0]:
                                 need_choose = False
@@ -379,6 +396,17 @@ class PlayerAction:
                 break
             if self.ResolveEffect(effect, message):
                 break
+
+            if forced == True and \
+                need_choose and \
+                type(message) is Message.WhenPlayerChooseAbility and \
+                effect.ability.NeedCost():
+                # The payment for one half of a forced choice was not made:
+                # the player backed out of it, or the resources given do not
+                # pay it. The choice is put again -- answered as a repeat by
+                # the caller -- rather than resolving another option in its
+                # place or skipping both.
+                return None, True
 
             if effect != fallthrough_effect:
                 if type(message) == Message.WhenPlayerInTurn:
