@@ -290,6 +290,62 @@ class CampaignProgressStore:
             self._SaveUnlocked(record)
             return record, True
 
+    MAX_LOG_ENTRIES = 400
+    MAX_LOG_VALUE_LENGTH = 2000
+
+    def UpdateLog(self, value: Any) -> Dict[str, Any]:
+        """Replace the saved campaign's log from the between-scenario editor.
+
+        Every key must be a campaign log key the engine knows, or one the
+        record already holds (so an entry from an older build round-trips).
+        Values are strings; an empty value removes the entry. ``updatedAt``,
+        when given, must match the saved record, so a page left open cannot
+        overwrite progress recorded since it loaded.
+        """
+        from game.operate.campaign_logs import CampaignLog
+
+        request = self._RequireDict(value, 'campaign log update')
+        incoming = self._RequireDict(request.get('campaignLog'), 'campaignLog')
+        expected_updated_at = request.get('updatedAt')
+        if expected_updated_at is not None and not isinstance(expected_updated_at, str):
+            raise ValueError('updatedAt must be a string.')
+        if len(incoming) > self.MAX_LOG_ENTRIES:
+            raise ValueError('campaignLog has too many entries.')
+
+        with self._lock:
+            record = self._LoadUnlocked()
+            if record is None:
+                raise ValueError('There is no saved campaign to edit.')
+            campaign = record['campaign']
+            if campaign['completed']:
+                raise CampaignProgressConflict('This campaign is already complete.')
+            if expected_updated_at and expected_updated_at != campaign['updatedAt']:
+                raise CampaignProgressConflict(
+                    'The campaign changed since this page was loaded. Reload it and try again.',
+                )
+
+            existing_keys = set(campaign['campaignLog'])
+            campaign_log: Dict[str, str] = {}
+            for key, item in incoming.items():
+                if not isinstance(key, str) or not isinstance(item, str):
+                    raise ValueError('campaignLog must contain string values.')
+                if not CampaignLog.IsKnownKey(key) and key not in existing_keys:
+                    raise ValueError(f'Unknown campaign log entry: {key}')
+                if len(item) > self.MAX_LOG_VALUE_LENGTH:
+                    raise ValueError(f'The value for {key} is too long.')
+                item = item.strip()
+                if item:
+                    campaign_log[key] = item
+
+            campaign = {
+                **campaign,
+                'campaignLog': campaign_log,
+                'updatedAt': self._Now(),
+            }
+            record = {'campaign': campaign, 'activeRun': record['activeRun']}
+            self._SaveUnlocked(record)
+            return campaign
+
     def AdvanceVerified(
         self,
         *,

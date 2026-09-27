@@ -351,6 +351,59 @@ class CampaignProgressStoreTests(unittest.TestCase):
         prepared = self.store.PrepareStart(self.start_request())
         self.assertTrue(prepared['campaign']['expert'])
 
+    def test_log_editor_replaces_the_saved_log_with_known_keys(self):
+        self.store.Start(self.start_request(
+            campaign=self.campaign(campaign_log={
+                'Player 1 Tech Upgrade': '04155',
+                'An entry from an older build': 'kept',
+            }),
+        ))
+        before = self.store.Load()['campaign']
+
+        campaign = self.store.UpdateLog({
+            'campaignLog': {
+                'Player 1 Tech Upgrade': '04156',
+                'Player 1 Basic Upgrade': ' 04159a ',
+                'Allies removed from the campaign': '',
+                'An entry from an older build': 'kept',
+            },
+            'updatedAt': before['updatedAt'],
+        })
+
+        self.assertEqual(campaign['campaignLog'], {
+            'Player 1 Tech Upgrade': '04156',
+            'Player 1 Basic Upgrade': '04159a',
+            'An entry from an older build': 'kept',
+        })
+        restored = self.store.Load()
+        self.assertEqual(restored['campaign']['campaignLog'], campaign['campaignLog'])
+        # The scenario marker is untouched by an edit.
+        self.assertIsNotNone(restored['activeRun'])
+        self.assertEqual(restored['campaign']['scenarioIndex'], 0)
+
+    def test_log_editor_rejects_unknown_keys_and_non_strings(self):
+        self.store.Start(self.start_request())
+        for bad in (
+            {'Not a campaign key': 'x'},
+            {'Player 1 Tech Upgrade': 4},
+            ['Player 1 Tech Upgrade'],
+        ):
+            with self.assertRaises(ValueError):
+                self.store.UpdateLog({'campaignLog': bad})
+        self.assertEqual(self.store.Load()['campaign']['campaignLog'], {})
+
+    def test_log_editor_refuses_a_stale_page(self):
+        self.store.Start(self.start_request())
+        with self.assertRaises(CampaignProgressConflict):
+            self.store.UpdateLog({
+                'campaignLog': {'Player 1 Tech Upgrade': '04155'},
+                'updatedAt': '2000-01-01T00:00:00+00:00',
+            })
+
+    def test_log_editor_needs_a_saved_campaign(self):
+        with self.assertRaises(ValueError):
+            self.store.UpdateLog({'campaignLog': {}})
+
 
 if __name__ == '__main__':
     unittest.main()

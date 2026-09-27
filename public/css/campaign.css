@@ -24,3 +24,98 @@
     flex-basis: 100%;
     color: #aebbc6;
 }
+
+/* Between-scenario campaign log editor: large tap targets for a tablet. */
+
+.campaign-log-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
+    gap: 0.8rem;
+}
+
+.log-field {
+    min-width: 0;
+    margin: 0;
+    padding: 0.7rem 0.8rem 0.8rem;
+    border: 1px solid rgba(132, 159, 180, 0.32);
+    border-radius: 0.45rem;
+    background: rgba(8, 15, 24, 0.55);
+}
+
+.log-field legend {
+    padding: 0 0.3rem;
+    font-weight: bold;
+}
+
+.log-field small {
+    display: block;
+    margin-top: 0.35rem;
+    color: #aebbc6;
+}
+
+.log-field input[type="number"],
+.log-field input[type="text"] {
+    width: 100%;
+    min-height: 2.75rem;
+    padding: 0.5rem 0.65rem;
+    border: 1px solid rgba(132, 159, 180, 0.55);
+    border-radius: 0.35rem;
+    background: #101a26;
+    color: #e8edf2;
+    font-size: 1rem;
+}
+
+.log-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+.log-option,
+.log-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-height: 2.75rem;
+    padding: 0.35rem 0.65rem;
+    border: 1px solid rgba(132, 159, 180, 0.4);
+    border-radius: 0.35rem;
+    cursor: pointer;
+}
+
+.log-option:has(input:checked),
+.log-toggle:has(input:checked) {
+    border-color: #52b8ef;
+    background: rgba(2, 158, 239, 0.18);
+}
+
+.log-option input,
+.log-toggle input {
+    width: 1.3rem;
+    height: 1.3rem;
+    margin: 0;
+}
+
+.log-card-option {
+    flex-direction: column;
+    width: 6.4rem;
+    padding: 0.4rem;
+    text-align: center;
+    font-size: 0.8rem;
+}
+
+.log-card-option img {
+    width: 100%;
+    aspect-ratio: 0.714;
+    border-radius: 0.3rem;
+    background: #87939f;
+    object-fit: cover;
+}
+
+.campaign-log-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.8rem;
+    margin-top: 0.9rem;
+}

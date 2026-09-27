@@ -1,5 +1,6 @@
 from typing import TypeAlias
 from . import *
+from engine.log import Log
 
 PLAYER_LIST_KEY: TypeAlias = Literal[
     "Obligations",
@@ -115,8 +116,16 @@ LOG_STR_KEY: TypeAlias = Literal[
 
 class CampaignLog:
 
+    _known_keys: Set[str]|None = None
+
     @staticmethod
     def GetKnownKeys() -> Set[str]:
+        return set(CampaignLog._KnownKeys())
+
+    @staticmethod
+    def _KnownKeys() -> Set[str]:
+        if CampaignLog._known_keys is not None:
+            return CampaignLog._known_keys
         keys = set(
             Types.LiteralToList(LOG_LIST_KEY) +
             Types.LiteralToList(LOG_INT_KEY) +
@@ -134,14 +143,36 @@ class CampaignLog:
                 keys.add(f"{key} P{player_id + 1}")
 
         keys.discard("")
+        CampaignLog._known_keys = keys
         return keys
 
     @staticmethod
+    def IsKnownKey(key: str) -> bool:
+        return key in CampaignLog._KnownKeys()
+
+    @staticmethod
     def Export(world: 'World', *, include_remaining_hit_points: bool=False) -> Dict[str, str]:
+        """The campaign log to carry into the next scenario.
+
+        Only known keys are exported from the game's store: it also holds
+        per-game flags that must not carry over. A key the scenario was
+        started with is carried too, known or not, so an entry an older
+        build or the log editor recorded is never silently dropped; it is
+        reported so the key can be added to the lists above.
+        """
         campaign_log: Dict[str, str] = {}
-        for key in CampaignLog.GetKnownKeys():
+        for key in CampaignLog._KnownKeys():
             if world.store.HasKey(key):
                 campaign_log[key] = str(world.store.dic[key])
+
+        scene = getattr(world, 'scene', None)
+        campaign = getattr(scene, 'campaign', None)
+        incoming: Dict[str, str] = getattr(campaign, 'campaign_log', None) or {}
+        for key, value in incoming.items():
+            if key in campaign_log or CampaignLog.IsKnownKey(key):
+                continue
+            campaign_log[key] = str(world.store.dic[key]) if world.store.HasKey(key) else str(value)
+            Log.Warn("GAME", f"Campaign log key {key!r} is not a known key; carried over as it was given.")
 
         if include_remaining_hit_points:
             for player in world.const_players:
@@ -218,4 +249,9 @@ class CampaignLog:
 
     @staticmethod
     def SetStr(key: str, value: str, world: 'World'):
+        if not CampaignLog.IsKnownKey(key):
+            # Export carries only known keys to the next scenario (plus the
+            # ones a scenario started with), so a new key must be listed
+            # above or it is lost after this game.
+            Log.Warn("GAME", f"Campaign log key {key!r} is not a known key and will not be exported.")
         world.store.SetStr(key, value)

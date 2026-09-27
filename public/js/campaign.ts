@@ -7,7 +7,9 @@ import {
     getCampaignDefinition,
     getSavedCampaign,
     recordCampaignVictory,
+    saveCampaignLog,
 } from './campaign_state.js';
+import { CampaignLogEditor, renderCampaignLogEditor } from './campaign_log_editor.js';
 import {
     DeckSourceController,
     createDeckSourceController,
@@ -90,6 +92,10 @@ const scenarioSection = document.querySelector<HTMLElement>('#scenario-section')
 const scenarioProgress = document.querySelector<HTMLElement>('#scenario-progress')!;
 const scenarioPreview = document.querySelector<HTMLElement>('#scenario-preview')!;
 const expertCampaign = document.querySelector<HTMLInputElement>('#expert-campaign')!;
+const campaignLogSection = document.querySelector<HTMLElement>('#campaign-log-section')!;
+const campaignLogFields = document.querySelector<HTMLElement>('#campaign-log-fields')!;
+const saveCampaignLogButton = document.querySelector<HTMLButtonElement>('#save-campaign-log')!;
+const campaignLogStatus = document.querySelector<HTMLElement>('#campaign-log-status')!;
 const expertCampaignNote = document.querySelector<HTMLElement>('#expert-campaign-note')!;
 const heroList = document.querySelector<HTMLElement>('#hero-list')!;
 const heroSection = document.querySelector<HTMLElement>('#hero-section')
@@ -141,6 +147,62 @@ let selectionRequest = 0;
 let heroBeforeMarvelCdb: HeroChoice | null = null;
 
 let deckSourceController: DeckSourceController | null = null;
+let campaignLogEditor: CampaignLogEditor | null = null;
+
+/** Show the log editor for a saved campaign between scenarios. */
+function renderCampaignLog(saved: SavedCampaign | null): void {
+    campaignLogStatus.textContent = '';
+    if (!saved || saved.completed) {
+        campaignLogSection.hidden = true;
+        campaignLogEditor = null;
+        return;
+    }
+    campaignLogEditor = renderCampaignLogEditor(
+        campaignLogFields,
+        saved.campaignId,
+        saved.scenarioIndex,
+        saved.expert === true,
+        saved.campaignLog,
+    );
+    campaignLogSection.hidden = false;
+}
+
+function sameLog(left: Record<string, string>, right: Record<string, string>): boolean {
+    const keys = new Set([...Object.keys(left), ...Object.keys(right)]);
+    return [...keys].every((key) => left[key] === right[key]);
+}
+
+function hasUnsavedLogEdits(): boolean {
+    return !!resumedCampaign && !!campaignLogEditor
+        && !sameLog(campaignLogEditor.read(), resumedCampaign.campaignLog);
+}
+
+/** Save the editor's log; true when there was nothing to save or it saved. */
+async function saveEditedCampaignLog(): Promise<boolean> {
+    if (!resumedCampaign || !campaignLogEditor || saveCampaignLogButton.disabled) {
+        return !hasUnsavedLogEdits();
+    }
+    saveCampaignLogButton.disabled = true;
+    campaignLogStatus.textContent = 'Saving…';
+    try {
+        const saved = await saveCampaignLog(
+            campaignLogEditor.read(), resumedCampaign.updatedAt);
+        if (saved) {
+            resumedCampaign = saved;
+            renderCampaignLog(saved);
+        }
+        campaignLogStatus.textContent = 'Campaign log saved.';
+        return true;
+    } catch (error) {
+        console.error(error);
+        campaignLogStatus.textContent = error instanceof Error
+            ? error.message
+            : 'Could not save the campaign log.';
+        return false;
+    } finally {
+        saveCampaignLogButton.disabled = false;
+    }
+}
 
 function getFileName(path: string): string {
     return path.replace(/^.*[\\/]/, '').replace(/\.[^/.]+$/, '');
@@ -424,6 +486,7 @@ async function selectCampaign(
     const request = ++selectionRequest;
     selectedCampaign = definition;
     resumedCampaign = saved;
+    renderCampaignLog(saved);
     updateRefreshButton();
 
     // A resumed run may select a frozen deck that is intentionally absent from
@@ -703,6 +766,7 @@ async function initialize(): Promise<void> {
         ?.addEventListener('click', () => randomizeSelect(
             document.querySelector<HTMLSelectElement>('#aspect-deck')!));
     marvelCdbUpdate.addEventListener('click', () => void refreshSelectedCampaignDeck());
+    saveCampaignLogButton.addEventListener('click', () => void saveEditedCampaignLog());
     expertCampaign.addEventListener('change', () => {
         // Only a new campaign can change mode; reload its first scenario in
         // the chosen mode so the preview and the game agree.
@@ -744,6 +808,12 @@ async function initialize(): Promise<void> {
 
 async function startGame(): Promise<void> {
     if (isStarting || !selectedCampaign || !selectedScenario || !selectedHero) {
+        return;
+    }
+    // Continuing with edits still on screen saves them first, so the next
+    // scenario is set up from what the player wrote down.
+    if (hasUnsavedLogEdits() && !await saveEditedCampaignLog()) {
+        errorMessage.textContent = 'Save the campaign log before continuing.';
         return;
     }
 

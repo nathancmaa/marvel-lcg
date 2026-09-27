@@ -52,6 +52,27 @@ class GameServerCampaignProgress(GameServerBase):
             )
         return web.json_response(result)
 
+    async def update_campaign_log(self, request: web.Request) -> web.Response:
+        try:
+            data = await request.json()
+            if not isinstance(data, dict):
+                raise ValueError('Expected a JSON object.')
+            campaign = await TaskManager.ToThread(
+                self.game.campaign_progress.UpdateLog,
+                data,
+            )
+        except CampaignProgressConflict as exc:
+            return web.json_response({'error': str(exc)}, status=409)
+        except ValueError as exc:
+            return web.json_response({'error': str(exc)}, status=400)
+        except Exception as exc:
+            Log.FailedTrace('WEB', exc, no_take_as_error=True)
+            return web.json_response(
+                {'error': 'The campaign log could not be saved.'},
+                status=500,
+            )
+        return web.json_response({'campaign': campaign})
+
     def __init__(self) -> None:
         super().__init__()
         self.AddAwaitGetSecurity('/campaign_progress', self.campaign_progress)
@@ -62,4 +83,8 @@ class GameServerCampaignProgress(GameServerBase):
         self.AddPostSecurity(
             '/campaign_progress/advance',
             self.advance_campaign_progress,
+        )
+        self.AddPostSecurity(
+            '/campaign_progress/log',
+            self.update_campaign_log,
         )

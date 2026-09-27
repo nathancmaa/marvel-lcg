@@ -193,3 +193,19 @@ export function recordCampaignVictory(): Promise<SavedCampaign | null> {
     }
     return progressUpdate;
 }
+
+/**
+ * Save the between-scenario log edits. The server checks every key and
+ * refuses the save if the campaign moved on since ``updatedAt``.
+ */
+export async function saveCampaignLog(
+    campaignLog: Record<string, string>,
+    updatedAt: string,
+): Promise<SavedCampaign | null> {
+    const result = await parseResponse(await fetch('/campaign_progress/log', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({campaignLog, updatedAt}),
+    }));
+    return validateSavedCampaign(result.campaign);
+}
