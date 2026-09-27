@@ -547,3 +547,98 @@ class SenseInterruptRealGameTests(TestCase):
                 self.assertIsNone(state["interrupt"])
                 side = [face for face in run.world.FindCardsOnField() if face.paper.card_id == "01107"]
                 self.assertEqual(side, [], "Blindspot should have cleared the side scheme")
+
+
+class DaredevilCardsRealGameTests(TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        from game.test.harness import initialize_database
+        initialize_database()
+
+    @staticmethod
+    def prompts_after(commands, scenario, underling, seed=5):
+        from unit_test.fne_headless import build_scene, play
+        run = play(
+            build_scene(scenario, underling, ["daredevil"], seed),
+            ['Puzzle.ChangeFormFor(0, "Identity")', *commands, "Puzzle.End()"],
+            render=False,
+        )
+        return run, [
+            (prompt.event_name, [option.get("name") for option in prompt.options])
+            for prompt in run.devices.prompts
+        ]
+
+    def stick_interrupts(self, commands):
+        run, _ = self.prompts_after(
+            ['Puzzle.PutIntoPlay("60029")', *commands],
+            "kingpin",
+            None,
+        )
+        self.assertEqual(run.Exceptions(), [])
+        stick = [face for face in run.world.FindCardsOnField() if face.paper.card_id == "60029"][0]
+        return [
+            prompt for prompt in run.devices.prompts
+            if prompt.event_name == "WhenUnitUseBasicPower"
+            and any(option.get("bind_id") == stick.card.object_id for option in prompt.options)
+        ]
+
+    def test_stick_is_not_offered_when_kingpin_attacks(self):
+        # High Support Kingpin is a Martial Artist, but not a friendly
+        # character; Stick used to give him -1 ATK and ready itself free.
+        self.assertEqual(
+            self.stick_interrupts(['Puzzle.Flip("60159a")', 'Puzzle.Boost("60170")']),
+            [],
+        )
+
+    def test_stick_is_offered_when_daredevil_thwarts(self):
+        from game.scene.replay.operation import CommandDescriptor
+        from game.test.headless import HeadlessDeviceManager
+        from unit_test.fne_headless import build_scene, play
+
+        state = {"thwarted": False}
+
+        def thwart(prompt):
+            if prompt.event_name == "WhenPlayerInTurn" and state.get("armed") and not state["thwarted"]:
+                for option in prompt.options:
+                    if option.get("name") == "Thwart":
+                        state["thwarted"] = True
+                        return CommandDescriptor(
+                            HeadlessDeviceManager._DescriptorId(option),
+                            [str(option["all_legal_targets"][0])],
+                            [],
+                        )
+            return None
+
+        def arm(_world):
+            state["armed"] = True
+            return "Puzzle.End()"
+
+        run = play(
+            build_scene("kingpin", None, ["daredevil"], 5),
+            [
+                'Puzzle.ChangeFormFor(0, "Identity")',
+                'Puzzle.PutIntoPlay("60029")',
+                'Puzzle.SetThreat("60161b", 3)',
+                arm,
+                "Puzzle.End()",
+            ],
+            on_prompt=thwart,
+            render=False,
+        )
+        self.assertEqual(run.Exceptions(), [])
+        self.assertTrue(state["thwarted"])
+        self.assertTrue(any(prompt.event_name == "WhenUnitUseBasicPower" for prompt in run.devices.prompts))
+
+    def test_eye_on_the_target_offers_the_bullseye_villains_attack(self):
+        run, prompts = self.prompts_after(
+            ['Puzzle.PutIntoPlay("60019")', 'Puzzle.Reveal("60036")'],
+            "the_getaway",
+            "bullseye",
+        )
+        self.assertEqual(run.Exceptions(), [])
+        choices = [names for event, names in prompts if event == "WhenPlayerChooseAbility"]
+        self.assertIn(
+            ["Remove_an_ally_or_Persona_support_you_control_from_the_game", "Bullseye_attacks_you"],
+            choices,
+        )

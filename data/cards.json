@@ -61589,7 +61589,8 @@
             "desc": {
                 "Cost": "1",
                 "RES": "Y",
-                "Class": "Protection"
+                "Class": "Protection",
+                "MaxPerUnit": "1"
             },
             "traits": [
                 "CONDITION"
@@ -66508,5 +66509,5 @@
             "full_link": "56128b"
         }
     ],
-    "checksum": "7226e858d5ea04aefdf5df4efd42ec3570d4a2e0c6e0db28fd0f02185f768c17"
+    "checksum": "b6ad46b04a45e6fce278fbf09517dff964495e5ec455091a6e9a1fea876e1521"
 }
