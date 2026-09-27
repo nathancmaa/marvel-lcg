@@ -14,7 +14,8 @@ def GetAbilities() -> Sequence['Ability']:
             effect,
             initiator,
             include_player_deck=False,
-            include_discard_pile=True,
+            # "any player's discard pile"
+            include_discard_pile="All",
             finder=CardFinder(
                 check_face_fn=lambda face:
                     IsAspectOrBasicEvent(face) or face.IsName("Photographic Reflexes")

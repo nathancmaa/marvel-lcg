@@ -35,7 +35,10 @@ def MoveArtToIdentity(effect: 'Effect', player: 'Player', art: 'Attachment') -> 
     return bool(identity and art.AttachTo2(identity, effect))
 
 
-def ArtHeroAction(resource: Literal["R", "B", "Y", "G"]) -> 'Ability':
+def ArtHeroActions(resource: Literal["R", "B", "Y", "G"]) -> List['Ability']:
+    """"Hero Action: Spend a <resource> resource or exhaust your hero ->
+    attach this card to your hero", offered as two named actions so the
+    player sees both ways to take the art before choosing."""
     resource_names = {
         "R": "[physical]",
         "B": "[mental]",
@@ -43,28 +46,17 @@ def ArtHeroAction(resource: Literal["R", "B", "Y", "G"]) -> 'Ability':
         "G": "[wild]",
     }
 
-    def action(effect: 'Effect', message: 'Message.WhenPlayerInTurn') -> None:
-        this = effect.this.CastTo(Attachment)
-        player = message.GetToPlayer()
+    def attach_to_hero(effect: 'Effect', message: 'Message.WhenPlayerInTurn') -> None:
+        effect.this.CastTo(Attachment).AttachTo2(message.GetToPlayer().GetHero(), effect)
 
-        def attach_to_hero() -> None:
-            this.AttachTo2(player.GetHero(), effect)
-
-        player.ChooseAbilities(
-            effect,
-            AbilityFactory.ForChoiceAbilityWithCost(
-                Cost(resource),
-                f"Spend a {resource_names[resource]} resource",
-                lambda targets, paid: attach_to_hero(),
-            ),
-            AbilityFactory.ForChoiceAbility(
-                "Exhaust your hero",
-                lambda targets: attach_to_hero(),
-                targets_is_exhaust_cost=True,
-            ).SetCostFunc(CostFunc.Exhaust("YourHero")),
-        )
-
-    return AbilityFactory.WhenInYourPlayTurn(AbilityType.HeroAction, action)
+    return [
+        AbilityFactory.WhenInYourPlayTurn(AbilityType.HeroAction, attach_to_hero)
+        .SetName(f"Spend a {resource_names[resource]} resource to take this art")
+        .SetCost(Cost(resource)),
+        AbilityFactory.WhenInYourPlayTurn(AbilityType.HeroAction, attach_to_hero)
+        .SetName("Exhaust your hero to take this art")
+        .SetCostFunc(CostFunc.Exhaust("YourHero")),
+    ]
 
 
 def ArtAttachmentAbilities(
@@ -75,7 +67,7 @@ def ArtAttachmentAbilities(
 ) -> List['Ability']:
     abilities: List['Ability'] = [
         AbilityFactory.AttachToFaceWhenPutIntoPlay(Villain),
-        ArtHeroAction(resource),
+        *ArtHeroActions(resource),
     ]
 
     if status:

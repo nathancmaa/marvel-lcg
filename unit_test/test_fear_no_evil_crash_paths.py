@@ -119,5 +119,41 @@ class ImprisonedTests(unittest.TestCase):
         self.assertEqual(player.GetIdentity().paper.card_id, "01001a")
 
 
+class CarjackingTests(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        initialize_database()
+
+    def test_the_choice_names_the_discarded_vehicle(self):
+        seen = {}
+
+        def reveal_it(prompt):
+            names = [option.get("name") or "" for option in prompt.options]
+            reveal = [option for option in prompt.options if (option.get("name") or "").startswith("Reveal_")]
+            if reveal:
+                seen["names"] = names
+                return CommandDescriptor(HeadlessDeviceManager._DescriptorId(reveal[0]), [], [])
+            return None
+
+        run = play(
+            build_scene("the_getaway", "bullseye", ["spider_man"], 13),
+            [HERO_FORM, 'Puzzle.Reveal("60190")'],
+            on_prompt=reveal_it,
+            render=False,
+        )
+        self.assertEqual(run.Exceptions(), [])
+        vehicles = [
+            face for face in run.world.FindCardsOnField()
+            if face.HasTrait("VEHICLE") and face.paper.card_id != "60129a"
+        ]
+        self.assertEqual(len(vehicles), 1)
+        vehicle = vehicles[0].name.replace(" ", "_")
+        self.assertEqual(
+            seen["names"],
+            [f"Spend_3_resources_of_the_same_type_to_attach_{vehicle}_to_your_identity", f"Reveal_{vehicle}"],
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

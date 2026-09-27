@@ -9,6 +9,10 @@ def GetAbilities() -> Sequence['Ability']:
         player = effect.this.CastTo(Obligation).GetGaveToPlayer()
         return message.by_effect.GetInitiator() == player
 
+    def dealt_by_you(effect: 'Effect', message: 'Message.WhenUnitWouldTakeDamage') -> bool:
+        # "You cannot deal damage": your allies are not you.
+        return is_maya_player(effect, message) and not Ally.IsType(message.source)
+
     def raised_by_the_kingpin(effect: 'Effect', message: 'Message.WhenObligationGiveToPlayer') -> None:
         PutKingpinIntoPlay(effect, message.GetGaveToPlayer())
 
@@ -26,7 +30,7 @@ def GetAbilities() -> Sequence['Ability']:
             AbilityType.NonKeyword,
             CardFinder(name="Kingpin"),
             conditions=[
-                is_maya_player,
+                dealt_by_you,
             ],
         ),
         AbilityFactory.AfterSchemeRemoveThreat(

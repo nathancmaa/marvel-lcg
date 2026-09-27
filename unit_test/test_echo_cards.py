@@ -213,3 +213,62 @@ class PhotographicReflexesRealGameTests(TestCase):
         self.assertEqual(result["hand"], ["60040a", "60040b"])
         self.assertEqual(result["tucked"], ["01054"])
         self.assertEqual(result["rhino_damage"], 5)
+
+
+class RaisedByTheKingpinRealGameTests(TestCase):
+    """"You cannot deal damage to Kingpin": Maya's allies still can."""
+
+    @classmethod
+    def setUpClass(cls):
+        from game.test.harness import initialize_database
+        initialize_database()
+
+    def kingpin_damage_after_attack(self, attacker_id):
+        from game.scene.replay.operation import CommandDescriptor
+        from game.test.headless import HeadlessDeviceManager
+        from unit_test.fne_headless import build_scene, play
+
+        state = {"armed": False, "attacked": False}
+
+        def attack(prompt):
+            if prompt.event_name != "WhenPlayerInTurn" or not state["armed"] or state["attacked"]:
+                return None
+            world = Engine.game.world
+            attacker = [face for face in world.FindCardsOnField() if face.paper.card_id == attacker_id][0]
+            kingpin = [face for face in world.FindCardsOnField() if face.paper.card_id == "60061"][0]
+            for option in prompt.options:
+                if option.get("name") == "Attack" and option.get("bind_id") == attacker.card.object_id:
+                    state["attacked"] = True
+                    return CommandDescriptor(
+                        HeadlessDeviceManager._DescriptorId(option),
+                        [str(kingpin.card.object_id)],
+                        [],
+                    )
+            raise AssertionError(f"{attacker_id} cannot attack Kingpin: {prompt.options}")
+
+        def arm(_world):
+            state["armed"] = True
+            return "Puzzle.End()"
+
+        run = play(
+            build_scene("rhino", None, ["echo"], 8),
+            [
+                'Puzzle.ChangeFormFor(0, "Identity")',
+                'Puzzle.Reveal("60060")',
+                'Puzzle.PutIntoPlay("60019")',
+                arm,
+                "Puzzle.End()",
+            ],
+            on_prompt=attack,
+            render=False,
+        )
+        self.assertEqual(run.Exceptions(), [])
+        self.assertTrue(state["attacked"])
+        kingpin = [face for face in run.world.FindCardsOnField() if face.paper.card_id == "60061"][0]
+        return kingpin.GetLostHealth()
+
+    def test_echo_cannot_damage_kingpin(self):
+        self.assertEqual(self.kingpin_damage_after_attack("60037a"), 0)
+
+    def test_an_ally_can(self):
+        self.assertGreater(self.kingpin_damage_after_attack("60019"), 0)

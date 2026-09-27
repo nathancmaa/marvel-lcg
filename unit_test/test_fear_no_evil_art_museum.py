@@ -264,27 +264,45 @@ class ArtMuseumCardTests(unittest.TestCase):
                 response.operation(effect, Mock(to_face=host))
                 give.assert_called_once_with([host], status, effect)
 
-    def test_art_hero_action_offers_printed_resource_or_exhaust_cost(self):
-        expected = {"60122": "B", "60123": "G", "60124": "R", "60125": "Y"}
-        for card_id, resource in expected.items():
-            action = next(
-                ability for ability in load_art_card(card_id).GetAbilities()
-                if ability.type is AbilityType.HeroAction
-            )
-            player = Mock()
-            effect = Mock()
-            message = Mock()
-            message.GetToPlayer.return_value = player
+    def test_art_hero_actions_are_offered_by_name_and_take_the_art(self):
+        from game.scene.replay.operation import CommandDescriptor
+        from game.test.harness import initialize_database
+        from game.test.headless import HeadlessDeviceManager
+        from unit_test.fne_headless import build_scene, play
 
-            with self.subTest(card_id=card_id):
-                action.operation(effect, message)
-                choices = player.ChooseAbilities.call_args.args[1:]
-                cost = choices[0].cost_fn(Mock(), [])
-                self.assertEqual(getattr(cost, resource.lower()), 1)
-                self.assertEqual(
-                    choices[1].cost_funcs[0].__class__.__name__,
-                    "Exhaust",
-                )
+        initialize_database()
+        state = {"armed": False, "names": None}
+
+        def take_art(prompt):
+            if prompt.event_name != "WhenPlayerInTurn" or not state["armed"] or state["names"] is not None:
+                return None
+            world = Engine.game.world
+            art = [face for face in world.FindCardsOnField() if face.paper.card_id == "60122"][0]
+            actions = [option for option in prompt.options if option.get("bind_id") == art.card.object_id]
+            state["names"] = [option.get("name") for option in actions]
+            state["payment"] = actions[0]["target_payment"]
+            return CommandDescriptor(HeadlessDeviceManager._DescriptorId(actions[1]), [], [])
+
+        def arm(_world):
+            state["armed"] = True
+            return "Puzzle.End()"
+
+        run = play(
+            build_scene("art_museum_heist", "bullseye", ["spider_man"], 17),
+            ['Puzzle.ChangeFormFor(0, "Identity")', 'Puzzle.PutIntoPlay("60122")', arm, "Puzzle.End()"],
+            on_prompt=take_art,
+            render=False,
+        )
+        self.assertEqual(run.Exceptions(), [])
+        # The engine numbers a card's second action ("..._1").
+        self.assertEqual(len(state["names"]), 2)
+        self.assertTrue(state["names"][0].startswith("Spend_a_[mental]_resource_to_take_this_art"))
+        self.assertTrue(state["names"][1].startswith("Exhaust_your_hero_to_take_this_art"))
+        self.assertEqual(state["payment"]["0"]["cost"], "B")
+        hero = run.world.GetFirstPlayer().GetIdentity()
+        art = [face for face in run.world.FindCardsOnField() if face.paper.card_id == "60122"][0]
+        self.assertEqual(art.GetBindFace(), hero)
+        self.assertTrue(hero.IsExhaust())
 
     def test_art_thief_searches_deck_and_discard_before_identity_fallback(self):
         reveal = next(
