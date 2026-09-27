@@ -3,7 +3,6 @@ export class HistoryLog
     static history_div? = document.getElementById("history") as HTMLElement;
     static history_text_div? = document.getElementById("history-text") as HTMLElement;
     static last_id = -1
-    static history_text = ""
     static contextMenu = document.getElementById('contextMenu') as HTMLElement;
     static click_object_id = 0
     static click_card_id = ""
@@ -52,8 +51,11 @@ export class HistoryLog
             HistoryLog.last_id = id
             // text = `#${id.toString().padStart(3, '0').slice(-3)} ${text}`
             text = `<p class='log-id'>${id}</p> <p>${text}</p>`
-            HistoryLog.history_text += text
-            HistoryLog.history_text_div.innerHTML = HistoryLog.history_text // + `<div style="height: 220px;"></div>`
+            // Appended, not rebuilt: rewriting the whole log for every entry
+            // re-parsed and re-laid-out hundreds of lines late in a game.
+            // The entries already there, their card links included, are
+            // left as they are.
+            HistoryLog.history_text_div.insertAdjacentHTML('beforeend', text)
             // This cause more than 200ms to run
             // HistoryLog.history_text_div.scrollTop = HistoryLog.history_text_div.scrollHeight - HistoryLog.history_text_div.clientHeight;
         }
