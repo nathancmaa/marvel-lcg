@@ -363,8 +363,8 @@ class DisasterAndTracksuitTests(unittest.TestCase):
         effect = Mock()
 
         with (
-            patch("cards.pack.fne.disasters.60181.ChooseDisaster", return_value=None),
-            patch("cards.pack.fne.disasters.60181.Search.EncounterCard", return_value=disaster),
+            patch.object(importlib.import_module("cards.pack.fne.disasters.60181"), "ChooseDisaster", return_value=None),
+            patch.object(importlib.import_module("cards.pack.fne.disasters.60181").Search, "EncounterCard", return_value=disaster),
         ):
             reveal.operation(effect, message)
 

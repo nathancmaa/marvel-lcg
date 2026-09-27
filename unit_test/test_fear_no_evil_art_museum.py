@@ -344,7 +344,7 @@ class OwlCardTests(unittest.TestCase):
 
         with (
             patch.object(Worlds, "GetPlayers", return_value=[high_player, low_player]),
-            patch("cards.pack.fne.the_owl.60192.Filter.One", return_value=low_identity) as choose,
+            patch.object(importlib.import_module("cards.pack.fne.the_owl.60192").Filter, "One", return_value=low_identity) as choose,
         ):
             reveal.operation(effect, Mock())
 

@@ -699,7 +699,7 @@ class FearNoEvilCardBehaviorTests(unittest.TestCase):
             patch.object(Worlds, "IsExpert", return_value=True),
             patch.object(Worlds, "FindVillain", return_value=villain),
             patch.object(Faces, "PlaceCountersOn") as place,
-            patch("cards.pack.fne.the_getaway.60128a.SetupCards.AttachTo") as attach,
+            patch.object(importlib.import_module("cards.pack.fne.the_getaway.60128a").SetupCards, "AttachTo") as attach,
         ):
             ability.operation(effect, Mock())
 
