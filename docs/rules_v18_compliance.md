@@ -57,7 +57,24 @@ by Git, while this final summary is repository documentation.
   card-specific issues, which were fixed separately; this limitation is about
   evidence breadth, not a known remaining rules deviation.
 
-Within the audited solo scope, there is no known Rules Reference 1.8 deviation.
+Within the audited solo scope, two timing simplifications remain. Both were
+found by comparing this engine with the sdolle1775 fork's grouped timing
+windows on that fork's own sixteen timing labs, fifteen of which end the
+same way here:
+
+- Responses are offered one message at a time, in the order the engine sends
+  them. Within one message the player orders them freely and newly legal ones
+  are offered, but a response that another response makes legal on a
+  *different* message of the same occurrence is missed. The one lab where this
+  changes the outcome is Nova readying Supernova Helmet so that Jarnbjorn can
+  be paid.
+- Two forced abilities on the same card that would initiate together resolve
+  in engine order rather than the first player's
+  (`game/event/manager.py`, the `is_on_the_same_card` branch). Forced
+  abilities on different cards get the Ties prompt.
+
+A forced ability that becomes legal while its window is resolving is now
+reconsidered (`unit_test/test_forced_window_reconsider.py`).
 Future card integrations still require their own metadata, script, and focused
 semantic validation.
 

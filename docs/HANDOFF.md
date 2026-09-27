@@ -69,15 +69,16 @@ undeployable. This overrides the "do not commit or push" line in `AGENTS.md`.
    ./.venv/Scripts/python.exe -m unittest $(ls unit_test/test_*.py | sed 's|/|.|;s|\.py||' | grep -vE '\.(test_all|test_task)$' | tr '\n' ' ')
    ```
 
-   On Windows, eight failures are the known baseline and pass on Linux:
+   On Windows, five failures are the known baseline and pass on Linux:
 
    | Module | Count | Cause |
    |---|---|---|
    | `test_persistent_save_paths` | 3 | backslash path separators |
    | `test_asset_versioning` | 2 | CRLF line endings |
-   | `test_fear_no_evil_*` | 3 | a Windows-only mock format error |
 
-   Anything beyond those eight is real. The last run was 868 tests.
+   Anything beyond those five is real. The last run was 1112 tests, all
+   passing on Linux, in about two and a half minutes: many tests now play
+   real games (see "Testing with real games").
 
 2. **TypeScript** after any frontend change. The emitted `.js` is gitignored
    and the Docker build compiles it itself, but compile locally to catch type
@@ -169,6 +170,21 @@ POSTing `{"id": N, "targets": [...], "resources": [...]}` to `/post?p=0`.
   ("the engaged player cannot thwart side schemes") looked exactly like a
   targeting bug.
 
+### Testing with real games
+
+`game/test/headless.py` (taken from the sdolle1775 fork) runs a game through
+the real controller with scripted choices, and `game/test/harness.py` builds
+one from a scenario, heroes, seed and puzzle commands (`Puzzle.ClearHand()`,
+`Puzzle.CreateHandCards("id")`, `PutIntoPlayFor`, `ChangeFormFor`,
+`DoAttack`...). `unit_test/real_game_support.py`, `script_driver.py` and
+`fne_headless.py` wrap it for common cases. Prefer these to mocking message
+objects: the mock-based FNE and Hercules tests passed while a dozen of those
+cards threw at the table. `test_fear_no_evil_encounter_sweep` reveals and
+boosts every FNE encounter card in both forms; copy that pattern for any new
+box. The headless default choice takes the first option, and a forced
+"spend or suffer" choice now asks again after a failed payment, so script the
+choices in any test that meets one.
+
 ### Validating card changes
 
 `CardsDB` swallows import errors, so a server that starts proves nothing
@@ -244,6 +260,23 @@ backslashes.
 
 ## Open threads
 
+- **The sdolle1775 fork was evaluated on 2026-09-26** and most of what it did
+  better was ported (card and rules fixes, FNE fixes, God of Lies, Civil War
+  experts, the Hercules nemesis, Age of Apocalypse missions, Red Skull
+  campaign options, the headless driver). Its grouped v1.8 timing engine was
+  not: it ends the same way as ours in fifteen of its own sixteen timing labs
+  (see `docs/rules_v18_compliance.md`), and adopting it is a weeks-long
+  rewrite. Nathan left that open: revisit only if a real game shows a missed
+  response. Their Fear No Evil campaign was deferred; our progress store is
+  linear and it is not.
+- **Card texts that differ between the forks,** to check against the printed
+  cards: Public Support (flip threshold; is the cancel forced), Disturbed
+  Psyche (damage or any 3 tokens), Mary Walker's flip, the Kingpin expert
+  set, Typhoid Mary's start, Stolen Sai (enemy or character), Eye on the
+  Target's wording, and the icons on Hit List, Consolidate Power and Power of
+  Suggestion. Also unconfirmed: whether a hero logged at 0 in a non-AoA expert
+  campaign should start at 1 HP.
+
 - **Branch `perf/render-sync`** is unmerged: one commit, now 62 behind
   `master`. It lets the browser pace renders instead of the engine and cut a
   measured late-game villain phase from 27.8 s to 15.1 s. Nathan has not
@@ -253,9 +286,9 @@ backslashes.
   deleted.
 - **NEW badges.** Content in the game but not yet played through wears NEW
   on its Quick Game tile. The lists are near the top of
-  `public/js/solo.ts`: Kingpin and the Fear No Evil scenarios, She-Hulk,
-  Vision, the five underlings, and the Echo, Daredevil, Jessica Jones and
-  Luke Cage heroes. Take an id out once Nathan has had a real game with it.
+  `public/js/solo.ts`: Kingpin and the Fear No Evil scenarios, God of Lies,
+  She-Hulk, Vision, the five underlings, and the Echo, Daredevil, Jessica
+  Jones and Luke Cage heroes. Take an id out once Nathan has had a real game with it.
 - **Stale docs.** `AGENTS.md` and `INSTALL-SERVER.md` still say 0.7.4 and
   describe systemd. `AGENTS.md` also says not to commit or push, which Nathan
   has overridden.
