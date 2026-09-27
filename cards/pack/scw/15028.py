@@ -9,9 +9,9 @@ def GetAbilities() -> Sequence['Ability']:
         Unused(this)
 
         damage = 2
-        villain = Worlds.FindVillain(effect)
-        if villain:
-            damage += min(3, villain.printed_stage)
+        # The stage of the villain chosen as the target.
+        villain = effect.targets[0].CastTo(Villain)
+        damage += min(3, villain.printed_stage)
 
         this.DealDamage(effect.targets, damage, effect)
 

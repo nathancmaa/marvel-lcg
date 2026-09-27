@@ -14,7 +14,10 @@ def GetAbilities() -> Sequence['Ability']:
         this = effect.this.CastTo(Event)
         Unused(this)
 
-        villain = Worlds.FindVillain(effect)
+        villain = Worlds.ChooseVillain(
+            effect,
+            prompt="Choose a villain to damage",
+        )
         if villain:
             this.DealDamage([villain], 2, effect)
         Faces.RemoveAllFromGame([this], effect)

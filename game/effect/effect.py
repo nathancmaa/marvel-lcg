@@ -639,10 +639,14 @@ class Effect(Object):
         selector = self.ability.selectors[0] if self.ability.selectors else None
         if selector:
             select_rule, select_rule_param = selector.selector_rule.GetRuleAndParam()
-            if self.context.allow_partial_resolution:
+            target_must_include_traits = selector.selector_rule.target_must_include_traits
+            # A partially resolved choice may pick too few cards to cover
+            # every trait; then the browser must not require them. An
+            # Alliance cost is also asked as a choice, but for the full two
+            # cards, so it keeps its traits.
+            if self.context.allow_partial_resolution and \
+                self.context.target_range[1] < len(target_must_include_traits):
                 target_must_include_traits = []
-            else:
-                target_must_include_traits = selector.selector_rule.target_must_include_traits
         else:
             select_rule = ""
             select_rule_param = (0, 0)

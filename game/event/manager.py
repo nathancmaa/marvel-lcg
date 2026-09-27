@@ -383,8 +383,23 @@ class EventManager:
         #     pass
 
         # Forced
+        # Resolving one forced ability can make another one on the same
+        # timing point legal (its condition becomes true). Keep those in the
+        # window and check them again after each resolution. Only abilities
+        # on cards already in play when the window opened qualify, so a card
+        # that enters play during the window does not respond to it.
+        available = EventManager.FilterAvailableEffects(message, forced_effects, None, self.world, undo_handle)
+        pending = [
+            effect for effect in forced_effects
+            if effect in available or effect.this.IsInPlay(is_same_face=True)
+        ]
+        first_pass = True
         while True:
-            forced_effects = EventManager.FilterAvailableEffects(message, forced_effects, None, self.world, undo_handle)
+            if first_pass:
+                forced_effects = available
+                first_pass = False
+            else:
+                forced_effects = EventManager.FilterAvailableEffects(message, pending, None, self.world, undo_handle)
 
             if forced_effects == []:
                 break
@@ -418,7 +433,7 @@ class EventManager:
             else:
                 effect = first_effect
 
-            forced_effects.remove(effect)
+            pending.remove(effect)
 
             # Clean
             effect.context.targets_internal = []
@@ -427,7 +442,7 @@ class EventManager:
                 initiator = effect.GetInitiator()
                 _, is_cheating = initiator.ChoiceAndSpellEffect([effect], message, priority, True)
                 if is_cheating:
-                    forced_effects.append(effect)
+                    pending.append(effect)
             else:
                 self.ProcessEffect(effect, message, priority)
 
@@ -661,6 +676,12 @@ class EventManager:
                     # This matters for linked cards, which can still physically
                     # be in the scenario's set-aside area at this point.
                     effect.context.initiator = message.GetToPlayer()
+                elif effect.this.card.area.flags.is_obligations_area and \
+                    Obligation.IsType(effect.this):
+                    # An obligation stays encounter-owned after it is given to
+                    # a player, but its forced abilities belong to the player
+                    # whose obligation area holds it (Protect Humanity).
+                    effect.context.initiator = effect.this.GetGaveToPlayer()
                 else:
                     effect.context.initiator = effect.this.GetControlByOrOwner()
 

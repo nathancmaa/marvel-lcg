@@ -136,9 +136,17 @@ class EffectInvoker:
                     # during an enemy attack, that player’s identity
                     # becomes the defender and is considered to have
                     # defended the attack if there is not already a defender.
-                    # if isinstance(message, Send.WhenUnitBeingAttack|Send.WhenUnitWouldAttack):
-                    # if message.defender == None:
-                    defender.SpecialDefense(message, effect)
+                    # An ally that already defends keeps defending (Defiance,
+                    # Lucky and Good).
+                    would_atk_messages = getattr(message, "would_atk_messages", [])
+                    if not would_atk_messages and getattr(message, "would_atk_message", None):
+                        would_atk_messages = [message.would_atk_message] # WhenBoostCardTurnedFaceUp
+                    has_defender = any(
+                        would_atk_message.defender is not None
+                        for would_atk_message in would_atk_messages
+                    )
+                    if not has_defender:
+                        defender.SpecialDefense(message, effect)
 
         if can_action:
             if effect.is_unregister_after_exec:

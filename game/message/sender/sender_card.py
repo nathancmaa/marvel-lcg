@@ -1008,10 +1008,22 @@ class SenderCard:
     # Environment
     ################################################################################
 
-    # This only happens when card enter play, include flip
-    # And it will also apply Environment at this event
+    class WhenCardFaceActivated(TriggerFaceMessage, HasEndEventMessage):
+        """Refresh continuous effects after a flip, without entering play."""
+        def __init__(self, face: 'CardFace', by_effect: 'Effect') -> None:
+            from game.message import Message
+            self.by_effect: Final = by_effect
+            super().__init__(trigger=face, end_event=Message.AfterCardFaceActivated)
+
+    class AfterCardFaceActivated(TriggerFaceMessage, HasPreEventMessage):
+        def __init__(self, face: 'CardFace', message: 'Message.WhenCardFaceActivated') -> None:
+            self.by_effect: Final = message.by_effect
+            super().__init__(trigger=face, pre_message=message)
+
+    # Actual entry into play. Changing the active face uses the internal
+    # face-activation messages above, so entry abilities cannot fire on flips.
     class WhenCardEnterPlay(TriggerFaceMessage, HasEndEventMessage):
-        def __init__(self, face: 'CardFace', by_effect: 'Effect', *, is_flip: bool) -> None:
+        def __init__(self, face: 'CardFace', by_effect: 'Effect') -> None:
             from game.card.face.attribute.has_cost import HasCost
             from game.element.resources import Resources
             from game.element.cost import Cost
@@ -1019,7 +1031,9 @@ class SenderCard:
             from game.message import Message
 
             self.by_effect: Final = by_effect
-            self.is_flip: Final = is_flip
+            # Always False: flips send WhenCardFaceActivated instead. Kept so
+            # card scripts may still guard on ``pre_message.is_flip``.
+            self.is_flip: Final = False
 
             paid_cost = Resources("0")
             need_cost = Cost("0")
@@ -1052,9 +1066,6 @@ class SenderCard:
             self.Present(text, "", face)
 
     class AfterCardEnterPlay(TriggerFaceMessage, HasPreEventMessage):
-        """
-        Includes after flip
-        """
         def __init__(self, face: 'CardFace', from_area: 'Deck', into_area: 'Deck', by_effect: 'Effect', enter_play_message: 'Message.WhenCardEnterPlay') -> None:
             self.from_area: Final = from_area
             self.into_area: Final = into_area

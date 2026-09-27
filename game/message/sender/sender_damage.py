@@ -801,8 +801,11 @@ class SenderDamage:
         def IsBePrevent(self) -> bool:
             return self.be_prevent
 
-        def IncreaseDamage(self, value: int, by_effect: 'Effect'):
-            if self.IsOverkill():
+        def IncreaseDamage(self, value: int, by_effect: 'Effect', *, include_overkill: bool=False):
+            # Bonuses to the damage an attack deals do not grow its overkill
+            # excess, but a unit that "takes +N damage" takes it from overkill
+            # too (Exploit Weakness, Cyclops 49015, Bell Tower 27077b).
+            if not include_overkill and self.IsOverkill():
                 return
             assert value >= 0
             from game.message import Message

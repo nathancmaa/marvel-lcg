@@ -12,7 +12,7 @@ def GetAbilities() -> Sequence['Ability']:
         if effect.this == message.sequence[-1]:
             damage = 2
 
-        villain = Worlds.FindVillain(effect)
+        villain = Worlds.ChooseVillain(effect)
         units = [villain] if villain else []
         units += target.GetControlByPlayer().GetEngagedMinions()
         this.DealDamage(units, damage, effect)

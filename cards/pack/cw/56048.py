@@ -10,7 +10,7 @@ def GetAbilities() -> Sequence['Ability']:
 
         initiator = effect.GetInitiator()
 
-        villain = Worlds.FindVillain(effect)
+        villain = Worlds.ChooseVillain(effect)
         if villain:
             villain.DoAttackYou(initiator, effect, other_characters_cannot_defend=True)
 

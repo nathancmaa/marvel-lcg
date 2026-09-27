@@ -126,6 +126,13 @@ class SelectorRule:
                         face_list += [face] * max_value
             legal_faces = face_list
 
+        # Alliance: the chosen cards must cover every listed trait between
+        # them, so a pool missing one of the traits offers nothing.
+        if self.select_rule == "MustIncludeTraits":
+            for trait in self.target_must_include_traits:
+                if not any(face.HasTrait(trait) for face in legal_faces):
+                    return []
+
         if self.combined_resource_cost:
             cost = FacesCounter.GetPrintedCost(legal_faces)
             if cost < self.combined_resource_cost[0]:
@@ -173,6 +180,12 @@ class SelectorRule:
                         effect.failures.Set(player, EffectFailure.EngagedDifferentPlayer)
                         return False
             pass
+
+        if self.select_rule == "MustIncludeTraits":
+            for trait in self.target_must_include_traits:
+                if not any(face.HasTrait(trait) for face in targets):
+                    effect.failures.Set(None, EffectFailure.TypeCountNotEnough)
+                    return False
 
         if self.combined_resource_cost:
             cost = FacesCounter.GetPrintedCost(targets)
