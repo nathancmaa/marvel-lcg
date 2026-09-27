@@ -63,6 +63,13 @@ class CampaignProgressStoreTests(unittest.TestCase):
             'replace': replace,
         }
 
+    def advance(self, **kwargs):
+        # A game launched from the Campaign page carries the active run's id.
+        record = self.store.Load()
+        active_run = record['activeRun'] if record else None
+        kwargs.setdefault('run_id', (active_run or {}).get('runId'))
+        return self.store.AdvanceVerified(**kwargs)
+
     def test_progress_survives_a_new_store_instance(self):
         self.store.Start(self.start_request())
 
@@ -122,7 +129,7 @@ class CampaignProgressStoreTests(unittest.TestCase):
     def test_defeat_does_not_advance_the_scenario(self):
         self.store.Start(self.start_request())
 
-        result = self.store.AdvanceVerified(
+        result = self.advance(
             campaign_id='rise_of_red_skull',
             scenario_name='Crossbones',
             campaign_log={'Player 1 Remaining hit points': '0'},
@@ -142,7 +149,7 @@ class CampaignProgressStoreTests(unittest.TestCase):
             campaign=self.campaign(campaign_log={'Unspent Units': '2'}),
         ))
 
-        first = self.store.AdvanceVerified(
+        first = self.advance(
             campaign_id='rise_of_red_skull',
             scenario_name='Crossbones',
             campaign_log={
@@ -153,7 +160,7 @@ class CampaignProgressStoreTests(unittest.TestCase):
             players_won=True,
             is_replay=False,
         )
-        second = self.store.AdvanceVerified(
+        second = self.advance(
             campaign_id='rise_of_red_skull',
             scenario_name='Crossbones',
             campaign_log={'Unspent Units': '99'},
@@ -189,7 +196,7 @@ class CampaignProgressStoreTests(unittest.TestCase):
             active_run=active_run,
         ))
 
-        result = self.store.AdvanceVerified(
+        result = self.advance(
             campaign_id='rise_of_red_skull',
             scenario_name='Red Skull',
             campaign_log={},
@@ -213,7 +220,8 @@ class CampaignProgressStoreTests(unittest.TestCase):
             ),
         )
         game = Game.__new__(Game)
-        game.session = SimpleNamespace(world=None, NewGame=Mock())
+        scene = SimpleNamespace(metadata={})
+        game.session = SimpleNamespace(world=None, NewGame=Mock(), scene=scene)
         game.controller_manager = SimpleNamespace(
             replay=SimpleNamespace(SetIsReplay=Mock()),
             OnNewGame=Mock(),
@@ -225,6 +233,62 @@ class CampaignProgressStoreTests(unittest.TestCase):
 
         self.assertEqual(descriptor.campaign_log, {'Unspent Units': '7'})
         game.session.NewGame.assert_called_once_with(descriptor)
+        # The launched game is tagged as this run's, so only it can advance.
+        self.assertEqual(
+            CampaignProgressStore.GetSceneRunId(scene),
+            self.store.Load()['activeRun']['runId'],
+        )
+
+    def test_a_game_not_launched_for_the_run_never_advances_it(self):
+        # An Advanced Setup win of the same scenario (another hero, expert,
+        # anything) has no run id, or an old one; the campaign stays put.
+        self.store.Start(self.start_request(
+            campaign=self.campaign(campaign_log={'Unspent Units': '2'}),
+        ))
+        for run_id in (None, '', 'someone-elses-run'):
+            result = self.store.AdvanceVerified(
+                campaign_id='rise_of_red_skull',
+                scenario_name='Crossbones',
+                campaign_log={'Unspent Units': '9'},
+                game_over=True,
+                players_won=True,
+                is_replay=False,
+                run_id=run_id,
+            )
+            self.assertFalse(result['advanced'])
+            self.assertEqual(result['reason'], 'not_campaign_run')
+        restored = self.store.Load()
+        self.assertEqual(restored['campaign']['scenarioIndex'], 0)
+        self.assertEqual(restored['campaign']['campaignLog'], {'Unspent Units': '2'})
+        self.assertIsNotNone(restored['activeRun'])
+
+    def test_each_launch_gets_its_own_run_id_and_tags_the_scene(self):
+        scene = SimpleNamespace(metadata={})
+        first = self.store.CommitPreparedStart(
+            self.store.PrepareStart(self.start_request()), scene,
+        )
+        run_id = first['activeRun']['runId']
+        self.assertTrue(run_id)
+        self.assertEqual(CampaignProgressStore.GetSceneRunId(scene), run_id)
+
+        again = self.store.PrepareStart(self.start_request())
+        self.assertNotEqual(again['activeRun']['runId'], run_id)
+
+    def test_a_run_recorded_before_run_ids_still_advances(self):
+        self.store.Start(self.start_request())
+        record = self.store.Load()
+        record['activeRun'].pop('runId')
+        self.store.CommitPreparedStart(record)
+
+        result = self.store.AdvanceVerified(
+            campaign_id='rise_of_red_skull',
+            scenario_name='Crossbones',
+            campaign_log={},
+            game_over=True,
+            players_won=True,
+            is_replay=False,
+        )
+        self.assertTrue(result['advanced'])
 
 
 if __name__ == '__main__':

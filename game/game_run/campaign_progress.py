@@ -3,6 +3,7 @@ from core import *
 from datetime import datetime, timezone
 import os
 import threading
+import uuid
 
 from engine.config import ConfigVariables
 from engine.file import FileManager
@@ -45,6 +46,12 @@ CAMPAIGN_SCENARIOS: Dict[str, List[str]] = {
         'black_widow', 'batroc', 'modok', 'thunderbolts', 'baron_zemo',
     ],
 }
+
+
+# Scene metadata naming the solo-campaign run a game was launched for. Only a
+# game carrying the active run's id may advance the campaign, so an Advanced
+# Setup game of the same scenario (another hero, expert, a test) never does.
+CAMPAIGN_RUN_METADATA_KEY = 'campaign_run_id'
 
 
 class CampaignProgressConflict(ValueError):
@@ -154,13 +161,20 @@ class CampaignProgressStore:
         ):
             raise ValueError('The active run does not match campaign progress.')
 
-        return {
+        run = {
             'version': cls.VERSION,
             'campaignId': campaign_id,
             'scenarioId': scenario_id,
             'scenarioName': scenario_name,
             'scenarioIndex': scenario_index,
         }
+        # Added later: runs recorded before it simply have no id.
+        run_id = data.get('runId')
+        if run_id is not None:
+            if not isinstance(run_id, str) or not run_id:
+                raise ValueError('runId must be a string.')
+            run['runId'] = run_id
+        return run
 
     @classmethod
     def _ValidateRecord(cls, value: Any) -> Dict[str, Any]:
@@ -222,13 +236,29 @@ class CampaignProgressStore:
                     **incoming,
                     'updatedAt': self._Now(),
                 },
-                'activeRun': active_run,
+                # A fresh id for every launch; it is not game state, so it may
+                # come from outside the seeded game random.
+                'activeRun': {**active_run, 'runId': uuid.uuid4().hex},
             }
 
-    def CommitPreparedStart(self, record: Dict[str, Any]) -> Dict[str, Any]:
+    @staticmethod
+    def GetSceneRunId(scene: Any) -> str:
+        metadata = getattr(scene, 'metadata', None) or {}
+        return str(metadata.get(CAMPAIGN_RUN_METADATA_KEY, ''))
+
+    def CommitPreparedStart(
+        self,
+        record: Dict[str, Any],
+        scene: Any=None,
+    ) -> Dict[str, Any]:
         record = self._ValidateRecord(record)
         with self._lock:
             self._SaveUnlocked(record)
+        run_id = (record['activeRun'] or {}).get('runId')
+        if scene is not None and run_id:
+            # Saved with the game, so a restart, an undo or a resumed session
+            # still belongs to this run.
+            scene.metadata[CAMPAIGN_RUN_METADATA_KEY] = run_id
         return record
 
     def Start(self, value: Any) -> Dict[str, Any]:
@@ -261,6 +291,7 @@ class CampaignProgressStore:
         game_over: bool,
         players_won: bool|None,
         is_replay: bool,
+        run_id: str|None=None,
     ) -> Dict[str, Any]:
         with self._lock:
             record = self._LoadUnlocked()
@@ -274,6 +305,14 @@ class CampaignProgressStore:
                     'campaign': campaign,
                     'advanced': False,
                     'reason': 'already_recorded',
+                }
+            expected_run_id = active_run.get('runId')
+            if expected_run_id and run_id != expected_run_id:
+                # Not launched from the solo Campaign page for this run.
+                return {
+                    'campaign': campaign,
+                    'advanced': False,
+                    'reason': 'not_campaign_run',
                 }
             if is_replay:
                 return {
@@ -343,4 +382,5 @@ class CampaignProgressStore:
             game_over=game_over,
             players_won=players_won,
             is_replay=game.controller_manager.replay.is_replay,
+            run_id=self.GetSceneRunId(world.scene),
         )

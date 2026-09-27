@@ -287,7 +287,10 @@ class Game:
         self.controller_manager.replay.SetIsReplay(False)
         self.session.NewGame(new_game)
         if prepared_progress:
-            progress_store.CommitPreparedStart(prepared_progress)
+            progress_store.CommitPreparedStart(
+                prepared_progress,
+                getattr(self.session, 'scene', None),
+            )
         self.controller_manager.OnNewGame()
 
     def LoadReplay(self, file_path: 'str') -> None:
