@@ -33088,7 +33088,9 @@
             "type": "Obligation",
             "name": "Reactive Defense",
             "subtitle": "",
-            "desc": {},
+            "desc": {
+                "GiveTo": ""
+            },
             "traits": [],
             "set_name": "Mutant Genesis Campaign",
             "text": "<b>Alter-Ego Action</b>: Spend [energy] [mental] [physical] resources \u2192 deal 5 damage to each enemy in play. Remove this card from the game."
@@ -66330,7 +66332,8 @@
             "name": "Spellcasting",
             "subtitle": "",
             "desc": {
-                "Boost": "1"
+                "Boost": "1",
+                "GiveTo": ""
             },
             "traits": [],
             "set_name": "Scarlet Twins",
@@ -66466,7 +66469,8 @@
             "name": "Blood Debt",
             "subtitle": "",
             "desc": {
-                "Boost": "1"
+                "Boost": "1",
+                "GiveTo": ""
             },
             "traits": [],
             "set_name": "Royal Guard",
@@ -66508,5 +66512,5 @@
             "full_link": "56128b"
         }
     ],
-    "checksum": "7226e858d5ea04aefdf5df4efd42ec3570d4a2e0c6e0db28fd0f02185f768c17"
+    "checksum": "40421784c5233dbb25a41f25faa7d89c2cde87b4ce7adb708401bb3e1d0babd4"
 }
