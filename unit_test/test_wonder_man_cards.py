@@ -47,8 +47,13 @@ class PacifismTests(unittest.TestCase):
 
         message.SetCannotAttack.assert_called_once_with(effect)
 
+    def test_also_blocks_attack_abilities_such_as_ionic_blast(self):
+        from game.message import Message
+
+        self.assertIs(self.abilities[1].when, Message.CheckEffectCondition)
+
     def test_can_be_discarded_by_exhausting_simon_williams(self):
-        action = self.abilities[1]
+        action = self.abilities[2]
         obligation = Mock()
         effect = Mock(this=obligation)
 
@@ -67,7 +72,7 @@ class PacifismTests(unittest.TestCase):
         discard.assert_called_once_with([obligation], effect)
 
     def test_can_be_discarded_by_spending_exactly_three_tucked_cards(self):
-        action = self.abilities[2]
+        action = self.abilities[3]
         cost = action.cost_funcs[0]
         effect = Mock()
         cards = [MagicMock(), MagicMock(), MagicMock()]

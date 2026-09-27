@@ -6,8 +6,9 @@ from . import *
 def GetAbilities() -> Sequence['Ability']:
     return [
         *AbilityFactory.UnitCannotAttackTarget(
-            CardFinder(name="Wonder Man", card_type=Identity),
+            "AttachedIdentity",
             cannot_attack=True,
+            cannot_trigger_attack_ability=True,
         ),
         AbilityFactory.PlayerActionToDiscardThis(
             AbilityType.AlterEgoAction,
