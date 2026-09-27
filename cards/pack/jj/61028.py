@@ -5,10 +5,11 @@ def GetAbilities() -> Sequence['Ability']:
 
     def second_chance(effect: 'Effect', message: 'Message.WhenSchemeBeDefeated') -> None:
         def action(player: 'Player') -> None:
-            identity_set = player.GetIdentity().paper.set_name
+            # Identity-specific by card class, not set name: Wasp's Pym
+            # Particles and similar cards carry another set's name.
             cards = [
                 face for face in player.discard_pile.GetAll()
-                if face.paper.set_name == identity_set
+                if ClassCard.IsType(face) and face.IsClass("IdentitySpecific")
             ]
             if cards:
                 player.MayChooseOneAbility(
