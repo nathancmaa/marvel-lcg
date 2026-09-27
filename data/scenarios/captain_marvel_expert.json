@@ -1,0 +1,37 @@
+{
+    "version": "0.5.8",
+    "name": "Captain Marvel",
+    "villain": [
+        "56094",
+        "56095"
+    ],
+    "expert": true,
+    "schemes": [
+        "56096a,56096b",
+        "56097a,56097b"
+    ],
+    "set_aside": [
+    ],
+    "encounters": [
+        "56098",
+        "56099",
+        "56100",
+        "56100",
+        "56101",
+        "56101",
+        "56102",
+        "56102",
+        "56103",
+        "56104"
+    ],
+    "encounter_sets": [
+        "standard",
+        "expert"
+    ],
+    "modular_sets": [
+        "cape_killer",
+        "martial_law",
+        "heroes_for_hire",
+        "paladin"
+    ]
+}
