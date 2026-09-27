@@ -5,14 +5,10 @@ from . import *
 def GetAbilities() -> Sequence['Ability']:
 
     def fenris_wolf(effect: 'Effect', message: 'Message.WhenUnitBeDefeated') -> None:
-        this = effect.this.CastTo(Minion)
-        Unused(this)
-
-        # player = message.GetToPlayer()
-        # identity = player.GetIdentity()
+        Unused(message)
+        PlaceSynergyCounters("Mounting Resistance", 1)(effect)
 
 
     return [
         WhenDefeatedPlaceShatterCountersOnTheAvatarOfLokivillain(3, fenris_wolf)
     ]
-

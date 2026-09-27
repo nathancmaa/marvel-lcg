@@ -1,10 +1,8 @@
 from . import *
 
-# * The Mangog
 
 def GetAbilities() -> Sequence['Ability']:
-
-    def defeated(effect: 'Effect', message: 'Message.WhenUnitBeDefeated') -> None:
+    def defeated(effect: 'Effect', message: 'Message.WhenSchemeBeDefeated') -> None:
         Unused(message)
         PlaceShatterCountersOnTheAvatarOfLokivillain(3, effect)
         environments = CardFinder(
@@ -21,9 +19,8 @@ def GetAbilities() -> Sequence['Ability']:
                 maximum=Worlds.GetPlayerNumIcon(effect),
             )
 
-
     return [
-        AbilityFactory.WhenUnitBeDefeated(
+        AbilityFactory.WhenSchemeBeDefeated(
             AbilityType.WhenDefeated,
             "This",
             defeated,

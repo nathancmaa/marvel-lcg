@@ -56256,7 +56256,8 @@
                 "HP": "2",
                 "ATK": "1",
                 "SCH": "0",
-                "Boost": "1"
+                "Boost": "1",
+                "Guard": "1"
             },
             "traits": [
                 "UNDEAD"
@@ -56329,7 +56330,8 @@
                 "HP": "10",
                 "ATK": "4",
                 "SCH": "3",
-                "Boost": "3"
+                "Boost": "3",
+                "Victory": "1"
             },
             "traits": [
                 "BRUTE",
@@ -56579,6 +56581,458 @@
             ],
             "set_name": "Trickster Magic",
             "text": "Linked (Zzzax minion). Victory 0. Does not count against your ally limit.\n<b>Response</b>: After Zzzax enters play, search the top 5 cards of your deck for a card with a printed [energy] resource and add it to your hand. <i>(Shuffle.)</i>"
+        },
+        {
+            "card_id": "55027a",
+            "type": "Villain",
+            "name": "* Loki, God of Lies",
+            "subtitle": "",
+            "desc": {
+                "HP": "20*",
+                "ATK": "0",
+                "SCH": "0",
+                "Stage": "1"
+            },
+            "traits": [
+                "ASGARD",
+                "MYSTIC"
+            ],
+            "set_name": "God of Lies",
+            "text": "Loki, God of Lies cannot activate.\n<b>Forced Response</b>: After Loki, God of Lies has 10[per_hero] or fewer remaining hit points, flip this card."
+        },
+        {
+            "card_id": "55027b",
+            "type": "Villain",
+            "name": "* Loki, God of Lies",
+            "subtitle": "",
+            "desc": {
+                "HP": "20*",
+                "ATK": "0",
+                "SCH": "0",
+                "Stage": "2"
+            },
+            "traits": [
+                "ASGARD",
+                "MYSTIC"
+            ],
+            "set_name": "God of Lies",
+            "text": "Loki, God of Lies cannot activate.\n<b>When Revealed</b>: In standard mode, attach the set-aside Intense Focus to the [[Avatar of Loki]] villain. In expert mode, flip Intense Focus to Total Focus and attach it to that villain.\n<b>When Loki, God of Lies is defeated, the players win the game.</b>"
+        },
+        {
+            "card_id": "55028a",
+            "type": "MainScheme",
+            "name": "Worlds Collide",
+            "subtitle": "",
+            "desc": {
+                "Stage": "A"
+            },
+            "traits": [],
+            "set_name": "God of Lies",
+            "text": "<b>Contents</b>: Loki, God of Lies (I), the God of Lies and Standard encounter sets, and one modular encounter set (Trickster Magic).\n<b>Setup</b>: Resolve the setup instructions on Mischief and Mayhem 1A."
+        },
+        {
+            "card_id": "55028b",
+            "type": "MainScheme",
+            "name": "Worlds Collide",
+            "subtitle": "",
+            "desc": {
+                "StartingThreat": "0",
+                "TargetThreat": "2",
+                "EscalationThreat": "0",
+                "Stage": "B"
+            },
+            "traits": [],
+            "set_name": "God of Lies",
+            "text": "Cards cannot affect this scheme or Loki, God of Lies unless their text specifically refers to them.\n<b>If this stage is completed, the players lose the game.</b>"
+        },
+        {
+            "card_id": "55029a",
+            "type": "Villain",
+            "name": "* Loki the Rascal",
+            "subtitle": "",
+            "desc": {
+                "HP": "15*",
+                "ATK": "1",
+                "SCH": "1",
+                "Stage": "A1"
+            },
+            "traits": [
+                "AVATAR OF LOKI"
+            ],
+            "set_name": "God of Lies",
+            "text": "[star] <b>Forced Response</b>: After resolving a boost card during Loki the Rascal's activation, if that card is a treachery, either deal it to yourself as a facedown encounter card or spend 1 resource of any type.\n<b>Forced Interrupt</b>: When Loki the Rascal would be defeated, place 5[per_hero] shatter counters on him and flip him instead."
+        },
+        {
+            "card_id": "55029b",
+            "type": "Villain",
+            "name": "Fading Figment",
+            "subtitle": "",
+            "desc": {
+                "HP": "INF",
+                "ATK": "0",
+                "SCH": "0",
+                "Stage": "A2"
+            },
+            "traits": [
+                "ILLUSION"
+            ],
+            "set_name": "God of Lies",
+            "text": "Fading Figment cannot activate.\n<b>When Revealed</b>: Shatter the illusion. Then place 1[per_hero] synergy counters on Unified Front."
+        },
+        {
+            "card_id": "55030a",
+            "type": "Villain",
+            "name": "* Loki the Miscreant",
+            "subtitle": "",
+            "desc": {
+                "HP": "15*",
+                "ATK": "2",
+                "SCH": "1",
+                "Stage": "B1"
+            },
+            "traits": [
+                "AVATAR OF LOKI"
+            ],
+            "set_name": "God of Lies",
+            "text": "[star] <b>Forced Response</b>: After you resolve a treachery, place 1 threat on the main scheme and 1 threat on a side scheme.\n<b>Forced Interrupt</b>: When Loki the Miscreant would be defeated, place 5[per_hero] shatter counters on him and flip him instead."
+        },
+        {
+            "card_id": "55030b",
+            "type": "Villain",
+            "name": "Fading Figment",
+            "subtitle": "",
+            "desc": {
+                "HP": "INF",
+                "ATK": "0",
+                "SCH": "0",
+                "Stage": "B2"
+            },
+            "traits": [
+                "ILLUSION"
+            ],
+            "set_name": "God of Lies",
+            "text": "Fading Figment cannot activate.\n<b>When Revealed</b>: Shatter the illusion. Then place 1[per_hero] synergy counters on Mounting Resistance."
+        },
+        {
+            "card_id": "55031a",
+            "type": "Villain",
+            "name": "* Loki the Knave",
+            "subtitle": "",
+            "desc": {
+                "HP": "15*",
+                "ATK": "1",
+                "SCH": "2",
+                "Stage": "C1"
+            },
+            "traits": [
+                "AVATAR OF LOKI"
+            ],
+            "set_name": "God of Lies",
+            "text": "[star] <b>Forced Response</b>: After you resolve a treachery, deal 1 damage to your identity and 1 damage to an ally you control.\n<b>Forced Interrupt</b>: When Loki the Knave would be defeated, place 5[per_hero] shatter counters on him and flip him instead."
+        },
+        {
+            "card_id": "55031b",
+            "type": "Villain",
+            "name": "Fading Figment",
+            "subtitle": "",
+            "desc": {
+                "HP": "INF",
+                "ATK": "0",
+                "SCH": "0",
+                "Stage": "C2"
+            },
+            "traits": [
+                "ILLUSION"
+            ],
+            "set_name": "God of Lies",
+            "text": "Fading Figment cannot activate.\n<b>When Revealed</b>: Shatter the illusion. Then place 1[per_hero] synergy counters on Domineering Force."
+        },
+        {
+            "card_id": "55032a",
+            "type": "Villain",
+            "name": "* Loki the Wretch",
+            "subtitle": "",
+            "desc": {
+                "HP": "15*",
+                "ATK": "1",
+                "SCH": "1",
+                "Stage": "D1"
+            },
+            "traits": [
+                "AVATAR OF LOKI"
+            ],
+            "set_name": "God of Lies",
+            "text": "[star] <b>Forced Interrupt</b>: When Loki the Wretch activates, discard the top card of the encounter deck. If that card is a treachery, he gets +1 SCH and +1 ATK for this activation.\n<b>Forced Interrupt</b>: When Loki the Wretch would be defeated, place 5[per_hero] shatter counters on him and flip him instead."
+        },
+        {
+            "card_id": "55032b",
+            "type": "Villain",
+            "name": "Fading Figment",
+            "subtitle": "",
+            "desc": {
+                "HP": "INF",
+                "ATK": "0",
+                "SCH": "0",
+                "Stage": "D2"
+            },
+            "traits": [
+                "ILLUSION"
+            ],
+            "set_name": "God of Lies",
+            "text": "Fading Figment cannot activate.\n<b>When Revealed</b>: Shatter the illusion. Then place 1[per_hero] synergy counters on Feigned Retreat."
+        },
+        {
+            "card_id": "55033a",
+            "type": "MainScheme",
+            "name": "Mischief and Mayhem",
+            "subtitle": "",
+            "desc": {
+                "Stage": "1A"
+            },
+            "traits": [],
+            "set_name": "God of Lies",
+            "text": "<b>Setup</b>: Put a random set-aside [[Avatar of Loki]] villain into play. Put each set-aside [[Synergy]] environment into play. In standard mode, set Intense Focus aside. In expert mode, attach Intense Focus to the [[Avatar of Loki]] villain."
+        },
+        {
+            "card_id": "55033b",
+            "type": "MainScheme",
+            "name": "Mischief and Mayhem",
+            "subtitle": "",
+            "desc": {
+                "StartingThreat": "0",
+                "TargetThreat": "8*",
+                "EscalationThreat": "1*",
+                "Stage": "1B"
+            },
+            "traits": [],
+            "set_name": "God of Lies",
+            "text": "<b>Forced Interrupt</b>: When this scheme would be completed, remove all threat from it and place 1 threat on Worlds Collide instead.\n<b>Forced Interrupt</b>: When an identity would be defeated, set its hit points to 1 and flip it to alter-ego form instead. Then place 1 threat on Worlds Collide."
+        },
+        {
+            "card_id": "55034a",
+            "type": "Attachment",
+            "name": "Intense Focus",
+            "subtitle": "",
+            "desc": {
+                "Permanent": "1"
+            },
+            "traits": [
+                "CONDITION"
+            ],
+            "set_name": "God of Lies",
+            "text": "Permanent. Attach to the [[Avatar of Loki]] villain. Attached villain gets +2[per_hero] hit points and gains steady.\n<b>When Revealed</b>: Discard the top 2[per_hero] cards of the encounter deck and the top 5 cards of each player's deck.\n[star] Attached villain gets +1 SCH and +1 ATK."
+        },
+        {
+            "card_id": "55034b",
+            "type": "Attachment",
+            "name": "Total Focus",
+            "subtitle": "",
+            "desc": {
+                "Permanent": "1"
+            },
+            "traits": [
+                "CONDITION"
+            ],
+            "set_name": "God of Lies",
+            "text": "Permanent. Attach to the [[Avatar of Loki]] villain. Attached villain gets +3[per_hero] hit points and gains steady.\n<b>When Revealed</b>: Discard the top 2[per_hero] cards of the encounter deck and the top 5 cards of each player's deck. Find and reveal Dark Scepter. If it did not enter play, give the [[Avatar of Loki]] villain a tough status card.\n[star] Attached villain gets +1 SCH and +1 ATK."
+        },
+        {
+            "card_id": "55035",
+            "type": "Attachment",
+            "name": "Wrapped in Chains",
+            "subtitle": "",
+            "desc": {
+                "Boost": "1"
+            },
+            "traits": [
+                "CONDITION"
+            ],
+            "set_name": "God of Lies",
+            "text": "Attach to your identity. Attached identity cannot ready.\n<b>When Revealed</b>: Exhaust your identity.\n<b>Hero Action</b>: Spend 2 resources of the same type \u2192 discard this card and place 1 shatter counter on the [[Avatar of Loki]] villain."
+        },
+        {
+            "card_id": "55036",
+            "type": "Attachment",
+            "name": "Dark Scepter",
+            "subtitle": "",
+            "desc": {
+                "Boost": "2"
+            },
+            "traits": [
+                "ITEM",
+                "WEAPON"
+            ],
+            "set_name": "God of Lies",
+            "text": "Attach to the [[Avatar of Loki]] villain. Attached villain gains stalwart. Treachery effects cannot be canceled.\n<b>Hero Response</b>: After you resolve a treachery, spend 2 resources of the same type \u2192 discard this card."
+        },
+        {
+            "card_id": "55043",
+            "type": "Minion",
+            "name": "* Hraesvelgr",
+            "subtitle": "",
+            "desc": {
+                "HP": "7",
+                "ATK": "2",
+                "SCH": "2",
+                "Boost": "3"
+            },
+            "traits": [
+                "CREATURE",
+                "ELITE"
+            ],
+            "set_name": "God of Lies",
+            "text": "<b>When Revealed</b>: Discard the top 3 cards of the encounter deck. If a treachery was discarded this way, take 2 indirect damage.\n<b>When Defeated</b>: Place 3 shatter counters on the [[Avatar of Loki]] villain and 1 synergy counter on Domineering Force."
+        },
+        {
+            "card_id": "55044",
+            "type": "Minion",
+            "name": "* Laufey",
+            "subtitle": "",
+            "desc": {
+                "HP": "7",
+                "ATK": "3",
+                "SCH": "2",
+                "Boost": "3"
+            },
+            "traits": [
+                "ELITE",
+                "GIANT"
+            ],
+            "set_name": "God of Lies",
+            "text": "[star] <b>Forced Response</b>: After a character attacks Laufey, discard the top card of the encounter deck. If that card is a treachery, stun the attacking character.\n<b>When Defeated</b>: Place 3 shatter counters on the [[Avatar of Loki]] villain and 1 synergy counter on Unified Front."
+        },
+        {
+            "card_id": "55045",
+            "type": "SideScheme",
+            "name": "Aura of Stasis",
+            "subtitle": "",
+            "desc": {
+                "StartingThreat": "4",
+                "Crisis": "1",
+                "Boost": "1"
+            },
+            "traits": [],
+            "set_name": "God of Lies",
+            "text": "<b>When Revealed</b>: Discard the top 2 cards of the encounter deck (top 3 cards instead in expert mode). If a treachery was discarded this way, exhaust your identity."
+        },
+        {
+            "card_id": "55046",
+            "type": "SideScheme",
+            "name": "Door Between Worlds",
+            "subtitle": "",
+            "desc": {
+                "StartingThreat": "7",
+                "Crisis": "1",
+                "Hazard": "1",
+                "Acceleration": "1",
+                "Victory": "1",
+                "Boost": "3"
+            },
+            "traits": [],
+            "set_name": "God of Lies",
+            "text": "Victory 1. Any player in your pod can thwart Door Between Worlds as if it were in their game area.\n<b>When Defeated</b>: Each group in your pod places 3 shatter counters on their [[Avatar of Loki]] villain and 1 synergy counter on one of their [[Synergy]] environments."
+        },
+        {
+            "card_id": "55048",
+            "type": "SideScheme",
+            "name": "New Jotunheim",
+            "subtitle": "",
+            "desc": {
+                "StartingThreat": "6",
+                "Acceleration": "1",
+                "Boost": "3"
+            },
+            "traits": [],
+            "set_name": "God of Lies",
+            "text": "<b>When Defeated</b>: Place 3 shatter counters on the [[Avatar of Loki]] villain and 1 synergy counter on Feigned Retreat."
+        },
+        {
+            "card_id": "55049",
+            "type": "Treachery",
+            "name": "Dark Arts",
+            "subtitle": "",
+            "desc": {},
+            "traits": [],
+            "set_name": "God of Lies",
+            "text": "In expert mode, this card gains incite 1.\n<b>When Revealed</b>: Search the encounter discard pile for a minion and reveal it. If no minion is revealed this way, place 3 threat on the main scheme.\n<hr />\n[star] <b>Boost</b>: Place 1 threat on the main scheme for each character you control."
+        },
+        {
+            "card_id": "55050",
+            "type": "Treachery",
+            "name": "Dirty Trick",
+            "subtitle": "",
+            "desc": {},
+            "traits": [],
+            "set_name": "God of Lies",
+            "text": "<b>When Revealed</b>: Remove 1 shatter counter from the [[Avatar of Loki]] villain. Take 2 damage (3 damage instead in expert mode).\n<hr />\n[star] <b>Boost</b>: Take 1 indirect damage for each character you control."
+        },
+        {
+            "card_id": "55051",
+            "type": "Treachery",
+            "name": "Stories and Lies",
+            "subtitle": "",
+            "desc": {
+                "Boost": "2"
+            },
+            "traits": [],
+            "set_name": "God of Lies",
+            "text": "<b>When Revealed</b>: Swap the [[Avatar of Loki]] villain with a random set-aside [[Avatar of Loki]] villain. If Loki the Knave or Loki the Miscreant entered play this way, he schemes (+1 SCH in expert mode). If Loki the Rascal or Loki the Wretch entered play this way, he attacks you (+1 ATK in expert mode)."
+        },
+        {
+            "card_id": "55052",
+            "type": "Environment",
+            "name": "Domineering Force",
+            "subtitle": "",
+            "desc": {
+                "Permanent": "1"
+            },
+            "traits": [
+                "SYNERGY"
+            ],
+            "set_name": "God of Lies",
+            "text": "Permanent. This card can have a maximum of 1[per_hero] synergy counters.\n<b>Interrupt</b>: When a friendly character attacks, remove 1 synergy counter from here \u2192 that character gets +4 ATK for this attack."
+        },
+        {
+            "card_id": "55053",
+            "type": "Environment",
+            "name": "Feigned Retreat",
+            "subtitle": "",
+            "desc": {
+                "Permanent": "1"
+            },
+            "traits": [
+                "SYNERGY"
+            ],
+            "set_name": "God of Lies",
+            "text": "Permanent. This card can have a maximum of 1[per_hero] synergy counters.\n<b>Interrupt</b>: When your identity would take any amount of damage, remove 1 synergy counter from here \u2192 prevent 4 of that damage."
+        },
+        {
+            "card_id": "55054",
+            "type": "Environment",
+            "name": "Mounting Resistance",
+            "subtitle": "",
+            "desc": {
+                "Permanent": "1"
+            },
+            "traits": [
+                "SYNERGY"
+            ],
+            "set_name": "God of Lies",
+            "text": "Permanent. This card can have a maximum of 1[per_hero] synergy counters.\n<b>Interrupt</b>: When a friendly character thwarts, remove 1 synergy counter from here \u2192 that character gets +4 THW for this thwart."
+        },
+        {
+            "card_id": "55055",
+            "type": "Environment",
+            "name": "Unified Front",
+            "subtitle": "",
+            "desc": {
+                "Permanent": "1"
+            },
+            "traits": [
+                "SYNERGY"
+            ],
+            "set_name": "God of Lies",
+            "text": "Permanent. This card can have a maximum of 1[per_hero] synergy counters.\n<b>Resource</b>: Remove 1 synergy counter from here \u2192 generate 2 wild resources."
         }
     ],
     "cw": [
@@ -66601,5 +67055,5 @@
             "full_link": "56128b"
         }
     ],
-    "checksum": "8a0c5245e1991080c32f3d7ff08902cdbbf625ee491abfeee0f569d6c9c45050"
+    "checksum": "1d36f25fb5c4befc642ffc0e9fe84c96c06cfedb600aaf6dfb6f4b8b60173fa8"
 }

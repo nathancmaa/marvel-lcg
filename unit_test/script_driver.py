@@ -29,11 +29,12 @@ from game.test.headless import HeadlessDeviceManager
 class Act:
     """Choose the option ``name`` of the card ``bind`` (object id or callable).
 
+    A ``name`` of None takes any option of that card.
     ``payments`` pays with the first that many offered resources;
     ``pay_from`` pays with the resources of the named card ids instead.
     """
 
-    name: str
+    name: str|None
     bind: int|Callable
     targets: list|Callable|None = None
     payments: int = 0
@@ -44,10 +45,10 @@ def _resolve(value, world):
     return value(world) if callable(value) else value
 
 
-def _choose(prompt, act: Act, world) -> CommandDescriptor:
+def choose(prompt, act: Act, world) -> CommandDescriptor:
     bind = _resolve(act.bind, world)
     for option in prompt.options:
-        if option.get("name") == act.name and option.get("bind_id") == bind:
+        if act.name in (None, option.get("name")) and option.get("bind_id") == bind:
             break
     else:
         raise AssertionError(
@@ -109,7 +110,7 @@ def play_script(fixture, steps, *, other=None):
                 return None
             step = queue.pop(0)
             if isinstance(step, Act):
-                return _choose(prompt, step, world)
+                return choose(prompt, step, world)
             Engine.game.controller_manager.console.SetCommand(_resolve(step, world), world)
             return CommandDescriptor()
         if other:
