@@ -19,22 +19,46 @@ def _log_list(key: str, effect: 'Effect') -> List[str]:
 def _log_choice(key: str, allowed: Sequence[str], effect: 'Effect') -> str:
     from game.operate.campaign_logs import CampaignLog
 
-    selected = CampaignLog.GetStrInternal(key, effect)
-    return selected if selected in allowed else ""
+    for selected in CampaignLog.GetListInternal(key, effect):
+        if selected in allowed:
+            return selected
+    return ""
 
 
-def _selected_or_random(
-    key: str,
+def _random_available(
     all_ids: Sequence[str],
     unavailable: Sequence[str],
     effect: 'Effect',
 ) -> str:
-    selected = _log_choice(key, all_ids, effect)
-    if selected and selected not in unavailable:
-        return selected
-
     available = [card_id for card_id in all_ids if card_id not in unavailable]
     return Rand.RandomChoice(available, effect) if available else ""
+
+
+def _printed_overseer_id(face: 'CardFace') -> str:
+    for printed_face in [face] + face.card.back_faces:
+        card_id = printed_face.paper.card_id
+        if card_id in OVERSEERS:
+            return card_id
+    return ""
+
+
+def _take_set_aside_overseer(
+    overseer_id: str,
+    effect: 'Effect',
+) -> 'Minion|None':
+    for face in effect.world.aside_deck.Get():
+        target = next((
+            printed_face
+            for printed_face in [face] + face.card.back_faces
+            if printed_face.paper.card_id == overseer_id
+        ), None)
+        if not target:
+            continue
+        if face != target:
+            face.card.Flip(effect, call_reveal=False)
+        return face.card.face.CastTo(Minion)
+
+    return None
 
 
 def _generate_into_player_deck(card_id: str, player: 'Player', effect: 'Effect') -> None:
@@ -50,27 +74,35 @@ def AddPreviousMissionRewardsAndPenalties(level: int) -> 'Ability':
             return
 
         removed = set(_log_list("Mission Side Schemes Removed from campaign", effect))
-        defeated = set(_log_list("Mission Side Schemes Defeated", effect))
-        removed |= defeated
+        defeated = removed.intersection(
+            _log_list("Mission Side Schemes Defeated", effect)
+        )
+        not_defeated = removed - defeated
 
         for player in Worlds.GetPlayers(effect):
             player_id = player.player_id
 
             if "45166a" in defeated:
-                _generate_into_player_deck("45176", player, effect)
+                player.MayChooseOneAbility(
+                    effect,
+                    AbilityFactory.ForChoiceAbility(
+                        "Shuffle Desperate Measures into your deck",
+                        lambda targets, player=player:
+                            _generate_into_player_deck("45176", player, effect),
+                    ),
+                )
 
-            if "45167a" in removed:
-                if "45167a" in defeated:
-                    from game.operate.campaign_logs import CampaignLog
-                    upgrade_id = CampaignLog.GetStrInternal(
-                        f"Player {player_id + 1} Campaign Aspect Upgrade",
-                        effect,
-                    )
-                    _generate_into_player_deck(upgrade_id, player, effect)
-                else:
-                    _generate_into_player_deck("45178", player, effect)
+            if "45167a" in defeated:
+                from game.operate.campaign_logs import CampaignLog
+                upgrade_id = CampaignLog.GetStrInternal(
+                    f"Player {player_id + 1} Campaign Aspect Upgrade",
+                    effect,
+                )
+                _generate_into_player_deck(upgrade_id, player, effect)
+            elif "45167a" in not_defeated:
+                _generate_into_player_deck("45178", player, effect)
 
-            if "45168a" in removed and "45168a" in defeated:
+            if "45168a" in defeated:
                 from game.operate.campaign_logs import CampaignLog
                 support_id = CampaignLog.GetStrInternal(
                     f"Player {player_id + 1} Campaign Aspect Support",
@@ -86,7 +118,7 @@ def AddPreviousMissionRewardsAndPenalties(level: int) -> 'Ability':
                 )
                 _generate_into_player_deck(ally_id, player, effect)
 
-        if "45168a" in removed and "45168a" not in defeated:
+        if "45168a" in not_defeated:
             sea_wall = CardFactory.GenerateCard(
                 "45177",
                 Worlds.AsideDeck(effect),
@@ -119,23 +151,30 @@ def SetupMission(level: int) -> 'Ability':
         first_player = Worlds.GetFirstPlayer(effect)
         CampaignLog.SetStr("Age of Apocalypse Scenario", str(level), effect.world)
 
-        removed_missions = set(_log_list("Mission Side Schemes Removed from campaign", effect))
-        removed_missions |= set(_log_list("Mission Side Schemes Defeated", effect))
+        removed_missions = set(
+            _log_list("Mission Side Schemes Removed from campaign", effect)
+        )
         if level == 5:
             mission_id = PROTECT_THE_PROFESSOR
         else:
-            mission_id = _selected_or_random(
-                f"Scenario {level} Mission Side Scheme",
+            mission_id = _random_available(
                 MISSION_SIDE_SCHEMES,
                 list(removed_missions),
                 effect,
             )
 
-        defeated_overseers = _log_list("Overseers Defeated", effect)
-        overseer_id = _selected_or_random(
-            f"Scenario {level} Overseer",
+        unavailable_overseers = set(
+            _log_list("Overseers Defeated", effect)
+        )
+        for prelate in Worlds.FindCardsOnField(
+            effect, trait="PRELATE", card_type=Minion
+        ):
+            prelate_overseer_id = _printed_overseer_id(prelate)
+            if prelate_overseer_id:
+                unavailable_overseers.add(prelate_overseer_id)
+        overseer_id = _random_available(
             OVERSEERS,
-            defeated_overseers,
+            list(unavailable_overseers),
             effect,
         )
 
@@ -148,11 +187,13 @@ def SetupMission(level: int) -> 'Ability':
             mission.PutIntoPlay(first_player, effect)
 
         if overseer_id:
-            overseer = CardFactory.GenerateCard(
-                f"{overseer_id},{overseer_id[:-1]}b",
-                Worlds.AsideDeck(effect),
-                effect.world,
-            ).face
+            overseer = _take_set_aside_overseer(overseer_id, effect)
+            if overseer is None:
+                overseer = CardFactory.GenerateCard(
+                    f"{overseer_id},{overseer_id[:-1]}b",
+                    Worlds.AsideDeck(effect),
+                    effect.world,
+                ).face.CastTo(Minion)
             overseer.card.bind_discard_pile = Worlds.GetEncounterDiscardPile(effect)
             Faces.MoveAllTo([overseer], Worlds.ScenarioArea(effect, "MissionArea"), effect)
 

@@ -56,9 +56,11 @@ def MustPlayNextAllyToMission(player: 'Player', effect: 'Effect') -> bool:
 
 def PlayAllyToMission(ally: 'Ally', player: 'Player', effect: 'Effect') -> None:
     ally.card.SetOwner(player)
-    if Faces.MoveAllTo([ally], GetMissionArea(effect), effect):
-        # Mission allies have no printed text while they are at the mission.
-        ally.TreatAsIfBlankInternal(1, effect)
+    Faces.MoveAllTo(
+        [ally], GetMissionArea(effect), effect,
+        # Blank after the ally resets, but before enter-play abilities fire.
+        before_enter_play=lambda face: face.TreatAsIfBlankInternal(1, effect),
+    )
 
 
 def ReduceNextMissionAllyCost(player: 'Player', effect: 'Effect') -> None:
@@ -81,12 +83,15 @@ def ClearMissionAllyFlags(effect: 'Effect') -> None:
         Stores.SetStr(MissionAllyFlag(player), "0", effect)
 
 
-def _matching_resources(
-    ally: 'Ally',
-    card: 'CardFace',
-    used_resources: Set[str],
-    sinister_is_present: bool,
-) -> List[str]:
+def _resource_icons(card: 'CardFace') -> Set[str]:
+    resources = card.printed_resource_internal
+    return {
+        resource for resource in Resources.RBYG_LIST
+        if resources.HasColorPrinted(resource)
+    }
+
+
+def _matching_resources(ally: 'Ally', card: 'CardFace') -> List[str]:
     ally_res = ally.printed_resource_internal
     card_res = card.printed_resource_internal
     matches: List[str] = []
@@ -94,39 +99,49 @@ def _matching_resources(
     for resource in Resources.RBYG_LIST:
         ally_matches = ally_res.HasColorPrinted(resource) or ally_res.g > 0
         card_matches = card_res.HasColorPrinted(resource) or card_res.g > 0
-        if ally_matches and card_matches and (
-            not sinister_is_present or resource not in used_resources
-        ):
+        if ally_matches and card_matches:
             matches.append(resource)
     return matches
 
 
-def _resolve_overseer_discard_effect(
-    card: 'CardFace',
+def _resolve_overseer_discard_effects(
+    cards: Sequence['CardFace'],
     player: 'Player',
     mission: 'EncounterSideScheme',
     effect: 'Effect',
-) -> bool:
-    """Resolve effects tied to the resource on a card discarded for an attempt.
-
-    Returns False when the discarded card cannot participate (Abyss's wild-icon
-    replacement).
-    """
-    overseers = GetMissionArea(effect).FindCards(trait="OVERSEER", card_type=Minion)
+) -> List['CardFace']:
+    """Resolve the Overseer's response before assigning discarded cards."""
+    remaining = list(cards)
+    overseers = GetMissionArea(effect).FindCards(
+        trait="OVERSEER", card_type=Minion
+    )
     if not overseers:
-        return True
+        return remaining
 
     overseer = overseers[0]
-    resources = card.printed_resource_internal
 
-    if overseer.IsName("The Shadow King") and resources.b:
-        mission.PlaceThreatOnSchemes([mission], 2 * resources.b, effect)
+    if overseer.IsName("The Shadow King"):
+        mental_resources = sum(
+            card.printed_resource_internal.b
+            for card in remaining
+        )
+        if mental_resources:
+            mission.PlaceThreatOnSchemes([mission], 2 * mental_resources, effect)
 
-    if overseer.IsName("Sugar Man") and resources.r:
-        overseer.HealthUnits([overseer], 3 * resources.r, effect)
+    elif overseer.IsName("Sugar Man"):
+        physical_resources = sum(
+            card.printed_resource_internal.r
+            for card in remaining
+        )
+        if physical_resources:
+            overseer.HealthUnits([overseer], 3 * physical_resources, effect)
 
-    if overseer.IsName("Mikhail Rasputin"):
-        for _ in range(resources.y):
+    elif overseer.IsName("Mikhail Rasputin"):
+        energy_resources = sum(
+            card.printed_resource_internal.y
+            for card in remaining
+        )
+        for _ in range(energy_resources):
             allies = GetMissionAllies(effect)
             if not allies:
                 break
@@ -138,12 +153,23 @@ def _resolve_overseer_discard_effect(
             if target:
                 target.TakeDamage(overseer, 1, effect)
 
-    if overseer.IsName("Abyss") and resources.g:
-        Faces.MoveAllTo([card], overseer.GetInventoryDeck(), effect)
-        Faces.FlipAllTo([card], False, effect)
-        return False
+    elif overseer.IsName("Abyss"):
+        wild_cards = [
+            card for card in remaining
+            if card.printed_resource_internal.g
+        ]
+        attached = Faces.MoveAllTo(
+            wild_cards, overseer.GetInventoryDeck(), effect
+        )
+        if attached:
+            Faces.FlipAllTo(attached, False, effect)
+            attached_cards = {face.card for face in attached}
+            remaining = [
+                card for card in remaining
+                if card.card not in attached_cards
+            ]
 
-    return True
+    return remaining
 
 
 def MakeMissionAttempt(player: 'Player', effect: 'Effect') -> None:
@@ -153,49 +179,50 @@ def MakeMissionAttempt(player: 'Player', effect: 'Effect') -> None:
         return
 
     discarded = player.DiscardDeckTopCards(len(allies), effect)
-    remaining = discarded[:]
-    assignments: List[Tuple['Ally', 'CardFace']] = []
+    remaining = _resolve_overseer_discard_effects(
+        discarded,
+        player,
+        mission,
+        effect,
+    )
 
-    for ally in allies:
-        if not remaining:
-            break
-        assigned = player.AskChooseFace(
-            remaining,
-            effect,
-            prompt=f"Assign a discarded card to {ally.name}",
-            peek=True,
-        )
-        if assigned:
-            remaining.remove(assigned)
-            assignments.append((ally, assigned))
-
+    allies = GetMissionAllies(effect)
     sinister_is_present = any(
         overseer.IsName("Mister Sinister")
         for overseer in GetMissionMinions(effect)
         if overseer.HasTrait("OVERSEER")
     )
-    used_resources: Set[str] = set()
-    participating: List['Ally'] = []
+    used_resource_icons: Set[str] = set()
+    assignments: List[Tuple['Ally', 'CardFace']] = []
 
-    for ally, card in assignments:
-        can_participate = _resolve_overseer_discard_effect(
-            card,
-            player,
-            mission,
+    for ally in allies:
+        legal_cards = remaining
+        if sinister_is_present:
+            legal_cards = [
+                card for card in remaining
+                if not (_resource_icons(card) & used_resource_icons)
+            ]
+        if not legal_cards:
+            break
+        assigned = player.AskChooseFace(
+            legal_cards,
             effect,
+            prompt=f"Assign a discarded card to {ally.name}",
+            peek=True,
         )
-        matching_resources = _matching_resources(
-            ally,
-            card,
-            used_resources,
-            sinister_is_present,
-        )
-        if can_participate and matching_resources:
-            resource = player.AskChooseOneText(matching_resources)
-            participating.append(ally)
-            used_resources.add(resource)
+        if not assigned:
+            break
+        remaining.remove(assigned)
+        assignments.append((ally, assigned))
+        used_resource_icons.update(_resource_icons(assigned))
 
-    damage = sum(ally.printed_attack for ally in participating)
+    mission_allies = set(GetMissionAllies(effect))
+    participating = [
+        ally for ally, card in assignments
+        if ally in mission_allies and _matching_resources(ally, card)
+    ]
+
+    damage = sum(ally.attack for ally in participating)
     for _ in range(damage):
         minions = GetMissionMinions(effect)
         if not minions:
@@ -214,7 +241,7 @@ def MakeMissionAttempt(player: 'Player', effect: 'Effect') -> None:
         mission.Defeated(effect.this, effect)
 
     if mission.IsInPlay():
-        thwart = sum(ally.printed_thwart for ally in participating)
+        thwart = sum(ally.thwart for ally in participating)
         if thwart:
             from game.operate.store import Stores
             Stores.SetStr(MISSION_ATTEMPT_FLAG, "1", effect)
@@ -234,16 +261,36 @@ def MakeMissionAttempt(player: 'Player', effect: 'Effect') -> None:
         CompleteMission(mission, False, effect)
 
 
-def _return_player_cards_from_mission(effect: 'Effect') -> None:
+def _mission_cards_child_first(effect: 'Effect') -> List['CardFace']:
+    def collect(face: 'CardFace') -> List['CardFace']:
+        found: List['CardFace'] = []
+        nested = (
+            face.GetInventoryDeck().Get() +
+            face.GetPlacedCardArea().Get()
+        )
+        for nested_face in nested:
+            found.extend(collect(nested_face))
+        found.append(face)
+        return found
+
+    found: List['CardFace'] = []
     for face in GetMissionArea(effect).Get()[:]:
+        found.extend(collect(face))
+    return found
+
+
+def _return_player_cards_from_mission(effect: 'Effect') -> None:
+    mission_allies = set(GetMissionAllies(effect))
+    for face in _mission_cards_child_first(effect):
         owner = face.GetOwner()
         if Player.IsType(owner) and ClassCard.IsType(face):
-            face.TreatAsIfBlankInternal(-1, effect)
+            if face in mission_allies:
+                face.TreatAsIfBlankInternal(-1, effect)
             Faces.ShuffleAllTo([face], owner.player_deck, effect)
 
 
 def _remove_mission_area(effect: 'Effect') -> None:
-    Faces.RemoveAllFromGame(GetMissionArea(effect).Get()[:], effect)
+    Faces.RemoveAllFromGame(_mission_cards_child_first(effect), effect)
 
 
 def _resolve_finished_mission(

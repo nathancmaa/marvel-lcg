@@ -116,7 +116,8 @@ export const campaignLogFields: Record<string, CampaignLogField[]> = {
     age_of_apocalypse: [
         hitPoints,
         {key: 'Mission Side Schemes Removed from campaign', type: 'multi', options: ['45166a', '45167a', '45168a', '45169a']},
-        {key: 'Mission Side Schemes Defeated', type: 'multi', options: ['45166a', '45167a', '45168a', '45169a']},
+        {key: 'Mission Side Schemes Defeated', type: 'multi', options: ['45166a', '45167a', '45168a', '45169a'],
+            hint: 'A defeated mission is also marked removed above.'},
         {key: 'Overseers Defeated', type: 'multi', options: ['45179a', '45180a', '45181a', '45182a', '45183a']},
         {key: 'Player 1 Campaign Ally', label: 'Campaign ally', type: 'select', options: ['45172', '45173', '45174', '45175']},
         {key: 'Player 1 Campaign Aspect Upgrade', label: 'Campaign aspect upgrade', type: 'text', hint: 'One card ID'},
@@ -303,7 +304,7 @@ export function renderCampaignLogEditor(
                 return [field.key, checked.join(';')];
             });
         }
-        if (field.hint && field.type === 'number') {
+        if (field.hint && field.type !== 'yes' && field.type !== 'text') {
             const hint = document.createElement('small');
             hint.textContent = field.hint;
             group.append(hint);

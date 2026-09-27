@@ -61,6 +61,9 @@ class SelectorTarget:
 
         self.faces = faces
         self.get_targets_fn = get_targets_fn
+        self.additional_get_targets_fns: List[
+            Callable[['Effect'], Sequence['CardFace']]
+        ] = []
         self.selector_where = SelectorWhere(from_where)
 
         self.raw_target: Final = target
@@ -68,6 +71,12 @@ class SelectorTarget:
         if target in TARGET_MAP_FUNC:
             assert self.get_targets_fn == None
             self.get_targets_fn = TARGET_MAP_FUNC[target]
+
+    def AddAdditionalTargets(
+        self,
+        get_targets_fn: Callable[['Effect'], Sequence['CardFace']],
+    ) -> None:
+        self.additional_get_targets_fns.append(get_targets_fn)
 
     def GetForcedRangeRule(self):
         TARGET_MAP_RANGE: Dict[
@@ -98,6 +107,14 @@ class SelectorTarget:
 
         if self.faces == None and self.get_targets_fn == None:
             found_faces += from_where
+
+        if self.additional_get_targets_fns:
+            for get_additional_targets in self.additional_get_targets_fns:
+                found_faces += get_additional_targets(effect)
+
+            # Preserve order when a card is supplied by both the normal
+            # in-play source and an additional rules-specific source.
+            found_faces = list(dict.fromkeys(found_faces))
 
         # We remove this for fixing search effect e.g. "36020"
         # if self.card_type:

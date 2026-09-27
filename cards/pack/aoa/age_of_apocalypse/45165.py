@@ -1,4 +1,5 @@
 from . import *
+from cards.pack.aoa.campaign import GetMissionScheme
 
 # Worldwide Crisis
 
@@ -10,6 +11,7 @@ def GetAbilities() -> Sequence['Ability']:
 
         player = message.GetToPlayer()
         identity = player.GetIdentity()
+        mission = GetMissionScheme(effect)
 
         def action(targets: Sequence[CardFace]):
             identity.TakeDamage(this, 1, effect)
@@ -21,7 +23,7 @@ def GetAbilities() -> Sequence['Ability']:
                 "Place 3 threat on the [[Mission]] side scheme",
                 lambda targets:
                     this.PlaceThreatOnSchemes(targets, 3, effect)
-            ).SetTarget(SchemeSide2, trait="MISSION"),
+            ).SetTarget([mission] if mission else []),
             AbilityFactory.ForChoiceAbility(
                 "Take 1 damage and this card gains surge",
                 action,
@@ -32,11 +34,8 @@ def GetAbilities() -> Sequence['Ability']:
         this = effect.this.CastTo(Treachery)
         Unused(this)
 
-        schemes = Worlds.FindCardsOnField(
-            effect,
-            card_type=EncounterSideScheme,
-            trait="MISSION",
-        )
+        mission = GetMissionScheme(effect)
+        schemes = [mission] if mission else []
         this.PlaceThreatOnSchemes(schemes, 1, effect)
 
         message.GiveActivatingEnemyAdditionalBoostCard(1, effect)

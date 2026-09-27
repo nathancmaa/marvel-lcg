@@ -85,15 +85,20 @@ class Faces:
                 by_shuffle: bool=False,
                 target_game_area: 'GameArea|None'=None,
                 index: int=-1,
+                before_enter_play: Callable[['CardFace'], None]|None=None,
                 ) -> List['CardFace']:
         from game.message import Message
         moved_faces: List['CardFace'] = []
         from_areas = Faces.GetDecksInDeck(faces)
         for face in faces:
+            callback = None if before_enter_play == None else (
+                lambda face=face: before_enter_play(face)
+            )
             if face.card.MoveToArea(
                 area,
                 by_effect,
                 ui_group=True,
+                callback2=callback,
                 target_game_area=target_game_area,
                 index=index,
             ):

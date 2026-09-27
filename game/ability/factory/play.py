@@ -119,6 +119,37 @@ class AbilityFactoryPlay:
         if selector == None:
             selector = Select.From("YourIdentity")
 
+        def can_target_mission_ally() -> bool:
+            from game.card.face.card_type import Ally
+            from typing import get_args
+
+            selector_target = selector.selector_target
+            if not selector_target.selector_where.is_not_set:
+                return False
+
+            if selector_target.raw_target in [
+                "Ally", "Hero|Ally", "Ally|Minion", "Ally|Support"
+            ]:
+                return True
+            if selector_target.raw_target != None:
+                return False
+
+            card_type = selector.selector_filter.finder.card_type
+            if card_type == None:
+                return False
+            return card_type is Ally or Ally in get_args(card_type)
+
+        if can_target_mission_ally():
+            def get_mission_allies(effect: 'Effect') -> Sequence['CardFace']:
+                from cards.pack.aoa.campaign import (
+                    GetMissionAllies,
+                    HasActiveMission,
+                )
+                if not HasActiveMission(effect):
+                    return []
+                return GetMissionAllies(effect)
+            selector.selector_target.AddAdditionalTargets(get_mission_allies)
+
         def max_per_unit(effect: 'Effect', target: 'CardFace') -> bool:
             this = effect.this.CastTo(Upgrade)
             return this.max_per_unit > target.GetInventoryDeck().HasThisType(this)
