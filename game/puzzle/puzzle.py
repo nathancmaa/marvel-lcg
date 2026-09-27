@@ -29,6 +29,20 @@ class RunPuzzle:
             found_card: CardFace|None = None
 
             player = self.world.GetCurrentPlayer()
+            # Debug and puzzle commands describe the card the player can see
+            # on the table.  Prefer that live copy before looking through
+            # hidden decks; otherwise a command such as
+            # ``Exhaust("Supernova Helmet")`` creates a duplicate after the
+            # real Helmet has entered play.
+            found_cards = self.world.FindCardsOnField(
+                name=card,
+                game_area=player.GetIdentity().card.game_area,
+            )
+            if found_cards:
+                return found_cards[0]
+
+            if not found_card:
+                found_card = player.hand_cards.FindCard(name=card)
             if not found_card:
                 found_card = player.player_deck.FindCard(name=card)
             if not found_card:
@@ -81,6 +95,24 @@ class RunPuzzle:
         for card in cards:
             CardFactory.GenerateCard(card, first_player.hand_cards, self.world)
 
+    def CreateHandCardsFor(self, player_id: int, *cards: str):
+        """Create deterministic integration-fixture cards for one player."""
+        from game.card.factory import CardFactory
+        player = self.world.const_seat_order_players[player_id]
+        for card in cards:
+            CardFactory.GenerateCard(card, player.hand_cards, self.world)
+
+    def ClearHand(self):
+        from game.operate.faces import Faces
+        player = self.world.GetFirstPlayer()
+        Faces.DiscardAll(player.hand_cards.Get(), self.debug_rule)
+
+    def ClearHandFor(self, player_id: int):
+        """Discard a fixture player's dealt hand before injecting exact cards."""
+        from game.operate.faces import Faces
+        player = self.world.const_seat_order_players[player_id]
+        Faces.DiscardAll(player.hand_cards.Get(), self.debug_rule)
+
     def CreatePlayerDiscardPile(self, *cards: str):
         from game.card.factory import CardFactory
         first_player = self.world.GetFirstPlayer()
@@ -124,6 +156,15 @@ class RunPuzzle:
         from game.operate.faces import Faces
         faces = self.FindCommandCards(*cards)
         Faces.ExhaustAll(faces, DebugRule(faces[0]))
+
+    def DoAttack(self, card: CardName) -> 'CardFace':
+        """Start an enemy attack through a puzzle/debug command."""
+        face = self.FindOrCreateFace(card)
+        from game.card.face.base import Enemy
+        if Enemy.IsType(face):
+            player = self.world.GetCurrentPlayer()
+            face.DoAttackYou(player, DebugRule(player.GetIdentity()))
+        return face
 
     def Discard(self, *cards: CardName):
         from game.operate.faces import Faces
@@ -188,6 +229,13 @@ class RunPuzzle:
             if rule == 'Hero':
                 face.ChangeToOtherHeroForm(self.debug_rule)
 
+    def ChangeFormFor(self, player_id: int, rule: Literal['Identity', 'Hero']):
+        face = self.world.const_seat_order_players[player_id].GetIdentity()
+        if rule == 'Identity':
+            face.ChangeToOtherIdentityForm(self.debug_rule)
+        elif rule == 'Hero':
+            face.ChangeToOtherHeroForm(self.debug_rule)
+
     ################################################################################
     #
     def PlaceThreat(self, card: CardName, val:int):
@@ -241,6 +289,19 @@ class RunPuzzle:
             player = self.world.GetCurrentPlayer()
             face.PutIntoPlay(player, self.debug_rule)
             return face
+
+    def PutIntoPlayFor(self, player_id: int, card: str) -> 'CardFace':
+        """Put one exact fixture card into a specified player's play area."""
+        from game.card.factory import CardFactory
+
+        player = self.world.const_seat_order_players[player_id]
+        face = player.hand_cards.FindCard(name=card)
+        if face is None:
+            generated = CardFactory.GenerateCard(card, player.hand_cards, self.world)
+            generated.SetOwner(player)
+            face = generated.face
+        face.PutIntoPlay(player, self.debug_rule)
+        return face
 
     def Boost(self, card: CardName) -> 'CardFace':
         from game.operate.worlds import Worlds
