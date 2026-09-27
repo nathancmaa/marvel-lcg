@@ -1332,12 +1332,18 @@ class CostFunc:
                 else:
                     select_size = max_size
 
+                encounter_deck_reset = False
                 if which_deck == "YourDeck":
                     discarded_cards = player.DiscardDeckTopCards(select_size, effect)
                 else:
+                    encounter_deck = Worlds.GetEncounterDeck(effect)
+                    reset_count = encounter_deck.shuffle_with_discard_count
                     discarded_cards = Worlds.DiscardEncounterCards(select_size, effect)
+                    # RR 1.8: emptying the encounter deck ends the discard, and
+                    # that fulfils it even with fewer cards than asked.
+                    encounter_deck_reset = encounter_deck.shuffle_with_discard_count != reset_count
                 self.return_discarded_cards = discarded_cards
-                return len(self.return_discarded_cards) == select_size
+                return len(self.return_discarded_cards) == select_size or encounter_deck_reset
 
             super().__init__(Select.From("This"), on_call)
 

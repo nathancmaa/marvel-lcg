@@ -92,7 +92,7 @@ class RealGameCase(unittest.TestCase):
 
         devices = HeadlessDeviceManager(choice_provider=provider)
         with (
-            contextlib.redirect_stdout(io.StringIO()),
+            contextlib.redirect_stdout(io.StringIO()) if not getattr(self, "show_output", False) else contextlib.nullcontext(),
             patch.object(WorldRender, "ErrorOccurred") as errors,
             patch.object(Engine, "SaveCrash"),
         ):
