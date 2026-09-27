@@ -154,6 +154,35 @@ class CarjackingTests(unittest.TestCase):
             [f"Spend_3_resources_of_the_same_type_to_attach_{vehicle}_to_your_identity", f"Reveal_{vehicle}"],
         )
 
+    def test_spending_three_of_a_kind_attaches_the_vehicle_to_you(self):
+        seen = {}
+
+        def spend(prompt):
+            options = [option for option in prompt.options if (option.get("name") or "").startswith("Spend_3_")]
+            if not options:
+                return None
+            option = options[0]
+            seen["payment"] = option["target_payment"]
+            payers = [key for group in option["target_payment"]["0"]["payment"] for key in group]
+            return CommandDescriptor(HeadlessDeviceManager._DescriptorId(option), [], payers[:2])
+
+        run = play(
+            build_scene("the_getaway", "bullseye", ["spider_man"], 13),
+            [
+                HERO_FORM,
+                "Puzzle.ClearHand()",
+                'Puzzle.CreateHandCards("01088", "01088")',
+                'Puzzle.Reveal("60190")',
+            ],
+            on_prompt=spend,
+            render=False,
+        )
+        self.assertEqual(run.Exceptions(), [])
+        self.assertIn("payment", seen)
+        identity = run.world.GetFirstPlayer().GetIdentity()
+        attached = [face for face in identity.GetAttachedAttachments() if face.HasTrait("VEHICLE")]
+        self.assertEqual(len(attached), 1)
+
 
 if __name__ == "__main__":
     unittest.main()

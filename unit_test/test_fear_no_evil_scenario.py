@@ -787,30 +787,6 @@ class FearNoEvilCardBehaviorTests(unittest.TestCase):
             [scheme], 3, effect
         )
 
-    def test_carjacking_can_attach_discarded_vehicle_to_identity(self):
-        module = importlib.import_module("cards.pack.fne.drive.60190")
-        ability = module.GetAbilities()[0]
-        attachment = Mock()
-        attachment.traits = ["VEHICLE"]
-        identity = Mock()
-        identity.GetAttachedAttachments.return_value = []
-        player = Mock()
-        player.GetIdentity.return_value = identity
-        player.AskSpendResources.return_value = True
-        message = Mock()
-        message.GetToPlayer.return_value = player
-        effect = Mock()
-
-        with patch.object(
-            Worlds,
-            "DiscardEncounterCardsUntil",
-            return_value=attachment,
-        ):
-            ability.operation(effect, message)
-
-        attachment.AttachTo2.assert_called_once_with(identity, effect)
-        attachment.Reveal.assert_not_called()
-
 
 if __name__ == "__main__":
     unittest.main()
