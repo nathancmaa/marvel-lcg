@@ -15,7 +15,7 @@ def GetAbilities() -> Sequence['Ability']:
             AbilityType.Resource,
             "This",
             res_fn=generated_resources,
-        ).SetCostFunc(CostFunc.Exhaust("This")),
+        ),
         AbilityFactory.CanGenerateResources(
             AbilityType.Resource,
             resources_fn=available_resources,

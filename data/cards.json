@@ -60544,7 +60544,8 @@
                 "Cost": "1",
                 "RES": "G",
                 "MaxPerDeck": "1",
-                "Class": "Basic"
+                "Class": "Basic",
+                "TeamUp": "Hercules;Thor"
             },
             "traits": [
                 "ASGARD",
@@ -66508,5 +66509,5 @@
             "full_link": "56128b"
         }
     ],
-    "checksum": "7226e858d5ea04aefdf5df4efd42ec3570d4a2e0c6e0db28fd0f02185f768c17"
+    "checksum": "4207b6a9945c6e61f3aa06f38c02d718e98da49efc38a20679172fc41f82a80b"
 }
