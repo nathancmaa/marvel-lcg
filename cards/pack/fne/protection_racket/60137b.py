@@ -34,7 +34,11 @@ def GetAbilities() -> Sequence['Ability']:
             AbilityType.ForcedResponse,
             CardFace,
             lambda effect, message: PlaceThreatHere(effect),
-            conditions=[lambda effect, message:
-                Attachment.IsType(message.trigger) or Upgrade.IsType(message.trigger)],
+            conditions=[
+                lambda effect, message:
+                    Attachment.IsType(message.trigger) or Upgrade.IsType(message.trigger),
+                lambda effect, message: EnteredPlayFresh(message),
+                lambda effect, message: IsInThisPlayArea(message.trigger, effect),
+            ],
         ),
     ]
