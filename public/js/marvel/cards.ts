@@ -227,11 +227,17 @@ class CardRender {
                 }
                 return [...areaCards];
             } else {
-                // Sorting for selecting
+                // Sorting for selecting: the cards that can be chosen go
+                // last. In a deck they keep the deck's own order, top card
+                // last as in the deck's list: cards looked at from the top
+                // (Blindfold, a search of the top few) are shown in the order
+                // they lie, not by when they entered the game. The sort is
+                // stable, so returning 0 keeps that order.
+                const keepDeckOrder = cardArea === "deck";
                 return [...areaCards].sort((a, b) => {
                     const aLegal = Effect.select_effect_obj.all_legal_targets.includes(a.object_id);
                     const bLegal = Effect.select_effect_obj.all_legal_targets.includes(b.object_id);
-                    if (aLegal && bLegal) return a.object_id - b.object_id;
+                    if (aLegal && bLegal) return keepDeckOrder ? 0 : a.object_id - b.object_id;
                     if (aLegal) return 1;
                     if (bLegal) return -1;
                     return 0;
