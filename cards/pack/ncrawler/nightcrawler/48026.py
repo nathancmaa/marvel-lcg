@@ -26,11 +26,7 @@ def GetAbilities() -> Sequence['Ability']:
             AbilityFactory.ForChoiceAbility(
                 "Discard each [[Attack]] and [[Defense]] event from your hand. Discard this obligation",
                 action
-            ).SetTarget(Event, traits=["ATTACK", "DEFENSE"], range="All", select_rule="MustIncludeTraits", from_where=["YourHandCards"], canbe_discard=True),
-            AbilityFactory.Otherwise(
-                lambda targets:
-                    Faces.DiscardAll([this], effect)
-            )
+            ).SetTarget(Event, traits=["ATTACK", "DEFENSE"], range=("Zero", "All"), from_where=["YourHandCards"], canbe_discard=True)
         )
 
 
@@ -39,4 +35,3 @@ def GetAbilities() -> Sequence['Ability']:
             crisis_of_faith
         ),
     ]
-

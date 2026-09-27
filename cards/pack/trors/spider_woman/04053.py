@@ -25,11 +25,7 @@ def GetAbilities() -> Sequence['Ability']:
             AbilityFactory.ForChoiceAbility(
                 "Place 3 threat on the main scheme. Discard this obligation",
                 action
-            ).SetTarget(MainScheme, can_place_threat=True),
-            AbilityFactory.Otherwise(
-                lambda targets:
-                    Faces.DiscardAll([this], effect)
-            )
+            ).SetTarget(MainScheme, can_place_threat=True, range=("Zero", 1))
         )
 
 
@@ -38,4 +34,3 @@ def GetAbilities() -> Sequence['Ability']:
             uncertain_loyalties
         )
     ]
-

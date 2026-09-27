@@ -12,8 +12,8 @@ def GetAbilities() -> Sequence['Ability']:
         YouMayFlipToYourAlterEgoForm(player, effect)
 
         def action(targets: Sequence['CardFace']):
-            Faces.DiscardAll(targets, effect)
-            if not targets:
+            discarded = Faces.DiscardAll(targets, effect)
+            if not discarded:
                 ThisCardGainSurge(effect)
             Faces.DiscardAll([this], effect)
 
@@ -28,10 +28,7 @@ def GetAbilities() -> Sequence['Ability']:
             AbilityFactory.ForChoiceAbility(
                 "Choose and discard 2 [[Technique]] upgrades you control. If no upgrade was discarded this way, this card gains surge. Discard this obligation",
                 action
-            ).SetTarget(Upgrade, trait="TECHNIQUE", from_where=["YouControlCards"], range=(2, 2), canbe_discard=True),
-            AbilityFactory.Otherwise(
-                action
-            ).SetTarget(Upgrade, trait="TECHNIQUE", from_where=["YouControlCards"], range=("Zero", "All"), canbe_discard=True)
+            ).SetTarget(Upgrade, trait="TECHNIQUE", from_where=["YouControlCards"], range=("Zero", 2), canbe_discard=True)
         )
 
 
@@ -40,4 +37,3 @@ def GetAbilities() -> Sequence['Ability']:
             inferiority_complex
         ),
     ]
-

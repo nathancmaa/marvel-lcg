@@ -26,10 +26,7 @@ def GetAbilities() -> Sequence['Ability']:
             AbilityFactory.ForChoiceAbility(
                 "Choose and discard 2 events from your hand. Discard this obligation",
                 action
-            ).SetTarget(Event, from_where=["YourHandCards"], range=(2, 2), canbe_discard=True),
-            AbilityFactory.Otherwise(
-                action
-            ).SetTarget(Event, from_where=["YourHandCards"], range=("Zero", "All"), canbe_discard=True),
+            ).SetTarget(Event, from_where=["YourHandCards"], range=("Zero", 2), canbe_discard=True),
         )
 
 
@@ -38,4 +35,3 @@ def GetAbilities() -> Sequence['Ability']:
             unfulfilled_destiny
         ),
     ]
-

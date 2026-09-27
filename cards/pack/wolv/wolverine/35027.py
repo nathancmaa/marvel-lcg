@@ -27,7 +27,7 @@ def GetAbilities() -> Sequence['Ability']:
             AbilityFactory.ForChoiceAbility(
                 "You are stunned and confused. Discard this card",
                 discard,
-            ).SetTarget("YourIdentity", canbe_status=["Stunned", "Confused"]),
+            ).SetTarget("YourIdentity"),
         )
 
     return [
@@ -35,4 +35,3 @@ def GetAbilities() -> Sequence['Ability']:
             past_demons
         ),
     ]
-
