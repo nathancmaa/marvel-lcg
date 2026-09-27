@@ -11,10 +11,10 @@ def GetAbilities() -> Sequence['Ability']:
         allies = effect.cost_func.Get(CostFunc.Exhaust).return_exhausted_cards
         allies = Filter.ByType(allies, Ally)
 
-        if message.power == "ATK":
-            message.GainValue(sum(x.attack for x in allies), effect)
-        if message.power == "THW":
-            message.GainValue(sum(x.thwart for x in allies), effect)
+        # The would-attack/would-thwart message knows which power is really
+        # used: thwarting an assault scheme uses ATK, so the allies' ATK is added.
+        for ally in allies:
+            message.would_message.AddMatchingPowerToThisPerformance(ally, effect)
 
 
     return [
