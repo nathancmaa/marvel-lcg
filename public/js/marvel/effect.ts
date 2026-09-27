@@ -1154,6 +1154,17 @@ export class Effect {
         return Effect.select_effect_obj.name_with_space == 'End Phase' ||
                 Effect.select_effect_obj.name_with_space == 'Resolve Mulligans'
     }
+
+    /**
+     * The discard down to hand size at the end of the phase. Its only answer
+     * is the cards: an empty one posted by Cancel is refused by the engine,
+     * which just asks again, so no Cancel is offered.
+     */
+    static isMandatoryEndPhaseDiscard() {
+        return Effect.select_effect_obj.name_with_space == 'End Phase' &&
+                (Effect.select_effect_obj.target_num_range?.[0] ?? 0) > 0 &&
+                !Effect.show_cancel
+    }
 }
 
 (window as any).Effect = Effect;

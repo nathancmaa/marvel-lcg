@@ -64,6 +64,10 @@ export class Button{
         if( Game.is_lost_connect ) {
             return
         }
+        if( Effect.isMandatoryEndPhaseDiscard() ) {
+            // Nothing to cancel: the discard down to hand size must be made.
+            return
+        }
         Replay.prepared_replay = false
         if( SelectStep.isCard() || Effect.isExEffect() ||
             Effect.is_in_event == 'response' ||

@@ -138,6 +138,9 @@ export class BtnOk
         }
         else
         if( SelectStep.isTargets() ) {
+            if( Effect.isMandatoryEndPhaseDiscard() ){
+                BtnOk.btn_end_div.classList.add("forced_action")
+            }
             text = 'Cancel'
         }
         else
