@@ -18545,7 +18545,8 @@
             "desc": {
                 "Cost": "3",
                 "RES": "Y",
-                "Class": "Leadership"
+                "Class": "Leadership",
+                "MaxPerUnit": "1"
             },
             "traits": [
                 "TEAM"
@@ -21869,7 +21870,8 @@
             "desc": {
                 "Cost": "2",
                 "RES": "B",
-                "Class": "Leadership"
+                "Class": "Leadership",
+                "MaxPerUnit": "1"
             },
             "traits": [
                 "TEAM"
@@ -35449,7 +35451,8 @@
             "desc": {
                 "Cost": "3",
                 "RES": "B",
-                "Class": "Leadership"
+                "Class": "Leadership",
+                "MaxPerUnit": "1"
             },
             "traits": [
                 "TEAM"
@@ -38334,7 +38337,8 @@
             "desc": {
                 "Cost": "2",
                 "RES": "Y",
-                "Class": "Leadership"
+                "Class": "Leadership",
+                "MaxPerUnit": "1"
             },
             "traits": [
                 "TEAM"
@@ -49911,7 +49915,8 @@
             "desc": {
                 "Cost": "1",
                 "RES": "Y",
-                "Class": "Basic"
+                "Class": "Basic",
+                "MaxPerUnit": "1"
             },
             "traits": [],
             "set_name": "",
@@ -50324,7 +50329,8 @@
             "desc": {
                 "Cost": "3",
                 "RES": "B",
-                "Class": "Leadership"
+                "Class": "Leadership",
+                "MaxPerUnit": "1"
             },
             "traits": [
                 "TEAM"
@@ -54919,7 +54925,8 @@
             "desc": {
                 "Cost": "2",
                 "RES": "R",
-                "Class": "Leadership"
+                "Class": "Leadership",
+                "MaxPerUnit": "1"
             },
             "traits": [
                 "TEAM"
@@ -66512,5 +66519,5 @@
             "full_link": "56128b"
         }
     ],
-    "checksum": "40421784c5233dbb25a41f25faa7d89c2cde87b4ce7adb708401bb3e1d0babd4"
+    "checksum": "78079be370b6c518088a8afd703af8de7bc8bbd695bc378ae901a6d2fdeed6bb"
 }
