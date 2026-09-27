@@ -10,7 +10,7 @@ def GetAbilities() -> Sequence['Ability']:
             gift = deck.GetTop()
             if gift:
                 gift.PutIntoPlay(player, effect, under_control=True)
-        player.GetIdentity().Ready(effect)
+        Faces.ReadyAll([player.GetIdentity()], effect)
         YouMayFlipToYourAlterEgoForm(player, effect)
 
     return [

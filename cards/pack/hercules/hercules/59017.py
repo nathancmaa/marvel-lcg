@@ -5,7 +5,7 @@ def GetAbilities() -> Sequence['Ability']:
 
     def prince_of_power(effect: 'Effect', message: 'Message.AfterUnitDefeatedUnit') -> None:
         identity = effect.GetInitiator().GetIdentity()
-        identity.Heal(message.excess_damage, effect)
+        effect.this.HealthUnits([identity], message.excess_damage, effect)
 
     return [
         AbilityFactory.AfterUnitAttackAndDefeatUnit(

@@ -67,7 +67,7 @@ def GetAbilities() -> Sequence['Ability']:
             conditions=[not_hercules_thwart],
         ),
         AbilityFactory.WhenSchemeBeDefeated(
-            AbilityType.Interrupt,
+            AbilityType.ForcedInterrupt,
             "AttachedScheme",
             complete_labor,
         ),

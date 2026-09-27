@@ -1,0 +1,37 @@
+{
+    "version": "0.5.8",
+    "name": "Spider Woman",
+    "villain": [
+        "56170",
+        "56171"
+    ],
+    "expert": true,
+    "schemes": [
+        "56172a,56172b",
+        "56173a,56173b"
+    ],
+    "set_aside": [
+    ],
+    "encounters": [
+        "56174",
+        "56175",
+        "56175",
+        "56176",
+        "56176",
+        "56177",
+        "56177",
+        "56178",
+        "56178",
+        "56179"
+    ],
+    "encounter_sets": [
+        "standard",
+        "expert"
+    ],
+    "modular_sets": [
+        "spider_man",
+        "defenders",
+        "hells_kitchen",
+        "cloak_dagger"
+    ]
+}

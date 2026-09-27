@@ -18,6 +18,8 @@ def GetGiftDeck(player: 'Player') -> 'Deck|None':
 
 
 def CountGifts(player: 'Player') -> int:
+    if player.obligations_area.FindCard(name="Appeal to Athena"):
+        return 0
     return len(player.GetControlCards(CardFinder(trait="GIFT")))
 
 

@@ -208,6 +208,8 @@ class GauntletsOfHerculesTests(TestCase):
         condition = ability.conditions[-1]
         player = Mock()
         player.GetControlCards.return_value = [Mock()]
+        # No Appeal to Athena in the obligations area.
+        player.obligations_area.FindCard.return_value = None
         effect = Mock()
         effect.GetInitiator.return_value = player
 

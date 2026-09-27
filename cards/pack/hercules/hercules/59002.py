@@ -48,7 +48,7 @@ def GetAbilities() -> Sequence['Ability']:
             conditions=[is_not_hercules_attack],
         ),
         AbilityFactory.WhenUnitBeDefeated(
-            AbilityType.Interrupt,
+            AbilityType.ForcedInterrupt,
             "AttachedMinion",
             complete_labor,
         ),

@@ -8,7 +8,7 @@ def GetAbilities() -> Sequence['Ability']:
         this = effect.this.CastTo(EncounterSideScheme)
         Unused(this)
 
-        PlaceShatterCountersOnTheAvatarOfLokivillain(2)
+        PlaceShatterCountersOnTheAvatarOfLokivillain(2, effect)
 
     def lofty_goals_boost(effect: 'Effect', message: 'Message.WhenCardBecomeBoost') -> None:
         this = effect.this.CastTo(EncounterSideScheme)
@@ -32,4 +32,3 @@ def GetAbilities() -> Sequence['Ability']:
             lofty_goals_boost
         ),
     ]
-

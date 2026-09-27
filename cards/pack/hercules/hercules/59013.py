@@ -6,7 +6,7 @@ def GetAbilities() -> Sequence['Ability']:
     def gauntlets(effect: 'Effect', message: 'Message.WhenUnitWouldDefend') -> None:
         gifts = CountGifts(effect.GetInitiator())
         if gifts:
-            message.trigger.GainForThisActive(
+            message.trigger.TemporaryGain(
                 effect,
                 message.would_atk_message,
                 retaliate=gifts,
