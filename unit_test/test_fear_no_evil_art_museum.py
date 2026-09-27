@@ -112,8 +112,9 @@ class ArtMuseumScenarioTests(unittest.TestCase):
                     ["bullseye", "electro", "hammerhead", "purple_man", "typhoid_mary"],
                 )
                 self.assertEqual(scenario["modular_sets"], ["cops", "the_owl"])
+                self.assertEqual(scenario["encounters"].count("60126"), 2)
                 self.assertEqual(scenario["encounters"].count("60127"), 2)
-                self.assertEqual(len(scenario["encounters"]), 7)
+                self.assertEqual(len(scenario["encounters"]), 8)
                 self.assertEqual(
                     scenario["encounter_sets"],
                     ["standard", "expert"] if expert else ["standard"],
@@ -141,7 +142,7 @@ class ArtMuseumScenarioTests(unittest.TestCase):
             )
             with self.subTest(underling=underling_name):
                 self.assertEqual(scene.campaign.villain, underling["villain"])
-                self.assertEqual(len(scene.campaign.encounters), 17)
+                self.assertEqual(len(scene.campaign.encounters), 18)
                 self.assertEqual(
                     scene.campaign.encounter_sets,
                     ["standard", "cops", "the_owl"],

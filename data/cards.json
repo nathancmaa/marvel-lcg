@@ -61856,7 +61856,9 @@
             "subtitle": "",
             "desc": {
                 "StartingThreat": "4",
-                "Amplify": "1"
+                "Amplify": "1",
+                "Hazard": "1",
+                "Boost": "1"
             },
             "traits": [],
             "set_name": "Bullseye",
@@ -61880,7 +61882,7 @@
             "name": "Unerring Desire",
             "subtitle": "",
             "desc": {
-                "Boost": "4"
+                "Boost": "3"
             },
             "traits": [],
             "set_name": "Bullseye",
@@ -62121,7 +62123,7 @@
             "subtitle": "",
             "desc": {
                 "SCH+": "1",
-                "Boost": "1*"
+                "Boost": "1"
             },
             "traits": [
                 "CONDITION"
@@ -62780,8 +62782,8 @@
             "desc": {
                 "Stage": "1",
                 "StartingThreat": "0",
-                "EscalationThreat": "1*",
-                "TargetThreat": "10*"
+                "EscalationThreat": "1",
+                "TargetThreat": "10"
             },
             "traits": [],
             "set_name": "Protection Racket",
@@ -62807,8 +62809,8 @@
             "desc": {
                 "Stage": "1",
                 "StartingThreat": "0",
-                "EscalationThreat": "1*",
-                "TargetThreat": "10*"
+                "EscalationThreat": "1",
+                "TargetThreat": "10"
             },
             "traits": [],
             "set_name": "Protection Racket",
@@ -62834,8 +62836,8 @@
             "desc": {
                 "Stage": "1",
                 "StartingThreat": "0",
-                "EscalationThreat": "1*",
-                "TargetThreat": "10*"
+                "EscalationThreat": "1",
+                "TargetThreat": "10"
             },
             "traits": [],
             "set_name": "Protection Racket",
@@ -62861,8 +62863,8 @@
             "desc": {
                 "Stage": "1",
                 "StartingThreat": "0",
-                "EscalationThreat": "1*",
-                "TargetThreat": "10*"
+                "EscalationThreat": "1",
+                "TargetThreat": "10"
             },
             "traits": [],
             "set_name": "Protection Racket",
@@ -62888,8 +62890,8 @@
             "desc": {
                 "Stage": "1",
                 "StartingThreat": "0",
-                "EscalationThreat": "1*",
-                "TargetThreat": "10*"
+                "EscalationThreat": "1",
+                "TargetThreat": "10"
             },
             "traits": [],
             "set_name": "Protection Racket",
@@ -62948,7 +62950,9 @@
             "name": "Mystic Incursion",
             "subtitle": "",
             "desc": {
-                "Uses": "2,civilian"
+                "Uses": "2,civilian",
+                "Boost": "2",
+                "Crisis": "1"
             },
             "traits": [
                 "DISASTER"
@@ -62962,7 +62966,9 @@
             "name": "Sinking Ferry",
             "subtitle": "",
             "desc": {
-                "Uses": "2,civilian"
+                "Uses": "2,civilian",
+                "Boost": "2",
+                "Crisis": "1"
             },
             "traits": [
                 "DISASTER"
@@ -62976,7 +62982,9 @@
             "name": "Towering Inferno",
             "subtitle": "",
             "desc": {
-                "Uses": "2,civilian"
+                "Uses": "2,civilian",
+                "Boost": "2",
+                "Crisis": "1"
             },
             "traits": [
                 "DISASTER"
@@ -62992,12 +63000,12 @@
             "desc": {
                 "StartingThreat": "1*",
                 "Hinder": "2*",
-                "Crisis": "1",
-                "Boost": "2"
+                "Boost": "2",
+                "Hazard": "1"
             },
             "traits": [],
             "set_name": "Disasters",
-            "text": "Hinder 2 per player. Crisis.\n<b>Forced Response</b>: After any amount of threat is removed from Collapsing Bridge, place 1 threat on it."
+            "text": "Hinder 2 per player.\n<b>Forced Response</b>: After any amount of threat is removed from Collapsing Bridge, place 1 threat on it."
         },
         {
             "card_id": "60181",
@@ -63099,7 +63107,8 @@
             "subtitle": "",
             "desc": {
                 "SCH+": "1",
-                "Boost": "1"
+                "Boost": "1",
+                "THW+": "1"
             },
             "traits": [
                 "VEHICLE"
@@ -63127,14 +63136,14 @@
             "name": "Traffic Jam",
             "subtitle": "",
             "desc": {
-                "StartingThreat": "2",
+                "StartingThreat": "2*",
                 "Hinder": "2*",
-                "Crisis": "1",
-                "Boost": "3"
+                "Boost": "3",
+                "Acceleration": "1"
             },
             "traits": [],
             "set_name": "Drive",
-            "text": "Hinder 2 per player. Crisis.\n<b>Forced Interrupt</b>: When threat would be placed on or removed from a character with a VEHICLE attachment, place it on or remove it from this scheme instead."
+            "text": "Hinder 2 per player.\n<b>Forced Interrupt</b>: When threat would be placed on or removed from a character with a VEHICLE attachment, place it on or remove it from this scheme instead."
         },
         {
             "card_id": "60190",
@@ -63252,7 +63261,7 @@
                 "HP": "3",
                 "ATK": "2",
                 "SCH": "2",
-                "Boost": "0*"
+                "Boost": "0"
             },
             "traits": [
                 "THIEF"
@@ -63315,7 +63324,7 @@
                 "ATK": "2*",
                 "SCH": "3",
                 "Quickstrike": "1",
-                "Boost": "0*"
+                "Boost": "0"
             },
             "traits": [
                 "AERIAL",
@@ -63489,7 +63498,7 @@
                 "SCH": "1",
                 "Toughness": "1",
                 "Villainous": "1",
-                "Boost": "0*"
+                "Boost": "4"
             },
             "traits": [
                 "BRUTE",
@@ -63816,7 +63825,7 @@
             "subtitle": "",
             "desc": {
                 "SCH+": "1",
-                "Boost": "0*"
+                "Boost": "1*"
             },
             "traits": [
                 "PERSONA"
@@ -63860,7 +63869,7 @@
             "subtitle": "",
             "desc": {
                 "SCH+": "1",
-                "Boost": "0*"
+                "Boost": "1*"
             },
             "traits": [
                 "PERSONA"
@@ -63962,7 +63971,7 @@
             "subtitle": "",
             "desc": {
                 "StartingThreat": "3*",
-                "Boost": "2"
+                "Boost": "3"
             },
             "traits": [],
             "set_name": "Kingpin",
@@ -63998,7 +64007,7 @@
             "name": "Cold as Ice",
             "subtitle": "",
             "desc": {
-                "SCH+": "2*",
+                "SCH+": "2",
                 "Boost": "2"
             },
             "traits": [
@@ -64013,7 +64022,7 @@
             "name": "Hard as Marble",
             "subtitle": "",
             "desc": {
-                "ATK+": "2*",
+                "ATK+": "2",
                 "Boost": "2"
             },
             "traits": [
@@ -64051,7 +64060,7 @@
                 "ATK": "2",
                 "SCH": "2",
                 "Quickstrike": "1",
-                "Boost": "0*"
+                "Boost": "0"
             },
             "traits": [
                 "CRIMINAL"
@@ -66509,5 +66518,5 @@
             "full_link": "56128b"
         }
     ],
-    "checksum": "b6ad46b04a45e6fce278fbf09517dff964495e5ec455091a6e9a1fea876e1521"
+    "checksum": "7ddd2a9d9c5021004e47675c1a2608e35e294d13c82b789c4b9c54e120d38adf"
 }

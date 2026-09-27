@@ -300,7 +300,9 @@ class ProtectionRacketSchemeTests(unittest.TestCase):
         for value in range(4, 9):
             paper = CardsDB.FindCardPaper(f"6013{value}b")
             with self.subTest(card_id=paper.card_id):
-                self.assertEqual(paper.desc["TargetThreat"], "10*")
+                # Printed flat: 10, escalating 1, whatever the player count.
+                self.assertEqual(paper.desc["TargetThreat"], "10")
+                self.assertEqual(paper.desc["EscalationThreat"], "1")
                 self.assertIn("players lose the game", paper.text)
 
 
