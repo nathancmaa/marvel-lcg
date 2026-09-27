@@ -15,7 +15,7 @@ def GetAbilities() -> Sequence['Ability']:
             this.GetPlacedCardArea().GetAll()
         )
         if resource_types:
-            message.GainAttackForThisAttack(resource_types, effect)
+            message.GainATKForThisAttack(resource_types, effect)
 
     return [
         AbilityFactory.WhenUnitWouldAttack(

@@ -2,13 +2,13 @@ from . import *
 
 
 def GetAbilities() -> Sequence['Ability']:
-    def attach(effect: 'Effect', villain: 'CardFace') -> None:
-        player = Worlds.GetCurrentPlayer(effect)
-        Faces.GiveStatus([player.GetIdentity()], "Confused", effect)
+    def revealed(effect: 'Effect', message: 'Message.WhenCardRevealed') -> None:
+        Faces.GiveStatus([message.GetToPlayer().GetIdentity()], "Confused", effect)
 
     def discard_and_attack(effect: 'Effect', message: 'Message.WhenPlayerInTurn') -> None:
         this = effect.this
-        player = message.GetToPlayer()
+        Unused(message)
+        player = effect.GetInitiator()
         Faces.DiscardAll([this], effect)
         villain = Worlds.FindVillain(effect)
         if villain:
@@ -16,16 +16,19 @@ def GetAbilities() -> Sequence['Ability']:
 
     def boost(effect: 'Effect', message: 'Message.WhenCardBecomeBoost') -> None:
         identity = message.GetToPlayer().GetIdentity()
-        if not Faces.GiveStatus([identity], "Confused", effect):
-            scheme = Worlds.FindMainScheme(effect)
-            if scheme:
-                scheme.PlaceThreat(1, effect)
+        if identity.IsConfused():
+            effect.this.PlaceThreatOnSchemes("MainScheme", 1, effect)
+        else:
+            Faces.GiveStatus([identity], "Confused", effect)
 
     return [
-        AbilityFactory.AttachToFaceWhenPutIntoPlay(KINGPIN, when_attach_operation=attach),
+        AbilityFactory.AttachToFaceWhenPutIntoPlay(KINGPIN),
+        AbilityFactory.WhenThisRevealed(None, revealed),
         AbilityFactory.WhenInYourPlayTurn(
             AbilityType.HeroAction,
             discard_and_attack,
-        ).SetCostFunc(CostFunc.Discard("YourHandCards", trait="ATTACK", card_type=Event)),
+        ).SetCostFunc(CostFunc.Discard("YourHandCards", trait="ATTACK", card_type=Event))
+        .SetName("Discard an ATTACK event → discard Vanessa Fisk and Kingpin attacks you")
+        .AnyPlayerCanDoThis(),
         AbilityFactory.WhenCardBecomeBoost("This", boost),
     ]

@@ -16,7 +16,7 @@ def GetAbilities() -> Sequence['Ability']:
             ),
             AbilityFactory.ForChoiceAbility(
                 "Proxima Midnight gets +2 ATK for this attack",
-                lambda targets: message.GainAttackForThisAttack(2, effect),
+                lambda targets: message.GainATKForThisAttack(2, effect),
             ),
         )
 

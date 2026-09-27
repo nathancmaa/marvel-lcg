@@ -2,12 +2,13 @@ from . import *
 
 
 def GetAbilities() -> Sequence['Ability']:
-    def attach(effect: 'Effect', villain: 'CardFace') -> None:
-        villain.CastTo(Villain).GiveFacedownBoostCardsInternal(1, effect, None)
+    def attach(face: 'CardFace', effect: 'Effect') -> None:
+        face.CastTo(Villain).GiveFacedownBoostCardsInternal(1, effect, None)
 
     def discard_and_scheme(effect: 'Effect', message: 'Message.WhenPlayerInTurn') -> None:
         this = effect.this
-        player = message.GetToPlayer()
+        Unused(message)
+        player = effect.GetInitiator()
         Faces.DiscardAll([this], effect)
         villain = Worlds.FindVillain(effect)
         if villain:
@@ -18,6 +19,8 @@ def GetAbilities() -> Sequence['Ability']:
         AbilityFactory.WhenInYourPlayTurn(
             AbilityType.HeroAction,
             discard_and_scheme,
-        ).SetCostFunc(CostFunc.Discard("YourHandCards", trait="THWART", card_type=Event)),
+        ).SetCostFunc(CostFunc.Discard("YourHandCards", trait="THWART", card_type=Event))
+        .SetName("Discard a THWART event → discard James Wesley and Kingpin schemes")
+        .AnyPlayerCanDoThis(),
         AbilityFactory.WhenThisBoostAttachTo(KINGPIN),
     ]

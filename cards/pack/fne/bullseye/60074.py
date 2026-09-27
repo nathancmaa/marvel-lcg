@@ -24,13 +24,16 @@ def GetAbilities() -> Sequence['Ability']:
         player.ChooseAbilities(effect, *choices)
 
     def boost(effect: 'Effect', message: 'Message.WhenCardBecomeBoost') -> None:
-        if message.activating_enemy and BULLSEYE.Check(message.activating_enemy):
-            message.GiveActivatingEnemyAdditionalBoostCard(1, effect)
-            if message.would_atk_message:
-                message.would_atk_message.GainPiercing(effect)
+        message.GiveActivatingEnemyAdditionalBoostCard(1, effect)
+        message.would_atk_message.GainPiercing(effect)
 
     return [
         AbilityFactory.WhenThisRevealed("Alter-Ego", alter_ego),
         AbilityFactory.WhenThisRevealed("Hero", hero),
-        AbilityFactory.WhenCardBecomeBoost("This", boost),
+        AbilityFactory.WhenCardBecomeBoost(
+            "This",
+            boost,
+            during_attack=True,
+            activating_enemy=CardFinder(name="Bullseye"),
+        ),
     ]
