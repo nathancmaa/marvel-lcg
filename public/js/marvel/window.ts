@@ -104,17 +104,28 @@ export class WindowLoad {
 
     /** What Escape does, and what a key chosen for cancel does. */
     static doDeny(): void {
+        // An open panel is what the key closes, and that is all it does:
+        // falling through to the button below would also answer the ask,
+        // and that button can be End Turn.
+        let closed_panel = false
         if( HistoryLog.isOpen() ) {
             HistoryLog.toggle()
+            closed_panel = true
         }
         if( DeckTracker.isOpen() ) {
             DeckTracker.close()
+            closed_panel = true
         }
         if( StandingPanel.isOpen() ) {
             StandingPanel.close()
+            closed_panel = true
         }
         if( QuickReference.isOpen() ) {
             QuickReference.close()
+            closed_panel = true
+        }
+        if( closed_panel ) {
+            return
         }
         if( HoverCard.center_preview.has_image ) {
             Button.disablePause()
@@ -160,6 +171,10 @@ export class WindowLoad {
             return true
         }
         const answer = WindowLoad.answerKey(event)
+        if( answer && event.repeat ) {
+            // A held key answers once, not once per repeat.
+            return true
+        }
         if( answer === 'confirm' ) {
             WindowLoad.doConfirm()
             return true
@@ -331,12 +346,18 @@ export class WindowLoad {
             }
             else
             if (event.key === "Enter") {
-                WindowLoad.doConfirm()
+                // A held key answers once: the repeats would confirm
+                // whatever the next ask happens to be.
+                if( !event.repeat ) {
+                    WindowLoad.doConfirm()
+                }
                 event.preventDefault();
             }
             else
             if (event.key === "Escape") {
-                WindowLoad.doDeny()
+                if( !event.repeat ) {
+                    WindowLoad.doDeny()
+                }
                 event.preventDefault();
             }
             else

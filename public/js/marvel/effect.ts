@@ -36,8 +36,11 @@ export class Effect {
     }
 
     static get show_cancel() {
-        return Effect.response_json_ask.show_cancel ||
-            Effect.response_json_ask.options[Effect.response_json_ask.options.length-1].name == "Cancel"
+        // Safe before the first ask has arrived, and on an ask with no
+        // options, where there is no last option to look at.
+        const response = Effect.response_json_ask
+        const last_option = response?.options?.[response.options.length - 1]
+        return response?.show_cancel == true || last_option?.name == "Cancel"
     }
 
     private static setOptionTargetSelection(active: boolean) {
