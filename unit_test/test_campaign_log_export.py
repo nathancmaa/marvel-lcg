@@ -50,6 +50,27 @@ class TestCampaignLogExport(unittest.TestCase):
 
         self.assertEqual(exported["Player 1 Remaining hit points"], "6")
 
+    def test_carries_unknown_keys_the_scenario_started_with(self):
+        # A key an older build or the log editor recorded must not vanish
+        # just because the engine does not list it.
+        key = "Final Reputation Score: Victory for Scenario #5 - Venom Goblin"
+        world = SimpleNamespace(
+            store=CampaignStore({
+                "Reputation Track": "7",
+                key: "12",
+                "temporary campaign setup flag": "1",
+            }),
+            const_players=[],
+            scene=SimpleNamespace(campaign=SimpleNamespace(campaign_log={
+                key: "10",
+            })),
+        )
+
+        exported = CampaignLog.Export(world)
+
+        self.assertEqual(exported[key], "12")
+        self.assertNotIn("temporary campaign setup flag", exported)
+
 
 if __name__ == "__main__":
     unittest.main()

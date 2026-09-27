@@ -777,6 +777,13 @@ class CostFunc:
         def __init__(self, target: 'Literal["This"]',
                     ) -> None:
             def on_call(targets: Sequence['CardFace'], effect: 'Effect', player: 'Player|None') -> bool:
+                # Record the removal so the next scenario's setup leaves the
+                # card out. Outside a campaign there is no log to write.
+                from game.operate.worlds import Worlds
+                from game.operate.campaign_logs import CampaignLog
+                if Worlds.IsCampaign(effect):
+                    for face in (targets or [effect.this]):
+                        CampaignLog.RecordRemovedFromCampaign(face, player, effect)
                 return True
 
             selector = Select.From(

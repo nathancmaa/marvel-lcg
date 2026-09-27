@@ -21299,7 +21299,7 @@
                 "ARTIFACT"
             ],
             "set_name": "The Mad Titan's Shadow Campaign",
-            "text": "Permanent.\n<b>Alter-Ego Action:</b> Exhaust Norn Stone \u2192 heal 1 damage from your identity."
+            "text": "Permanent.\nYour hero gets +1 THW, +1 ATK, and +1 DEF.\n<b>Alter-Ego Action:</b> Exhaust Norn Stone \u2192 heal 1 damage from your identity."
         },
         {
             "card_id": "21188",
@@ -67055,5 +67055,5 @@
             "full_link": "56128b"
         }
     ],
-    "checksum": "1d36f25fb5c4befc642ffc0e9fe84c96c06cfedb600aaf6dfb6f4b8b60173fa8"
+    "checksum": "a2ff6741396b789573e93cdb878f0a6594a7d972b8bf19e49f365f975dc906fc"
 }

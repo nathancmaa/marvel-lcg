@@ -7,7 +7,9 @@ import {
     getCampaignDefinition,
     getSavedCampaign,
     recordCampaignVictory,
+    saveCampaignLog,
 } from './campaign_state.js';
+import { CampaignLogEditor, renderCampaignLogEditor } from './campaign_log_editor.js';
 import {
     DeckSourceController,
     createDeckSourceController,
@@ -89,6 +91,12 @@ const campaignSelection = document.querySelector<HTMLElement>('#campaign-selecti
 const scenarioSection = document.querySelector<HTMLElement>('#scenario-section')!;
 const scenarioProgress = document.querySelector<HTMLElement>('#scenario-progress')!;
 const scenarioPreview = document.querySelector<HTMLElement>('#scenario-preview')!;
+const expertCampaign = document.querySelector<HTMLInputElement>('#expert-campaign')!;
+const campaignLogSection = document.querySelector<HTMLElement>('#campaign-log-section')!;
+const campaignLogFields = document.querySelector<HTMLElement>('#campaign-log-fields')!;
+const saveCampaignLogButton = document.querySelector<HTMLButtonElement>('#save-campaign-log')!;
+const campaignLogStatus = document.querySelector<HTMLElement>('#campaign-log-status')!;
+const expertCampaignNote = document.querySelector<HTMLElement>('#expert-campaign-note')!;
 const heroList = document.querySelector<HTMLElement>('#hero-list')!;
 const heroSection = document.querySelector<HTMLElement>('#hero-section')
     ?? heroList.closest('section') as HTMLElement;
@@ -139,6 +147,62 @@ let selectionRequest = 0;
 let heroBeforeMarvelCdb: HeroChoice | null = null;
 
 let deckSourceController: DeckSourceController | null = null;
+let campaignLogEditor: CampaignLogEditor | null = null;
+
+/** Show the log editor for a saved campaign between scenarios. */
+function renderCampaignLog(saved: SavedCampaign | null): void {
+    campaignLogStatus.textContent = '';
+    if (!saved || saved.completed) {
+        campaignLogSection.hidden = true;
+        campaignLogEditor = null;
+        return;
+    }
+    campaignLogEditor = renderCampaignLogEditor(
+        campaignLogFields,
+        saved.campaignId,
+        saved.scenarioIndex,
+        saved.expert === true,
+        saved.campaignLog,
+    );
+    campaignLogSection.hidden = false;
+}
+
+function sameLog(left: Record<string, string>, right: Record<string, string>): boolean {
+    const keys = new Set([...Object.keys(left), ...Object.keys(right)]);
+    return [...keys].every((key) => left[key] === right[key]);
+}
+
+function hasUnsavedLogEdits(): boolean {
+    return !!resumedCampaign && !!campaignLogEditor
+        && !sameLog(campaignLogEditor.read(), resumedCampaign.campaignLog);
+}
+
+/** Save the editor's log; true when there was nothing to save or it saved. */
+async function saveEditedCampaignLog(): Promise<boolean> {
+    if (!resumedCampaign || !campaignLogEditor || saveCampaignLogButton.disabled) {
+        return !hasUnsavedLogEdits();
+    }
+    saveCampaignLogButton.disabled = true;
+    campaignLogStatus.textContent = 'Saving…';
+    try {
+        const saved = await saveCampaignLog(
+            campaignLogEditor.read(), resumedCampaign.updatedAt);
+        if (saved) {
+            resumedCampaign = saved;
+            renderCampaignLog(saved);
+        }
+        campaignLogStatus.textContent = 'Campaign log saved.';
+        return true;
+    } catch (error) {
+        console.error(error);
+        campaignLogStatus.textContent = error instanceof Error
+            ? error.message
+            : 'Could not save the campaign log.';
+        return false;
+    } finally {
+        saveCampaignLogButton.disabled = false;
+    }
+}
 
 function getFileName(path: string): string {
     return path.replace(/^.*[\\/]/, '').replace(/\.[^/.]+$/, '');
@@ -161,20 +225,25 @@ async function fetchJson<T>(url: string): Promise<T> {
     return await response.json() as T;
 }
 
-async function loadScenario(scenarioId: string): Promise<ScenarioChoice> {
-    const cached = scenarioCache.get(scenarioId);
+/**
+ * Load a campaign scenario. The id stays the standard one (it is what the
+ * campaign record stores); an expert campaign reads its *_expert file.
+ */
+async function loadScenario(scenarioId: string, expert = false): Promise<ScenarioChoice> {
+    const fileId = expert ? `${scenarioId}_expert` : scenarioId;
+    const cached = scenarioCache.get(fileId);
     if (cached) {
         return cached;
     }
 
-    const data = await fetchJson<ScenarioData>(`/get_scenario_json?${encodeURIComponent(scenarioId)}`);
+    const data = await fetchJson<ScenarioData>(`/get_scenario_json?${encodeURIComponent(fileId)}`);
     const imageId = getFirstCardId(data.villain?.length ? data.villain : data.schemes);
     if (!data.name || !imageId) {
         throw new Error(`Scenario ${scenarioId} has no display data`);
     }
 
     const choice = { id: scenarioId, name: data.name, imageId, data };
-    scenarioCache.set(scenarioId, choice);
+    scenarioCache.set(fileId, choice);
     return choice;
 }
 
@@ -417,6 +486,7 @@ async function selectCampaign(
     const request = ++selectionRequest;
     selectedCampaign = definition;
     resumedCampaign = saved;
+    renderCampaignLog(saved);
     updateRefreshButton();
 
     // A resumed run may select a frozen deck that is intentionally absent from
@@ -435,6 +505,14 @@ async function selectCampaign(
             updateRefreshButton();
         }
     }
+    // The mode is chosen when a campaign starts and kept for the whole run.
+    expertCampaign.disabled = saved !== null;
+    if (saved) {
+        expertCampaign.checked = saved.expert === true;
+    }
+    expertCampaignNote.textContent = saved
+        ? (saved.expert ? 'This campaign is played on expert.' : 'This campaign is played on standard.')
+        : 'Expert scenarios; damage carries over between scenarios.';
     selectedScenario = null;
     selectedScenarioIndex = Math.min(
         Math.max(saved?.scenarioIndex ?? 0, 0),
@@ -448,7 +526,8 @@ async function selectCampaign(
     updatePlayButton();
 
     try {
-        const scenario = await loadScenario(definition.scenarios[selectedScenarioIndex]);
+        const scenario = await loadScenario(
+            definition.scenarios[selectedScenarioIndex], expertCampaign.checked);
         if (request !== selectionRequest) {
             return;
         }
@@ -612,7 +691,7 @@ async function renderSavedCampaign(saved: SavedCampaign | null): Promise<void> {
     }
 
     const scenarioIndex = Math.min(Math.max(saved.scenarioIndex, 0), definition.scenarios.length - 1);
-    const scenario = await loadScenario(definition.scenarios[scenarioIndex]);
+    const scenario = await loadScenario(definition.scenarios[scenarioIndex], saved.expert === true);
     const savedHero = await loadCampaignHeroChoice(saved.heroId);
     const savedHeroName = savedHero?.name ?? 'Saved deck not found';
     savedCampaignSection.hidden = false;
@@ -620,7 +699,7 @@ async function renderSavedCampaign(saved: SavedCampaign | null): Promise<void> {
     savedCampaignStatus.textContent = saved.completed ? 'Completed' : `Scenario ${scenarioIndex + 1} of ${definition.scenarios.length}`;
     savedCampaignSummary.textContent = saved.completed
         ? `Completed with ${savedHeroName}.`
-        : `${scenario.name} · ${savedHeroName}`;
+        : `${scenario.name} · ${savedHeroName}${saved.expert ? ' · Expert' : ''}`;
     resumeCampaignButton.hidden = saved.completed;
     resumeCampaignButton.onclick = () => void selectCampaign(definition, saved);
 }
@@ -687,6 +766,14 @@ async function initialize(): Promise<void> {
         ?.addEventListener('click', () => randomizeSelect(
             document.querySelector<HTMLSelectElement>('#aspect-deck')!));
     marvelCdbUpdate.addEventListener('click', () => void refreshSelectedCampaignDeck());
+    saveCampaignLogButton.addEventListener('click', () => void saveEditedCampaignLog());
+    expertCampaign.addEventListener('change', () => {
+        // Only a new campaign can change mode; reload its first scenario in
+        // the chosen mode so the preview and the game agree.
+        if (selectedCampaign && !resumedCampaign) {
+            void selectCampaign(selectedCampaign, null);
+        }
+    });
     document.querySelector<HTMLButtonElement>('#randomize-hero')
         ?.addEventListener('click', randomizeHero);
 
@@ -721,6 +808,12 @@ async function initialize(): Promise<void> {
 
 async function startGame(): Promise<void> {
     if (isStarting || !selectedCampaign || !selectedScenario || !selectedHero) {
+        return;
+    }
+    // Continuing with edits still on screen saves them first, so the next
+    // scenario is set up from what the player wrote down.
+    if (hasUnsavedLogEdits() && !await saveEditedCampaignLog()) {
+        errorMessage.textContent = 'Save the campaign log before continuing.';
         return;
     }
 
@@ -798,6 +891,7 @@ async function startGame(): Promise<void> {
         heroId,
         campaignLog,
         completed: false,
+        expert: resumedCampaign ? resumedCampaign.expert === true : expertCampaign.checked,
         updatedAt: new Date().toISOString(),
     };
     const activeRun: ActiveCampaignRun = {

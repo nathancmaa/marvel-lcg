@@ -3,6 +3,7 @@ from core import *
 from datetime import datetime, timezone
 import os
 import threading
+import uuid
 
 from engine.config import ConfigVariables
 from engine.file import FileManager
@@ -45,6 +46,12 @@ CAMPAIGN_SCENARIOS: Dict[str, List[str]] = {
         'black_widow', 'batroc', 'modok', 'thunderbolts', 'baron_zemo',
     ],
 }
+
+
+# Scene metadata naming the solo-campaign run a game was launched for. Only a
+# game carrying the active run's id may advance the campaign, so an Advanced
+# Setup game of the same scenario (another hero, expert, a test) never does.
+CAMPAIGN_RUN_METADATA_KEY = 'campaign_run_id'
 
 
 class CampaignProgressConflict(ValueError):
@@ -114,6 +121,11 @@ class CampaignProgressStore:
         if updated_at is not None and not isinstance(updated_at, str):
             raise ValueError('updatedAt must be a string.')
 
+        # Added later, so a record without it is a standard campaign.
+        expert = data.get('expert', False)
+        if not isinstance(expert, bool):
+            raise ValueError('expert must be a boolean.')
+
         return {
             'version': cls.VERSION,
             'campaignId': campaign_id,
@@ -121,6 +133,7 @@ class CampaignProgressStore:
             'heroId': hero_id,
             'campaignLog': dict(campaign_log),
             'completed': completed,
+            'expert': expert,
             'updatedAt': updated_at or cls._Now(),
         }
 
@@ -154,13 +167,20 @@ class CampaignProgressStore:
         ):
             raise ValueError('The active run does not match campaign progress.')
 
-        return {
+        run = {
             'version': cls.VERSION,
             'campaignId': campaign_id,
             'scenarioId': scenario_id,
             'scenarioName': scenario_name,
             'scenarioIndex': scenario_index,
         }
+        # Added later: runs recorded before it simply have no id.
+        run_id = data.get('runId')
+        if run_id is not None:
+            if not isinstance(run_id, str) or not run_id:
+                raise ValueError('runId must be a string.')
+            run['runId'] = run_id
+        return run
 
     @classmethod
     def _ValidateRecord(cls, value: Any) -> Dict[str, Any]:
@@ -207,6 +227,8 @@ class CampaignProgressStore:
             if existing_record and not replace:
                 existing = existing_record['campaign']
                 matching_fields = ('campaignId', 'scenarioIndex', 'heroId')
+                # 'expert' is deliberately not compared: the server copy wins
+                # on resume, so an old page cannot switch a run's mode.
                 if any(existing[key] != incoming[key] for key in matching_fields):
                     raise CampaignProgressConflict(
                         'Starting this campaign would replace the active campaign.',
@@ -222,13 +244,29 @@ class CampaignProgressStore:
                     **incoming,
                     'updatedAt': self._Now(),
                 },
-                'activeRun': active_run,
+                # A fresh id for every launch; it is not game state, so it may
+                # come from outside the seeded game random.
+                'activeRun': {**active_run, 'runId': uuid.uuid4().hex},
             }
 
-    def CommitPreparedStart(self, record: Dict[str, Any]) -> Dict[str, Any]:
+    @staticmethod
+    def GetSceneRunId(scene: Any) -> str:
+        metadata = getattr(scene, 'metadata', None) or {}
+        return str(metadata.get(CAMPAIGN_RUN_METADATA_KEY, ''))
+
+    def CommitPreparedStart(
+        self,
+        record: Dict[str, Any],
+        scene: Any=None,
+    ) -> Dict[str, Any]:
         record = self._ValidateRecord(record)
         with self._lock:
             self._SaveUnlocked(record)
+        run_id = (record['activeRun'] or {}).get('runId')
+        if scene is not None and run_id:
+            # Saved with the game, so a restart, an undo or a resumed session
+            # still belongs to this run.
+            scene.metadata[CAMPAIGN_RUN_METADATA_KEY] = run_id
         return record
 
     def Start(self, value: Any) -> Dict[str, Any]:
@@ -252,6 +290,62 @@ class CampaignProgressStore:
             self._SaveUnlocked(record)
             return record, True
 
+    MAX_LOG_ENTRIES = 400
+    MAX_LOG_VALUE_LENGTH = 2000
+
+    def UpdateLog(self, value: Any) -> Dict[str, Any]:
+        """Replace the saved campaign's log from the between-scenario editor.
+
+        Every key must be a campaign log key the engine knows, or one the
+        record already holds (so an entry from an older build round-trips).
+        Values are strings; an empty value removes the entry. ``updatedAt``,
+        when given, must match the saved record, so a page left open cannot
+        overwrite progress recorded since it loaded.
+        """
+        from game.operate.campaign_logs import CampaignLog
+
+        request = self._RequireDict(value, 'campaign log update')
+        incoming = self._RequireDict(request.get('campaignLog'), 'campaignLog')
+        expected_updated_at = request.get('updatedAt')
+        if expected_updated_at is not None and not isinstance(expected_updated_at, str):
+            raise ValueError('updatedAt must be a string.')
+        if len(incoming) > self.MAX_LOG_ENTRIES:
+            raise ValueError('campaignLog has too many entries.')
+
+        with self._lock:
+            record = self._LoadUnlocked()
+            if record is None:
+                raise ValueError('There is no saved campaign to edit.')
+            campaign = record['campaign']
+            if campaign['completed']:
+                raise CampaignProgressConflict('This campaign is already complete.')
+            if expected_updated_at and expected_updated_at != campaign['updatedAt']:
+                raise CampaignProgressConflict(
+                    'The campaign changed since this page was loaded. Reload it and try again.',
+                )
+
+            existing_keys = set(campaign['campaignLog'])
+            campaign_log: Dict[str, str] = {}
+            for key, item in incoming.items():
+                if not isinstance(key, str) or not isinstance(item, str):
+                    raise ValueError('campaignLog must contain string values.')
+                if not CampaignLog.IsKnownKey(key) and key not in existing_keys:
+                    raise ValueError(f'Unknown campaign log entry: {key}')
+                if len(item) > self.MAX_LOG_VALUE_LENGTH:
+                    raise ValueError(f'The value for {key} is too long.')
+                item = item.strip()
+                if item:
+                    campaign_log[key] = item
+
+            campaign = {
+                **campaign,
+                'campaignLog': campaign_log,
+                'updatedAt': self._Now(),
+            }
+            record = {'campaign': campaign, 'activeRun': record['activeRun']}
+            self._SaveUnlocked(record)
+            return campaign
+
     def AdvanceVerified(
         self,
         *,
@@ -261,6 +355,7 @@ class CampaignProgressStore:
         game_over: bool,
         players_won: bool|None,
         is_replay: bool,
+        run_id: str|None=None,
     ) -> Dict[str, Any]:
         with self._lock:
             record = self._LoadUnlocked()
@@ -274,6 +369,14 @@ class CampaignProgressStore:
                     'campaign': campaign,
                     'advanced': False,
                     'reason': 'already_recorded',
+                }
+            expected_run_id = active_run.get('runId')
+            if expected_run_id and run_id != expected_run_id:
+                # Not launched from the solo Campaign page for this run.
+                return {
+                    'campaign': campaign,
+                    'advanced': False,
+                    'reason': 'not_campaign_run',
                 }
             if is_replay:
                 return {
@@ -332,9 +435,12 @@ class CampaignProgressStore:
 
         game_over = world.is_game_over
         players_won = getattr(world.game_over, 'players_won', None) if game_over else None
+        # Damage carries between scenarios only in an expert campaign.
         campaign_log = CampaignLog.Export(
             world,
-            include_remaining_hit_points=players_won is True,
+            include_remaining_hit_points=(
+                players_won is True and bool(world.scene.campaign.expert)
+            ),
         )
         return self.AdvanceVerified(
             campaign_id=world.scene.campaign.campaign_id,
@@ -343,4 +449,5 @@ class CampaignProgressStore:
             game_over=game_over,
             players_won=players_won,
             is_replay=game.controller_manager.replay.is_replay,
+            run_id=self.GetSceneRunId(world.scene),
         )

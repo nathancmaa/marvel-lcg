@@ -3,37 +3,50 @@ import unittest
 from unittest.mock import MagicMock, call, patch
 
 from engine import Engine  # noqa: F401 - establishes the project's import order
-from cards.pack.aoa.campaign_setup import ExpertCampaignEachPlayerMayHealAtMissionThreatCost
+from cards.pack.aoa.campaign_setup import (
+    ExpertCampaignEachPlayerMayHealAtMissionThreatCost,
+    ExpertCampaignSetPlayersHPToTheirRemainingHP,
+)
 from game.ability.factory.campaign import AbilityFactoryCampaign
 from game.message import Message
 
 
 class TestCampaignRemainingHealth(unittest.TestCase):
 
-    def test_remaining_health_is_applied_during_campaign_setup(self):
+    def _run_generic(self, logged):
         ability = AbilityFactoryCampaign.CampaignSetPlayersHPToTheirRemainingHP(
             campaign_id="agents_of_shield",
         )
         identity = MagicMock()
+        identity.max_health = 10
         player = SimpleNamespace(
             player_id=0,
             GetIdentity=MagicMock(return_value=identity),
         )
         effect = SimpleNamespace()
 
+        def log(key, by_effect):
+            return logged.get(key, "")
+
         with patch(
             "game.operate.worlds.Worlds.GetPlayers",
             return_value=[player],
         ), patch(
-            "game.operate.campaign_logs.CampaignLog.GetIntByPlayer",
-            return_value=4,
+            "game.operate.campaign_logs.CampaignLog.GetStrInternal",
+            side_effect=log,
         ):
             ability.operation(effect, SimpleNamespace())
+        return ability, identity, effect
+
+    def test_remaining_health_is_applied_during_campaign_setup(self):
+        ability, identity, effect = self._run_generic(
+            {"Player 1 Remaining hit points": "4"})
 
         self.assertIs(ability.when, Message.WhenCampaignSetup)
         identity.SetHealth.assert_called_once_with(4, effect)
 
-    def test_remaining_health_is_not_expert_only(self):
+    def test_remaining_health_is_expert_only(self):
+        # The campaign guides carry damage only in an expert campaign.
         ability = AbilityFactoryCampaign.CampaignSetPlayersHPToTheirRemainingHP(
             campaign_id="agents_of_shield",
         )
@@ -48,22 +61,40 @@ class TestCampaignRemainingHealth(unittest.TestCase):
             return_value=True,
         ), patch(
             "game.operate.worlds.Worlds.IsExpert",
-            side_effect=AssertionError("standard setup must not check expert mode"),
+            return_value=False,
         ):
-            self.assertTrue(ability.conditions[0](effect, message))
+            self.assertFalse(all(
+                condition(effect, message) for condition in ability.conditions
+            ))
 
-    def test_aoa_standard_campaign_with_remaining_health_offers_heal(self):
+    def test_a_logged_zero_is_a_defeated_hero_not_an_unset_value(self):
+        _, identity, effect = self._run_generic(
+            {"Player 1 Remaining hit points": "0"})
+
+        identity.SetHealth.assert_called_once_with(1, effect)
+
+    def test_nothing_logged_leaves_the_identity_alone(self):
+        _, identity, _ = self._run_generic({})
+
+        identity.SetHealth.assert_not_called()
+
+    def test_logged_hit_points_are_capped_at_the_current_maximum(self):
+        _, identity, effect = self._run_generic(
+            {"Remaining hit points P1": "14"})
+
+        identity.SetHealth.assert_called_once_with(10, effect)
+
+    def test_aoa_standard_campaign_with_remaining_health_skips_heal(self):
         ability = ExpertCampaignEachPlayerMayHealAtMissionThreatCost()
-        identity = MagicMock()
         player = SimpleNamespace(
             player_id=0,
-            GetIdentity=MagicMock(return_value=identity),
+            GetIdentity=MagicMock(return_value=MagicMock()),
             MayChooseOneAbility=MagicMock(),
         )
         effect = SimpleNamespace()
 
         with patch(
-            "game.operate.worlds.Worlds.FindCardOnField",
+            "cards.pack.aoa.campaign_setup.GetMissionScheme",
             return_value=MagicMock(),
         ), patch(
             "game.operate.worlds.Worlds.GetPlayers",
@@ -72,14 +103,14 @@ class TestCampaignRemainingHealth(unittest.TestCase):
             "game.operate.worlds.Worlds.IsExpert",
             return_value=False,
         ), patch(
-            "game.operate.campaign_logs.CampaignLog.GetIntByPlayer",
-            return_value=4,
+            "game.operate.campaign_logs.CampaignLog.GetStrInternal",
+            return_value="4",
         ):
             ability.operation(effect, SimpleNamespace())
 
-        player.MayChooseOneAbility.assert_called_once()
+        player.MayChooseOneAbility.assert_not_called()
 
-    def test_aoa_standard_campaign_without_remaining_health_skips_heal(self):
+    def test_aoa_expert_campaign_without_remaining_health_skips_heal(self):
         ability = ExpertCampaignEachPlayerMayHealAtMissionThreatCost()
         player = SimpleNamespace(
             player_id=0,
@@ -89,34 +120,7 @@ class TestCampaignRemainingHealth(unittest.TestCase):
         effect = SimpleNamespace()
 
         with patch(
-            "game.operate.worlds.Worlds.FindCardOnField",
-            return_value=MagicMock(),
-        ), patch(
-            "game.operate.worlds.Worlds.GetPlayers",
-            return_value=[player],
-        ), patch(
-            "game.operate.worlds.Worlds.IsExpert",
-            return_value=False,
-        ), patch(
-            "game.operate.campaign_logs.CampaignLog.GetIntByPlayer",
-            return_value=0,
-        ):
-            ability.operation(effect, SimpleNamespace())
-
-        player.MayChooseOneAbility.assert_not_called()
-
-    def test_aoa_expert_campaign_always_offers_heal(self):
-        ability = ExpertCampaignEachPlayerMayHealAtMissionThreatCost()
-        identity = MagicMock()
-        player = SimpleNamespace(
-            player_id=0,
-            GetIdentity=MagicMock(return_value=identity),
-            MayChooseOneAbility=MagicMock(),
-        )
-        effect = SimpleNamespace()
-
-        with patch(
-            "game.operate.worlds.Worlds.FindCardOnField",
+            "cards.pack.aoa.campaign_setup.GetMissionScheme",
             return_value=MagicMock(),
         ), patch(
             "game.operate.worlds.Worlds.GetPlayers",
@@ -125,12 +129,113 @@ class TestCampaignRemainingHealth(unittest.TestCase):
             "game.operate.worlds.Worlds.IsExpert",
             return_value=True,
         ), patch(
-            "game.operate.campaign_logs.CampaignLog.GetIntByPlayer",
-            side_effect=AssertionError("expert setup must not require saved HP"),
+            "game.operate.campaign_logs.CampaignLog.GetStrInternal",
+            return_value="",
+        ):
+            ability.operation(effect, SimpleNamespace())
+
+        player.MayChooseOneAbility.assert_not_called()
+
+    def test_aoa_expert_campaign_with_remaining_health_offers_heal(self):
+        ability = ExpertCampaignEachPlayerMayHealAtMissionThreatCost()
+        player = SimpleNamespace(
+            player_id=0,
+            GetIdentity=MagicMock(return_value=MagicMock()),
+            MayChooseOneAbility=MagicMock(),
+        )
+        effect = SimpleNamespace(this=MagicMock())
+
+        with patch(
+            "cards.pack.aoa.campaign_setup.GetMissionScheme",
+            return_value=MagicMock(),
+        ), patch(
+            "game.operate.worlds.Worlds.GetPlayers",
+            return_value=[player],
+        ), patch(
+            "game.operate.worlds.Worlds.IsExpert",
+            return_value=True,
+        ), patch(
+            "game.operate.campaign_logs.CampaignLog.GetStrInternal",
+            return_value="4",
         ):
             ability.operation(effect, SimpleNamespace())
 
         player.MayChooseOneAbility.assert_called_once()
+
+    def test_aoa_zero_remaining_hp_rejoins_at_mission_threat_cost(self):
+        ability = ExpertCampaignEachPlayerMayHealAtMissionThreatCost()
+        identity = MagicMock()
+        identity.max_health = 12
+        player = SimpleNamespace(
+            player_id=0,
+            GetIdentity=MagicMock(return_value=identity),
+            MayChooseOneAbility=MagicMock(),
+        )
+        mission = MagicMock()
+        source = MagicMock()
+        effect = SimpleNamespace(this=source)
+
+        with patch(
+            "cards.pack.aoa.campaign_setup.GetMissionScheme",
+            return_value=mission,
+        ), patch(
+            "game.operate.worlds.Worlds.GetPlayers",
+            return_value=[player],
+        ), patch(
+            "game.operate.worlds.Worlds.IsExpert",
+            return_value=True,
+        ), patch(
+            "game.operate.campaign_logs.CampaignLog.GetStrInternal",
+            return_value="0",
+        ):
+            ability.operation(effect, SimpleNamespace())
+
+        source.PlaceThreatOnSchemes.assert_called_once_with([mission], 3, effect)
+        identity.SetHealth.assert_called_once_with(12, effect)
+        player.MayChooseOneAbility.assert_not_called()
+
+    def test_aoa_expert_remaining_hp_is_capped_at_current_maximum(self):
+        ability = ExpertCampaignSetPlayersHPToTheirRemainingHP()
+        identity = MagicMock()
+        identity.max_health = 10
+        player = SimpleNamespace(
+            player_id=0,
+            GetIdentity=MagicMock(return_value=identity),
+        )
+        effect = SimpleNamespace()
+
+        with patch(
+            "game.operate.worlds.Worlds.IsExpert",
+            return_value=True,
+        ), patch(
+            "game.operate.worlds.Worlds.GetPlayers",
+            return_value=[player],
+        ), patch(
+            "game.operate.campaign_logs.CampaignLog.GetStrInternal",
+            return_value="12",
+        ):
+            ability.operation(effect, SimpleNamespace())
+
+        identity.SetHealth.assert_called_once_with(10, effect)
+
+    def test_aoa_standard_campaign_does_not_apply_remaining_hp(self):
+        ability = ExpertCampaignSetPlayersHPToTheirRemainingHP()
+        identity = MagicMock()
+        player = SimpleNamespace(
+            player_id=0,
+            GetIdentity=MagicMock(return_value=identity),
+        )
+
+        with patch(
+            "game.operate.worlds.Worlds.IsExpert",
+            return_value=False,
+        ), patch(
+            "game.operate.worlds.Worlds.GetPlayers",
+            return_value=[player],
+        ):
+            ability.operation(SimpleNamespace(), SimpleNamespace())
+
+        identity.SetHealth.assert_not_called()
 
     def test_aoa_heal_places_three_threat_before_healing_to_full(self):
         ability = ExpertCampaignEachPlayerMayHealAtMissionThreatCost()
@@ -145,7 +250,7 @@ class TestCampaignRemainingHealth(unittest.TestCase):
         effect = SimpleNamespace(this=source)
 
         with patch(
-            "game.operate.worlds.Worlds.FindCardOnField",
+            "cards.pack.aoa.campaign_setup.GetMissionScheme",
             return_value=mission,
         ), patch(
             "game.operate.worlds.Worlds.GetPlayers",
@@ -153,6 +258,9 @@ class TestCampaignRemainingHealth(unittest.TestCase):
         ), patch(
             "game.operate.worlds.Worlds.IsExpert",
             return_value=True,
+        ), patch(
+            "game.operate.campaign_logs.CampaignLog.GetStrInternal",
+            return_value="4",
         ):
             ability.operation(effect, SimpleNamespace())
 
@@ -182,7 +290,7 @@ class TestCampaignRemainingHealth(unittest.TestCase):
         effect = SimpleNamespace(this=source)
 
         with patch(
-            "game.operate.worlds.Worlds.FindCardOnField",
+            "cards.pack.aoa.campaign_setup.GetMissionScheme",
             return_value=MagicMock(),
         ), patch(
             "game.operate.worlds.Worlds.GetPlayers",
@@ -190,6 +298,9 @@ class TestCampaignRemainingHealth(unittest.TestCase):
         ), patch(
             "game.operate.worlds.Worlds.IsExpert",
             return_value=True,
+        ), patch(
+            "game.operate.campaign_logs.CampaignLog.GetStrInternal",
+            return_value="4",
         ):
             ability.operation(effect, SimpleNamespace())
 

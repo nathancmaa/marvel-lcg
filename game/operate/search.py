@@ -405,12 +405,25 @@ class Search:
                 "'Pool",
             ]
 
+        # Card faces expose the printed "Hero" class as
+        # "IdentitySpecific", while collection searches query raw papers.
+        if card_class == "IdentitySpecific":
+            card_class = "Hero"
+        if card_classes != None:
+            card_classes = [
+                "Hero" if value == "IdentitySpecific" else value
+                for value in card_classes
+            ]
+
         paper_ids = CardsDB.GetPapers(card_type=check_card_type,
                                       trait=trait,
                                       card_class=card_class,
                                       card_classes=card_classes,
                                       set_name=set_name,
                                       check_fn=check_fn)
+
+        if not paper_ids:
+            return None
 
         # name = player.AskChoosePaper(["06019", "16046", "18018", "20015", "44052", "44055"])
         name = player.AskChoosePaper(paper_ids)

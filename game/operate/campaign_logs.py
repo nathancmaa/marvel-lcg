@@ -1,5 +1,6 @@
 from typing import TypeAlias
 from . import *
+from engine.log import Log
 
 PLAYER_LIST_KEY: TypeAlias = Literal[
     "Obligations",
@@ -12,7 +13,9 @@ PLAYER_LIST_KEY: TypeAlias = Literal[
 
 PLAYER_STR_KEY: TypeAlias = Literal[
     "Tech Upgrade",
+    "tech upgrade removed from campaign",
     "Basic Upgrade",
+    "Basic Condition replaced with Improved side",
     "Role",
     "S.H.I.E.L.D. Tech: Reputation Track Reward",
     "Planning Ahead: Reputation Track Reward",
@@ -85,8 +88,6 @@ LOG_STR_KEY: TypeAlias = Literal[
     "Scenario 3 Player Side Scheme",
     "Scenario 4 Player Side Scheme",
     "Scenario 5 Player Side Scheme",
-    "Scenario 4 Hope Damage Placement",
-    "Scenario 5 Hope Damage Placement",
     "Age of Apocalypse Scenario",
     "Power Stone Control",
     "Reveal Kree Supremacy",
@@ -115,8 +116,16 @@ LOG_STR_KEY: TypeAlias = Literal[
 
 class CampaignLog:
 
+    _known_keys: Set[str]|None = None
+
     @staticmethod
     def GetKnownKeys() -> Set[str]:
+        return set(CampaignLog._KnownKeys())
+
+    @staticmethod
+    def _KnownKeys() -> Set[str]:
+        if CampaignLog._known_keys is not None:
+            return CampaignLog._known_keys
         keys = set(
             Types.LiteralToList(LOG_LIST_KEY) +
             Types.LiteralToList(LOG_INT_KEY) +
@@ -134,14 +143,36 @@ class CampaignLog:
                 keys.add(f"{key} P{player_id + 1}")
 
         keys.discard("")
+        CampaignLog._known_keys = keys
         return keys
 
     @staticmethod
+    def IsKnownKey(key: str) -> bool:
+        return key in CampaignLog._KnownKeys()
+
+    @staticmethod
     def Export(world: 'World', *, include_remaining_hit_points: bool=False) -> Dict[str, str]:
+        """The campaign log to carry into the next scenario.
+
+        Only known keys are exported from the game's store: it also holds
+        per-game flags that must not carry over. A key the scenario was
+        started with is carried too, known or not, so an entry an older
+        build or the log editor recorded is never silently dropped; it is
+        reported so the key can be added to the lists above.
+        """
         campaign_log: Dict[str, str] = {}
-        for key in CampaignLog.GetKnownKeys():
+        for key in CampaignLog._KnownKeys():
             if world.store.HasKey(key):
                 campaign_log[key] = str(world.store.dic[key])
+
+        scene = getattr(world, 'scene', None)
+        campaign = getattr(scene, 'campaign', None)
+        incoming: Dict[str, str] = getattr(campaign, 'campaign_log', None) or {}
+        for key, value in incoming.items():
+            if key in campaign_log or CampaignLog.IsKnownKey(key):
+                continue
+            campaign_log[key] = str(world.store.dic[key]) if world.store.HasKey(key) else str(value)
+            Log.Warn("GAME", f"Campaign log key {key!r} is not a known key; carried over as it was given.")
 
         if include_remaining_hit_points:
             for player in world.const_players:
@@ -216,6 +247,45 @@ class CampaignLog:
                 return value
         return 0
 
+    # Cards whose text removes them from the campaign log or pool.
+    RED_SKULL_TECH_UPGRADES = ("04155", "04156", "04157", "04158")
+    MUTANT_GENESIS_ROLE_UPGRADES = tuple(str(card_id) for card_id in range(32176, 32196))
+
+    @staticmethod
+    def RecordRemovedFromCampaign(face: 'CardFace', player: 'Player|None', by_effect: 'Effect') -> bool:
+        """Write down that ``face`` was removed from the campaign.
+
+        The log decides the next scenario's setup: a removed Red Skull tech
+        upgrade is not put into play again, and a removed Mutant Genesis role
+        upgrade is not offered again.
+        """
+        card_id = face.paper.card_id
+        world = by_effect.world
+        if card_id in CampaignLog.RED_SKULL_TECH_UPGRADES:
+            owner = player if player is not None else face.GetOwner()
+            player_id = getattr(owner, 'player_id', None)
+            if player_id is None:
+                return False
+            CampaignLog.SetStr(
+                f"Player {player_id + 1} tech upgrade removed from campaign",
+                "Yes",
+                world,
+            )
+            return True
+        if card_id in CampaignLog.MUTANT_GENESIS_ROLE_UPGRADES:
+            key = "Role Upgrades removed from campaign"
+            removed = CampaignLog.GetListInternal(key, by_effect)
+            if card_id not in removed:
+                CampaignLog.SetStr(key, ";".join(removed + [card_id]), world)
+            return True
+        Log.Warn("GAME", f"{face.name} ({card_id}) left the campaign, but no campaign log entry records it.")
+        return False
+
     @staticmethod
     def SetStr(key: str, value: str, world: 'World'):
+        if not CampaignLog.IsKnownKey(key):
+            # Export carries only known keys to the next scenario (plus the
+            # ones a scenario started with), so a new key must be listed
+            # above or it is lost after this game.
+            Log.Warn("GAME", f"Campaign log key {key!r} is not a known key and will not be exported.")
         world.store.SetStr(key, value)

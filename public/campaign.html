@@ -6,6 +6,7 @@
     <title>Campaign</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico?cerebro=2">
     <link rel="stylesheet" href="/public/css/solo.css?marvelcdb-deck=1">
+    <link rel="stylesheet" href="/public/css/campaign.css?log-editor=1">
 </head>
 <body>
     <main class="solo-setup">
@@ -75,6 +76,27 @@
                 <span id="scenario-progress" class="current-selection"></span>
             </div>
             <div id="scenario-preview" class="scenario-preview"></div>
+            <label class="expert-toggle">
+                <input id="expert-campaign" type="checkbox">
+                <span>Expert campaign</span>
+                <small id="expert-campaign-note">Expert scenarios; damage carries over between scenarios.</small>
+            </label>
+        </section>
+
+        <section id="campaign-log-section" class="selection-section campaign-log" hidden aria-labelledby="campaign-log-heading">
+            <div class="section-heading">
+                <div>
+                    <span class="step-number">✎</span>
+                    <h2 id="campaign-log-heading">Campaign Log</h2>
+                </div>
+                <span class="current-selection">Between scenarios</span>
+            </div>
+            <p class="load-status">Record what the campaign guide tells you to write down, then save before you continue.</p>
+            <div id="campaign-log-fields" class="campaign-log-fields"></div>
+            <div class="campaign-log-actions">
+                <button id="save-campaign-log" class="secondary-button" type="button">Save log</button>
+                <span id="campaign-log-status" role="status" aria-live="polite"></span>
+            </div>
         </section>
 
         <section class="selection-section" aria-labelledby="hero-heading">

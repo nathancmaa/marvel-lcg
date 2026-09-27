@@ -1,6 +1,30 @@
 from . import *
 
 CAMPAIGN_ID = "rise_of_red_skull"
+BASIC_TO_IMPROVED = {
+    "04159a": "04159b",
+    "04160a": "04160b",
+    "04161a": "04161b",
+    "04162a": "04162b",
+}
+
+def RemoveTechCardsFromPlayerDecks() -> 'Ability':
+    from game.operate.campaign_logs import CampaignLog
+
+    def action(effect: 'Effect', message: 'Message.WhenCampaignSetup'):
+        for player in Worlds.GetPlayers(effect):
+            card_id = CampaignLog.GetStrByPlayer("Tech Upgrade", player.player_id, effect)
+            removed = CampaignLog.GetStrByPlayer("tech upgrade removed from campaign", player.player_id, effect)
+            if not card_id or removed != "Yes":
+                continue
+
+            cards = player.player_deck.FindCards(card_ids=[card_id])
+            # Their printed Setup keyword can already have put deck copies
+            # into play before the campaign setup step.
+            cards += player.GetControlUpgrade(CardFinder(card_ids=[card_id]))
+            Faces.RemoveAllFromGame(cards, effect)
+
+    return AbilityFactoryCampaign.WhenCampaignSetup(action, campaign_id=CAMPAIGN_ID)
 
 def ShuffleEachExperimentalAttachmentIntoTheEncounterDeck() -> 'Ability':
     from game.operate.worlds import Worlds
@@ -25,13 +49,17 @@ def EachPlayerSearchTheirDeckForSetupKeyword() -> 'Ability':
         for player in Worlds.GetPlayers(effect):
             player_id = player.player_id
             card_id = CampaignLog.GetStrByPlayer("Tech Upgrade", player_id, effect)
-            if card_id:
+            removed = CampaignLog.GetStrByPlayer("tech upgrade removed from campaign", player_id, effect)
+            if card_id and removed != "Yes":
                 card = CardFactory.GenerateCard(card_id, player.player_deck, effect.world)
                 card.face.PutIntoPlay(player, effect)
 
         for player in Worlds.GetPlayers(effect):
             player_id = player.player_id
             card_id = CampaignLog.GetStrByPlayer("Basic Upgrade", player_id, effect)
+            improved = CampaignLog.GetStrByPlayer("Basic Condition replaced with Improved side", player_id, effect)
+            if improved == "Yes":
+                card_id = BASIC_TO_IMPROVED.get(card_id, card_id)
             if card_id:
                 card = CardFactory.GenerateCard(card_id, player.player_deck, effect.world)
                 card.face.PutIntoPlay(player, effect)
@@ -69,7 +97,7 @@ def CampaignSetup(level: int, *,
                 campaigns: List[Callable[[Effect, Message.WhenCampaignSetup], None]]=[],
                 campaigns_expert: List[Callable[[Effect, Message.WhenCampaignSetup], None]]=[]) -> List['Ability']:
 
-    abilities: List[Ability] = []
+    abilities: List[Ability] = [RemoveTechCardsFromPlayerDecks()]
 
     if level >= 2:
         abilities.append(
