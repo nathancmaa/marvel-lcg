@@ -290,7 +290,18 @@ body.hold-alt .image-preview-text{
     display: none !important;
 }
 
-#image-preview-div-center:not(.hide) {
+#image-preview-div-center {
     pointer-events: all;
     cursor: pointer;
+    visibility: visible;
+}
+
+/* The enlarged card keeps taking taps until its fade has finished, so a tap
+   to continue cannot fall through to the card beneath it; it stops being a
+   target only once it is fully transparent. */
+#image-preview-div-center.hide {
+    visibility: hidden;
+    transition:
+        calc(var(--anime-time-card)) cubic-bezier(0.19, 1, 0.22, 1) opacity,
+        0s calc(var(--anime-time-card)) visibility;
 }
