@@ -8,7 +8,7 @@ def GetAbilities() -> Sequence['Ability']:
         this = effect.this.CastTo(Event)
         Unused(this)
 
-        this.RemoveThreatFromSchemes(effect.targets, 3, effect)
+        this.RemoveThreatFromSchemesTotal(effect.targets, 3, effect)
 
         initiator = effect.GetInitiator()
         hurricane = Worlds.FindCardOnField(
@@ -25,6 +25,6 @@ def GetAbilities() -> Sequence['Ability']:
             AbilityType.HeroAction,
             torrential_rain
         ).SetPlay().SetLabel('thwart')
-        .SetTarget(Scheme2),
+        .SetTarget(Scheme2, range=("Zero", 3), repeat_rules="Threat"),
     ]
 
