@@ -112,6 +112,19 @@ class DistributedThreatRemovalTests(unittest.TestCase):
         self.assertEqual(seen["ranges"], [[3, 3]])
         self.assertEqual(seen["removed"], (1, 2))
 
+    def test_giant_help_in_giant_form_removes_all_four(self):
+        def giant_form(prompt, world, targets_for):
+            for option in prompt.options:
+                if str(option.get("name", "")).startswith("AVENGER_GIANT"):
+                    return CommandDescriptor(HeadlessDeviceManager._DescriptorId(option), [], [])
+            return None
+
+        seen = self.play("wasp", "13003", lambda option, main, side: [main, main, side, side],
+                         on_prompt=giant_form)
+
+        self.assertEqual(seen["ranges"], [[4, 4]])
+        self.assertEqual(seen["removed"], (2, 2))
+
     def test_mutant_peacekeepers_targets_after_exhausting(self):
         # Phoenix exhausts herself and no allies; the targets are chosen
         # after the cost, sized by the THW actually exhausted.
