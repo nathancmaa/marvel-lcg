@@ -18,6 +18,5 @@ def GetAbilities() -> Sequence['Ability']:
         AbilityFactory.AfterYouPlayThisFromHand(
             AbilityType.Response,
             shadowcat,
-        ).SetTarget(SchemeSide2),
+        ).SetTarget(SchemeSide2, can_place_threat=True),
     ]
-

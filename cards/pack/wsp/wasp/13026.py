@@ -28,11 +28,7 @@ def GetAbilities() -> Sequence['Ability']:
             AbilityFactory.ForChoiceAbility(
                 "Discard each card with a printed [mental] resource from your hand and take 1 damage. Discard this obligation",
                 action
-            ).SetTarget(has_printed_res="B", range="All", from_where=["YourHandCards"], canbe_discard=True),
-            AbilityFactory.Otherwise(
-                lambda targets:
-                    Faces.DiscardAll([this], effect)
-            )
+            ).SetTarget(has_printed_res="B", range=("Zero", "All"), from_where=["YourHandCards"], canbe_discard=True)
         )
 
 
@@ -41,4 +37,3 @@ def GetAbilities() -> Sequence['Ability']:
             red_dreams
         )
     ]
-

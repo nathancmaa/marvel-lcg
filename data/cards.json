@@ -18545,7 +18545,8 @@
             "desc": {
                 "Cost": "3",
                 "RES": "Y",
-                "Class": "Leadership"
+                "Class": "Leadership",
+                "MaxPerUnit": "1"
             },
             "traits": [
                 "TEAM"
@@ -21869,7 +21870,8 @@
             "desc": {
                 "Cost": "2",
                 "RES": "B",
-                "Class": "Leadership"
+                "Class": "Leadership",
+                "MaxPerUnit": "1"
             },
             "traits": [
                 "TEAM"
@@ -33088,7 +33090,9 @@
             "type": "Obligation",
             "name": "Reactive Defense",
             "subtitle": "",
-            "desc": {},
+            "desc": {
+                "GiveTo": ""
+            },
             "traits": [],
             "set_name": "Mutant Genesis Campaign",
             "text": "<b>Alter-Ego Action</b>: Spend [energy] [mental] [physical] resources \u2192 deal 5 damage to each enemy in play. Remove this card from the game."
@@ -35447,7 +35451,8 @@
             "desc": {
                 "Cost": "3",
                 "RES": "B",
-                "Class": "Leadership"
+                "Class": "Leadership",
+                "MaxPerUnit": "1"
             },
             "traits": [
                 "TEAM"
@@ -38332,7 +38337,8 @@
             "desc": {
                 "Cost": "2",
                 "RES": "Y",
-                "Class": "Leadership"
+                "Class": "Leadership",
+                "MaxPerUnit": "1"
             },
             "traits": [
                 "TEAM"
@@ -45866,7 +45872,7 @@
                 "ATK": "3",
                 "SCH": "3",
                 "Toughness": "1",
-                "Steady": "1",
+                "Stalwart": "1",
                 "Stage": "4"
             },
             "traits": [
@@ -49909,7 +49915,8 @@
             "desc": {
                 "Cost": "1",
                 "RES": "Y",
-                "Class": "Basic"
+                "Class": "Basic",
+                "MaxPerUnit": "1"
             },
             "traits": [],
             "set_name": "",
@@ -50322,7 +50329,8 @@
             "desc": {
                 "Cost": "3",
                 "RES": "B",
-                "Class": "Leadership"
+                "Class": "Leadership",
+                "MaxPerUnit": "1"
             },
             "traits": [
                 "TEAM"
@@ -54917,7 +54925,8 @@
             "desc": {
                 "Cost": "2",
                 "RES": "R",
-                "Class": "Leadership"
+                "Class": "Leadership",
+                "MaxPerUnit": "1"
             },
             "traits": [
                 "TEAM"
@@ -66877,7 +66886,8 @@
             "name": "Spellcasting",
             "subtitle": "",
             "desc": {
-                "Boost": "1"
+                "Boost": "1",
+                "GiveTo": ""
             },
             "traits": [],
             "set_name": "Scarlet Twins",
@@ -67013,7 +67023,8 @@
             "name": "Blood Debt",
             "subtitle": "",
             "desc": {
-                "Boost": "1"
+                "Boost": "1",
+                "GiveTo": ""
             },
             "traits": [],
             "set_name": "Royal Guard",
@@ -67055,5 +67066,5 @@
             "full_link": "56128b"
         }
     ],
-    "checksum": "a2ff6741396b789573e93cdb878f0a6594a7d972b8bf19e49f365f975dc906fc"
+    "checksum": "e4de94de17ba2c5d8d35824e9d7378f0998079d8430c6c6630aa7dea35e8e58b"
 }

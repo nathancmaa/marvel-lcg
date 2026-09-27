@@ -37,4 +37,3 @@ def GetAbilities() -> Sequence['Ability']:
             crisis_of_faith
         ),
     ]
-

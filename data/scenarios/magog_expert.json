@@ -27,6 +27,11 @@
         "expert"
     ],
     "modular_sets": [
-        "crime"
+        "crime",
+        "fantasy",
+        "horror",
+        "sci_fi",
+        "sitcom",
+        "western"
     ]
 }

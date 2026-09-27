@@ -5,7 +5,7 @@ from . import *
 
 def GetAbilities() -> Sequence['Ability']:
     def coup_de_grace(effect: 'Effect', message: 'Message.WhenUnitWouldAttack') -> None:
-        message.GainATKForThisAttack(3, effect)
+        message.DealAdditionalDamage(3, effect)
         message.GainOverKill(effect)
 
     return [

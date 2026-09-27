@@ -28,10 +28,7 @@ def GetAbilities() -> Sequence['Ability']:
             AbilityFactory.ForChoiceAbility(
                 "Discard Ganke Lee and Jefferson Davis from play",
                 action
-            ).SetTarget(names=["Ganke Lee", "Jefferson Davis"], range=("All"), canbe_discard=True),
-            AbilityFactory.Otherwise(
-                action
-            )
+            ).SetTarget(names=["Ganke Lee", "Jefferson Davis"], range=("Zero", "All"), canbe_discard=True)
         )
 
 
@@ -40,4 +37,3 @@ def GetAbilities() -> Sequence['Ability']:
             keeping_secrets
         ),
     ]
-

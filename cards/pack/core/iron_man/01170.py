@@ -27,11 +27,7 @@ def GetAbilities() -> Sequence['Ability']:
                 "Exhaust each upgrade you control. Discard this obligation",
                 exhaust_each_upgrade_you_control_discard_this_obligation
             ).SetTarget(Upgrade, canbe_exhaust=True,
-                range="All", from_where=["YouControlCards"]),
-            AbilityFactory.Otherwise(
-                lambda targets:
-                    Faces.DiscardAll([this], effect)
-            )
+                range=("Zero", "All"), from_where=["YouControlCards"])
         )
 
     return [

@@ -34,7 +34,7 @@ def GetAbilities() -> Sequence['Ability']:
             lost_visor
         ),
         *AbilityFactory.UnitCannotAttackTarget(
-            CardFinder(name="Scott Summers"),
+            "AttachedIdentity",
             cannot_attack=True,
             cannot_trigger_attack_ability=True
         ),

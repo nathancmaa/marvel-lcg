@@ -29,10 +29,7 @@ def GetAbilities() -> Sequence['Ability']:
             AbilityFactory.ForChoiceAbility(
                 "Discard the [[Preparation]] card you control with the highest cost",
                 action
-            ).SetTarget(trait="PREPARATION", canbe_discard=True, highest_cost=True, from_where=["YouControlCards"]),
-            AbilityFactory.Otherwise(
-                action
-            )
+            ).SetTarget(trait="PREPARATION", canbe_discard=True, highest_cost=True, range=("Zero", 1), from_where=["YouControlCards"])
         )
 
 
@@ -41,4 +38,3 @@ def GetAbilities() -> Sequence['Ability']:
             burn_notice
         )
     ]
-

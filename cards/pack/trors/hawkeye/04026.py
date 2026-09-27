@@ -26,11 +26,7 @@ def GetAbilities() -> Sequence['Ability']:
             AbilityFactory.ForChoiceAbility(
                 "Discard Hawkeye's Bow from play. Discard this obligation",
                 discard_hawkeyes_bow_and_discard_this,
-            ).SetTarget(name=HAWKEYE_BOW_NAME, canbe_discard=True),
-            AbilityFactory.Otherwise(
-                lambda targets:
-                    Faces.DiscardAll([this], effect)
-            )
+            ).SetTarget(name=HAWKEYE_BOW_NAME, range=("Zero", 1), canbe_discard=True)
         )
 
     return [
@@ -38,4 +34,3 @@ def GetAbilities() -> Sequence['Ability']:
             criminal_past
         )
     ]
-

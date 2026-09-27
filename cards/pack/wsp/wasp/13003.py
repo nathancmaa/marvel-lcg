@@ -34,6 +34,6 @@ def GetAbilities() -> Sequence['Ability']:
                     Condition.YouAreInHeroFrom(effect, "GIANT"),
             ]
         ).SetPlay().SetLabel('thwart')
-        .SetTarget(Scheme2, range=(1, 4), repeat_rules="Threat"),
+        .SetTarget(Scheme2, range=("Zero", 4), repeat_rules="Threat"),
     ]
 

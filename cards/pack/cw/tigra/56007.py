@@ -11,7 +11,13 @@ def GetAbilities() -> Sequence['Ability']:
         faces = effect.cost_func.Get(CostFunc.SearchForCard).searched_faces
         if faces:
             this.AttachTo2(faces[0], effect)
-            Faces.GiveStatus(faces, "Stunned", effect)
+            if faces[0].IsInPlay():
+                Faces.GiveStatus(faces, "Stunned", effect)
+
+        # Entry responses can defeat the minion while paying the additional
+        # cost, before Hunted attaches. Do not leave it in the processing area.
+        if this.IsInProcessingArea():
+            Faces.DiscardAll([this], effect)
 
     def hunted(effect: 'Effect', message: 'Message.WhenUnitBeDefeated') -> None:
         this = effect.this.CastTo(Upgrade)

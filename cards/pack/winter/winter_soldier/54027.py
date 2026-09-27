@@ -11,9 +11,10 @@ def GetAbilities() -> Sequence['Ability']:
         YouMayFlipToYourAlterEgoForm(player, effect)
 
         def action(targets: Sequence['CardFace']):
-            Faces.DiscardAll(targets, effect)
-            value = FacesCounter.GetTotalCost(targets)
-            player.GetIdentity().TakeIndirectDamage(this, value, effect)
+            discarded = Faces.DiscardAll(targets, effect)
+            value = FacesCounter.GetTotalCost(discarded)
+            if value:
+                player.GetIdentity().TakeIndirectDamage(this, value, effect)
             Faces.DiscardAll([this], effect)
 
         player.ChooseAbilities(
@@ -27,11 +28,7 @@ def GetAbilities() -> Sequence['Ability']:
             AbilityFactory.ForChoiceAbility(
                 "Discard the highest printed cost card from your hand and take indirect damage equal to its cost. Discard this obligation.",
                 action
-            ).SetTarget("YourHandCards", highest_cost=True),
-            AbilityFactory.Otherwise(
-                lambda targets:
-                    Faces.DiscardAll([this], effect)
-            )
+            ).SetTarget("YourHandCards", highest_cost=True, range=("Zero", 1))
         )
 
 
@@ -40,4 +37,3 @@ def GetAbilities() -> Sequence['Ability']:
             red_room_programming
         ),
     ]
-

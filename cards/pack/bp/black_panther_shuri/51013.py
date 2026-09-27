@@ -19,7 +19,7 @@ def GetAbilities() -> Sequence['Ability']:
                 lambda targets:
                     Faces.GiveStatus(targets, "Tough", effect)
             ).SetCostFunc(CostFunc.Discard("This"))
-            .SetTarget("YourHero")
+            .SetTarget("YourHero", canbe_tough=True)
         )
 
 
@@ -29,6 +29,9 @@ def GetAbilities() -> Sequence['Ability']:
             vibranium_suit
         ).SetLabel('attack')
         .SetTarget(Enemy)
-        .SetTarget2("YourHero", sustained=True)
+        .SetTarget2(
+            "YourHero",
+            finder=CardFinder(sustained=True)|CardFinder(canbe_tough=True),
+            is_optional=False,
+        )
     ]
-

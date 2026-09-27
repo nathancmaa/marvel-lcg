@@ -27,6 +27,6 @@ def GetAbilities() -> Sequence['Ability']:
             "This",
             kimoyo_beads
         ).SetLabel('thwart')
-        .SetTarget(Scheme2),
+        .SetTarget(Scheme2)
+        .SetTarget2(Enemy, canbe_confused=True),
     ]
-

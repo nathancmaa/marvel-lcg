@@ -8,7 +8,9 @@ def GetAbilities() -> Sequence['Ability']:
         this = effect.this.CastTo(Ally)
         Unused(this)
 
-        message.AddTarget(*effect.targets)
+        for target in effect.targets:
+            if not message.HasTarget(target):
+                message.AddTarget(target)
 
 
     return [
@@ -17,6 +19,9 @@ def GetAbilities() -> Sequence['Ability']:
             "This",
             two_gun_kid,
             is_basic_attack=True
-        ).SetTarget(Enemy),
+        ).SetTarget(
+            Enemy,
+            check_fn=lambda effect, face:
+                not effect.GetBindMessage(Message.WhenUnitWouldAttack).HasTarget(face),
+        ),
     ]
-

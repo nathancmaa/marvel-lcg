@@ -16,5 +16,5 @@ def GetAbilities() -> Sequence['Ability']:
         ).SetCost(Cost("3"))
         .SetCostFunc(CostFunc.RemoveFromGame("This"))
         .SetCostFunc(CostFunc.RemoveFromCampaignLog("This"))
-        .SetTarget(Scheme2, range=(1, 5), repeat_rules="Threat"),
+        .SetTarget(Scheme2, range=("Zero", 5), repeat_rules="Threat"),
     ]

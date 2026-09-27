@@ -469,7 +469,7 @@ Support        # Any support
 
 ```python
 .SetTarget(Enemy, range="All")           # All enemies
-.SetTarget(Scheme2, range=("Zero", 3))   # 0-3 schemes
+.SetTarget(Scheme2, range=("Zero", 3))   # Exactly min(3, legal targets); none if there are none
 .SetTarget(Enemy, canbe_confused=True)   # Can apply confused
 .SetTarget("This", canbe_ready=True)     # Can ready
 ```

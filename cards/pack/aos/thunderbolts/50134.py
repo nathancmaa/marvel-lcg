@@ -19,14 +19,14 @@ def GetAbilities() -> Sequence['Ability']:
 
         player.ChooseAbilities(
             effect,
-            AbilityFactory.ForChoiceAbilityWithCost(
-                Cost("1")
-            ),
+            AbilityFactory.ForChoiceAbility(
+                "Spend 1 resource",
+            ).SetCost(Cost("1"), is_choose_ability=True),
             AbilityFactory.ForChoiceAbility(
                 f"Place {value} threat on the main scheme",
                 lambda targets:
                     this.PlaceThreatOnSchemes(targets, value, effect)
-            ).SetTarget(MainScheme),
+            ).SetTarget(MainScheme, can_place_threat=True),
         )
 
         Faces.RemoveCountersOn([this], 1, 'bystander', effect)
@@ -46,4 +46,3 @@ def GetAbilities() -> Sequence['Ability']:
             innocent_bystanders,
         ),
     ]
-

@@ -12,20 +12,22 @@ def GetAbilities() -> Sequence['Ability']:
 
         faces = player.LookAtDeck("EncounterDeck", 5, effect)
         non_scenario_specific_faces = CardFinder(is_scenario_specific=False).Checks(faces, effect)
+        selected: List[CardFace] = []
 
         def action(targets: Sequence[CardFace]):
+            selected.extend(targets)
             Faces.AddToVictoryDisplay(targets, effect)
 
-            rest = [x for x in faces if x not in targets]
-            player.PlaceOnTopAndOrBottomInAnyOrder(rest, effect)
-
-        player.ChooseAbilities(
+        player.MayChooseOneAbility(
             effect,
             AbilityFactory.ForChoiceAbility(
                 "Add 1 non-scenario-specific card from among those to the victory display",
                 action
             ).SetTarget(non_scenario_specific_faces, not_move=True)
         )
+
+        rest = [x for x in faces if x not in selected]
+        player.PlaceOnTopAndOrBottomInAnyOrder(rest, effect)
 
 
     return [
@@ -36,4 +38,3 @@ def GetAbilities() -> Sequence['Ability']:
             has_defeating_player=True
         ),
     ]
-

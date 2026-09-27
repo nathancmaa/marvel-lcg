@@ -22,6 +22,8 @@ def GetAbilities() -> Sequence['Ability']:
             AbilityType.Action,
             godlike_stamina,
         ).SetPlay(only_if_your_identity_has_trait="ASGARD").SetLabel()
-        .SetTarget("YourIdentity", canbe_heal=True)
+        .SetTarget(
+            "YourIdentity",
+            finder=CardFinder(canbe_heal=True)|CardFinder(has_status="Any"),
+        )
     ]
-

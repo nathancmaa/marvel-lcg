@@ -24,6 +24,5 @@ def GetAbilities() -> Sequence['Ability']:
             vibranium_suit,
         ).SetLabel('attack')
         .SetTarget(Enemy)
-        .SetTarget2("YourHero", sustained=True)
+        .SetTarget2("YourHero", sustained=True, is_optional=False)
     ]
-

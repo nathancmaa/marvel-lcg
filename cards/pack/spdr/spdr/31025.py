@@ -26,10 +26,7 @@ def GetAbilities() -> Sequence['Ability']:
             AbilityFactory.ForChoiceAbility(
                 "Choose and discard 1 [[Interface]] upgrade you control. Discard this obligation",
                 action
-            ).SetTarget(Upgrade, trait="INTERFACE", from_where=["YouControlCards"], canbe_discard=True),
-            AbilityFactory.Otherwise(
-                action
-            ),
+            ).SetTarget(Upgrade, trait="INTERFACE", range=("Zero", 1), from_where=["YouControlCards"], canbe_discard=True),
         )
 
 
@@ -38,4 +35,3 @@ def GetAbilities() -> Sequence['Ability']:
             inherited_burden
         ),
     ]
-

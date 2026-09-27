@@ -26,11 +26,7 @@ def GetAbilities() -> Sequence['Ability']:
             AbilityFactory.ForChoiceAbility(
                 "Choose and discard a BLACK PANTHER upgrade you control. Discard this obligation",
                 discard_black_panther_upgrade_and_discard_this
-            ).SetTarget(Upgrade, trait="BLACK PANTHER", from_where=["YouControlCards"], canbe_discard=True),
-            AbilityFactory.Otherwise(
-                lambda targets:
-                    Faces.DiscardAll([this], effect)
-            )
+            ).SetTarget(Upgrade, trait="BLACK PANTHER", range=("Zero", 1), from_where=["YouControlCards"], canbe_discard=True)
         )
 
 
@@ -39,4 +35,3 @@ def GetAbilities() -> Sequence['Ability']:
             affairs_of_state
         )
     ]
-

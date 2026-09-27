@@ -28,10 +28,7 @@ def GetAbilities() -> Sequence['Ability']:
                 "Discard Mjolnir from your hand or from play. You are stunned. Discard this obligation",
                 action
             ).SetTarget(Upgrade, name="Mjolnir",
-                from_where=["YourHandCards", "YouControlCards"], canbe_discard=True),
-            AbilityFactory.Otherwise(
-                action
-            )
+                range=("Zero", 1), from_where=["YourHandCards", "YouControlCards"], canbe_discard=True)
         )
 
 
@@ -40,4 +37,3 @@ def GetAbilities() -> Sequence['Ability']:
             odins_anger
         )
     ]
-

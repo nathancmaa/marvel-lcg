@@ -12,11 +12,8 @@ def GetAbilities() -> Sequence['Ability']:
         YouMayFlipToYourAlterEgoForm(player, effect)
 
         def discard_cards(targets: Sequence['CardFace']):
-            Faces.DiscardAll(targets, effect)
-            Faces.DiscardAll([this], effect)
-
-        def gain_surge(targets: Sequence['CardFace']):
-            ThisCardGainSurge(effect)
+            if not Faces.DiscardAll(targets, effect):
+                ThisCardGainSurge(effect)
             Faces.DiscardAll([this], effect)
 
         player.ChooseAbilities(
@@ -29,10 +26,7 @@ def GetAbilities() -> Sequence['Ability']:
             AbilityFactory.ForChoiceAbility(
                 "Discard 1 [[Persona]] support you control",
                 discard_cards
-            ).SetTarget(Support, trait="PERSONA", from_where=["YouControlCards"], canbe_discard=True),
-            AbilityFactory.Otherwise(
-                gain_surge
-            )
+            ).SetTarget(Support, trait="PERSONA", range=("Zero", 1), from_where=["YouControlCards"], canbe_discard=True)
         )
 
 
@@ -41,4 +35,3 @@ def GetAbilities() -> Sequence['Ability']:
             home_by_dawn
         )
     ]
-
