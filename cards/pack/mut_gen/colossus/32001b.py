@@ -13,7 +13,6 @@ def GetAbilities() -> Sequence['Ability']:
             effect,
             initiator,
             include_player_deck=True,
-            include_discard_pile=True,
             name="Organic Steel",
             card_type=Upgrade,
         )
