@@ -41,25 +41,57 @@ class AbilityFactoryCampaign:
         )
 
     @staticmethod
-    def CampaignSetPlayersHPToTheirRemainingHP(*, campaign_id: str|None=None) -> 'Ability':
-        from game.operate.worlds import Worlds
+    def GetRemainingHitPoints(player: 'Player', effect: 'Effect') -> int|None:
+        """The hit points logged for a player, or None when nothing is logged.
+
+        A logged 0 is a real value -- the hero was defeated -- and must not
+        read as "unset".
+        """
         from game.operate.campaign_logs import CampaignLog
+        player_id = player.player_id
+        for key in [
+            f"Player {player_id + 1} Remaining hit points",
+            f"Remaining hit points P{player_id + 1}",
+        ]:
+            value = CampaignLog.GetStrInternal(key, effect).strip()
+            if value == "":
+                continue
+            try:
+                return int(value)
+            except ValueError:
+                return None
+        return None
+
+    @staticmethod
+    def CampaignSetPlayersHPToTheirRemainingHP(*, campaign_id: str|None=None) -> 'Ability':
+        """Set each identity to the hit points logged after the last scenario.
+
+        The campaign guides carry damage between scenarios only in an expert
+        campaign; a standard campaign starts every scenario at full health.
+        A hero logged at 0 was defeated. They cannot start the scenario
+        defeated, so they start at 1 hit point, and the campaign's expert
+        heal (offered next) is how they get back to full.
+        """
+        from game.operate.worlds import Worlds
         def action(effect: 'Effect', message: 'Message.WhenCampaignSetup'):
             for player in Worlds.GetPlayers(effect):
-                player_id = player.player_id
-                value = CampaignLog.GetIntByPlayer("Remaining hit points", player_id, effect)
-                if value:
-                    player.GetIdentity().SetHealth(value, effect)
+                value = AbilityFactoryCampaign.GetRemainingHitPoints(player, effect)
+                if value is None:
+                    continue
+                identity = player.GetIdentity()
+                identity.SetHealth(
+                    max(1, min(value, identity.max_health)),
+                    effect,
+                )
 
-        return AbilityFactoryCampaign.WhenCampaignSetup(
+        return AbilityFactoryCampaign.WhenCampaignSetupExpertOnly(
             action,
             campaign_id=campaign_id,
         )
 
     @staticmethod
     def ExpertCampaignSetPlayersHPToTheirRemainingHP(*, campaign_id: str|None=None) -> 'Ability':
-        # Compatibility alias for campaign modules written before remaining hit
-        # points were supported in both standard and expert campaign games.
+        # Alias kept for campaign modules that use the expert name.
         return AbilityFactoryCampaign.CampaignSetPlayersHPToTheirRemainingHP(
             campaign_id=campaign_id,
         )

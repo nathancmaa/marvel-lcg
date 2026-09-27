@@ -89,6 +89,8 @@ const campaignSelection = document.querySelector<HTMLElement>('#campaign-selecti
 const scenarioSection = document.querySelector<HTMLElement>('#scenario-section')!;
 const scenarioProgress = document.querySelector<HTMLElement>('#scenario-progress')!;
 const scenarioPreview = document.querySelector<HTMLElement>('#scenario-preview')!;
+const expertCampaign = document.querySelector<HTMLInputElement>('#expert-campaign')!;
+const expertCampaignNote = document.querySelector<HTMLElement>('#expert-campaign-note')!;
 const heroList = document.querySelector<HTMLElement>('#hero-list')!;
 const heroSection = document.querySelector<HTMLElement>('#hero-section')
     ?? heroList.closest('section') as HTMLElement;
@@ -161,20 +163,25 @@ async function fetchJson<T>(url: string): Promise<T> {
     return await response.json() as T;
 }
 
-async function loadScenario(scenarioId: string): Promise<ScenarioChoice> {
-    const cached = scenarioCache.get(scenarioId);
+/**
+ * Load a campaign scenario. The id stays the standard one (it is what the
+ * campaign record stores); an expert campaign reads its *_expert file.
+ */
+async function loadScenario(scenarioId: string, expert = false): Promise<ScenarioChoice> {
+    const fileId = expert ? `${scenarioId}_expert` : scenarioId;
+    const cached = scenarioCache.get(fileId);
     if (cached) {
         return cached;
     }
 
-    const data = await fetchJson<ScenarioData>(`/get_scenario_json?${encodeURIComponent(scenarioId)}`);
+    const data = await fetchJson<ScenarioData>(`/get_scenario_json?${encodeURIComponent(fileId)}`);
     const imageId = getFirstCardId(data.villain?.length ? data.villain : data.schemes);
     if (!data.name || !imageId) {
         throw new Error(`Scenario ${scenarioId} has no display data`);
     }
 
     const choice = { id: scenarioId, name: data.name, imageId, data };
-    scenarioCache.set(scenarioId, choice);
+    scenarioCache.set(fileId, choice);
     return choice;
 }
 
@@ -435,6 +442,14 @@ async function selectCampaign(
             updateRefreshButton();
         }
     }
+    // The mode is chosen when a campaign starts and kept for the whole run.
+    expertCampaign.disabled = saved !== null;
+    if (saved) {
+        expertCampaign.checked = saved.expert === true;
+    }
+    expertCampaignNote.textContent = saved
+        ? (saved.expert ? 'This campaign is played on expert.' : 'This campaign is played on standard.')
+        : 'Expert scenarios; damage carries over between scenarios.';
     selectedScenario = null;
     selectedScenarioIndex = Math.min(
         Math.max(saved?.scenarioIndex ?? 0, 0),
@@ -448,7 +463,8 @@ async function selectCampaign(
     updatePlayButton();
 
     try {
-        const scenario = await loadScenario(definition.scenarios[selectedScenarioIndex]);
+        const scenario = await loadScenario(
+            definition.scenarios[selectedScenarioIndex], expertCampaign.checked);
         if (request !== selectionRequest) {
             return;
         }
@@ -612,7 +628,7 @@ async function renderSavedCampaign(saved: SavedCampaign | null): Promise<void> {
     }
 
     const scenarioIndex = Math.min(Math.max(saved.scenarioIndex, 0), definition.scenarios.length - 1);
-    const scenario = await loadScenario(definition.scenarios[scenarioIndex]);
+    const scenario = await loadScenario(definition.scenarios[scenarioIndex], saved.expert === true);
     const savedHero = await loadCampaignHeroChoice(saved.heroId);
     const savedHeroName = savedHero?.name ?? 'Saved deck not found';
     savedCampaignSection.hidden = false;
@@ -620,7 +636,7 @@ async function renderSavedCampaign(saved: SavedCampaign | null): Promise<void> {
     savedCampaignStatus.textContent = saved.completed ? 'Completed' : `Scenario ${scenarioIndex + 1} of ${definition.scenarios.length}`;
     savedCampaignSummary.textContent = saved.completed
         ? `Completed with ${savedHeroName}.`
-        : `${scenario.name} · ${savedHeroName}`;
+        : `${scenario.name} · ${savedHeroName}${saved.expert ? ' · Expert' : ''}`;
     resumeCampaignButton.hidden = saved.completed;
     resumeCampaignButton.onclick = () => void selectCampaign(definition, saved);
 }
@@ -687,6 +703,13 @@ async function initialize(): Promise<void> {
         ?.addEventListener('click', () => randomizeSelect(
             document.querySelector<HTMLSelectElement>('#aspect-deck')!));
     marvelCdbUpdate.addEventListener('click', () => void refreshSelectedCampaignDeck());
+    expertCampaign.addEventListener('change', () => {
+        // Only a new campaign can change mode; reload its first scenario in
+        // the chosen mode so the preview and the game agree.
+        if (selectedCampaign && !resumedCampaign) {
+            void selectCampaign(selectedCampaign, null);
+        }
+    });
     document.querySelector<HTMLButtonElement>('#randomize-hero')
         ?.addEventListener('click', randomizeHero);
 
@@ -798,6 +821,7 @@ async function startGame(): Promise<void> {
         heroId,
         campaignLog,
         completed: false,
+        expert: resumedCampaign ? resumedCampaign.expert === true : expertCampaign.checked,
         updatedAt: new Date().toISOString(),
     };
     const activeRun: ActiveCampaignRun = {

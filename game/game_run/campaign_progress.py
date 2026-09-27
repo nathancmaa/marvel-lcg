@@ -121,6 +121,11 @@ class CampaignProgressStore:
         if updated_at is not None and not isinstance(updated_at, str):
             raise ValueError('updatedAt must be a string.')
 
+        # Added later, so a record without it is a standard campaign.
+        expert = data.get('expert', False)
+        if not isinstance(expert, bool):
+            raise ValueError('expert must be a boolean.')
+
         return {
             'version': cls.VERSION,
             'campaignId': campaign_id,
@@ -128,6 +133,7 @@ class CampaignProgressStore:
             'heroId': hero_id,
             'campaignLog': dict(campaign_log),
             'completed': completed,
+            'expert': expert,
             'updatedAt': updated_at or cls._Now(),
         }
 
@@ -221,6 +227,8 @@ class CampaignProgressStore:
             if existing_record and not replace:
                 existing = existing_record['campaign']
                 matching_fields = ('campaignId', 'scenarioIndex', 'heroId')
+                # 'expert' is deliberately not compared: the server copy wins
+                # on resume, so an old page cannot switch a run's mode.
                 if any(existing[key] != incoming[key] for key in matching_fields):
                     raise CampaignProgressConflict(
                         'Starting this campaign would replace the active campaign.',
@@ -371,9 +379,12 @@ class CampaignProgressStore:
 
         game_over = world.is_game_over
         players_won = getattr(world.game_over, 'players_won', None) if game_over else None
+        # Damage carries between scenarios only in an expert campaign.
         campaign_log = CampaignLog.Export(
             world,
-            include_remaining_hit_points=players_won is True,
+            include_remaining_hit_points=(
+                players_won is True and bool(world.scene.campaign.expert)
+            ),
         )
         return self.AdvanceVerified(
             campaign_id=world.scene.campaign.campaign_id,

@@ -6,6 +6,7 @@
     <title>Campaign</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico?cerebro=2">
     <link rel="stylesheet" href="/public/css/solo.css?marvelcdb-deck=1">
+    <link rel="stylesheet" href="/public/css/campaign.css?log-editor=1">
 </head>
 <body>
     <main class="solo-setup">
@@ -75,6 +76,11 @@
                 <span id="scenario-progress" class="current-selection"></span>
             </div>
             <div id="scenario-preview" class="scenario-preview"></div>
+            <label class="expert-toggle">
+                <input id="expert-campaign" type="checkbox">
+                <span>Expert campaign</span>
+                <small id="expert-campaign-note">Expert scenarios; damage carries over between scenarios.</small>
+            </label>
         </section>
 
         <section class="selection-section" aria-labelledby="hero-heading">

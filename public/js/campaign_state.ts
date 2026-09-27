@@ -11,6 +11,8 @@ export type SavedCampaign = {
     heroId: string;
     campaignLog: Record<string, string>;
     completed: boolean;
+    /** An expert campaign plays the *_expert scenarios and carries damage. */
+    expert?: boolean;
     updatedAt: string;
 };
 
@@ -20,6 +22,7 @@ export type ActiveCampaignRun = {
     scenarioId: string;
     scenarioName: string;
     scenarioIndex: number;
+    runId?: string;
 };
 
 type CampaignProgressResponse = {

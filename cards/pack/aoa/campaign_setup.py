@@ -1,4 +1,5 @@
 from . import *
+from cards.pack.aoa.campaign import GetMissionScheme
 
 
 CAMPAIGN_ID = "age_of_apocalypse"
@@ -210,42 +211,64 @@ def EachPlayerSearchForAnAlly(level: int) -> 'Ability':
     return AbilityFactoryCampaign.WhenCampaignSetup(action, campaign_id=CAMPAIGN_ID)
 
 
-def ExpertCampaignEachPlayerMayHealAtMissionThreatCost() -> 'Ability':
-    def action(effect: 'Effect', message: 'Message.WhenCampaignSetup') -> None:
-        from game.operate.campaign_logs import CampaignLog
+def ExpertCampaignSetPlayersHPToTheirRemainingHP() -> 'Ability':
+    """Expert only: set each identity to its logged hit points.
 
-        mission = Worlds.FindCardOnField(
-            effect,
-            card_type=EncounterSideScheme,
-            trait="MISSION",
-        )
+    A hero logged at 0 was defeated; the mission heal below brings them back.
+    """
+    def action(effect: 'Effect', message: 'Message.WhenCampaignSetup') -> None:
+        if not Worlds.IsExpert(effect):
+            return
+
+        for player in Worlds.GetPlayers(effect):
+            value = AbilityFactoryCampaign.GetRemainingHitPoints(player, effect)
+            if value is None or value <= 0:
+                continue
+            identity = player.GetIdentity()
+            identity.SetHealth(min(value, identity.max_health), effect)
+
+    return AbilityFactoryCampaign.WhenCampaignSetupExpertOnly(
+        action,
+        campaign_id=CAMPAIGN_ID,
+    )
+
+
+def ExpertCampaignEachPlayerMayHealAtMissionThreatCost() -> 'Ability':
+    """Expert only: each player may place 3 threat on the mission to heal to
+    full. A defeated hero (logged at 0) must, to rejoin the campaign."""
+    def action(effect: 'Effect', message: 'Message.WhenCampaignSetup') -> None:
+        if not Worlds.IsExpert(effect):
+            return
+
+        mission = GetMissionScheme(effect)
         if not mission:
             return
 
         for player in Worlds.GetPlayers(effect):
-            if (
-                not Worlds.IsExpert(effect)
-                and not CampaignLog.GetIntByPlayer(
-                    "Remaining hit points",
-                    player.player_id,
-                    effect,
-                )
-            ):
+            value = AbilityFactoryCampaign.GetRemainingHitPoints(player, effect)
+            if value is None or value < 0:
                 continue
 
-            def heal_identity(targets: Sequence['CardFace'], player=player) -> None:
+            identity = player.GetIdentity()
+            if value == 0:
+                effect.this.PlaceThreatOnSchemes([mission], 3, effect)
+                identity.SetHealth(identity.max_health, effect)
+                continue
+
+            def heal_identity(targets: Sequence['CardFace']) -> None:
                 effect.this.PlaceThreatOnSchemes([mission], 3, effect)
                 effect.this.HealthUnits(targets, "All", effect)
 
             player.MayChooseOneAbility(
                 effect,
                 AbilityFactory.ForChoiceAbility(
-                    "Place 3 threat on the MISSION side scheme to heal their identity to its full hit point value",
+                    "Place 3 threat on the MISSION side scheme to heal "
+                    "their identity to its full hit point value",
                     heal_identity,
-                ).SetTarget([player.GetIdentity()], canbe_heal=True),
+                ).SetTarget([identity], canbe_heal=True),
             )
 
-    return AbilityFactoryCampaign.WhenCampaignSetup(
+    return AbilityFactoryCampaign.WhenCampaignSetupExpertOnly(
         action,
         campaign_id=CAMPAIGN_ID,
     )
@@ -260,9 +283,7 @@ def CampaignSetup(level: int) -> List['Ability']:
 
     if level >= 2:
         abilities.extend([
-            AbilityFactoryCampaign.CampaignSetPlayersHPToTheirRemainingHP(
-                campaign_id=CAMPAIGN_ID,
-            ),
+            ExpertCampaignSetPlayersHPToTheirRemainingHP(),
             ExpertCampaignEachPlayerMayHealAtMissionThreatCost(),
         ])
 

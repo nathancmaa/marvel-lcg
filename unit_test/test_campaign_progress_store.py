@@ -290,6 +290,67 @@ class CampaignProgressStoreTests(unittest.TestCase):
         )
         self.assertTrue(result['advanced'])
 
+    def _finished_game(self, *, expert, run_id):
+        world = SimpleNamespace(
+            rule=SimpleNamespace(mode_campaign=SimpleNamespace(val=True)),
+            scene=SimpleNamespace(
+                campaign=SimpleNamespace(
+                    campaign_id='rise_of_red_skull',
+                    name='Crossbones',
+                    expert=expert,
+                ),
+                metadata={'campaign_run_id': run_id},
+            ),
+            is_game_over=True,
+            game_over=SimpleNamespace(players_won=True),
+            store=SimpleNamespace(dic={}, HasKey=lambda key: False),
+            const_players=[SimpleNamespace(
+                player_id=0,
+                GetIdentity=lambda: SimpleNamespace(health=6),
+            )],
+        )
+        return SimpleNamespace(
+            world=world,
+            controller_manager=SimpleNamespace(
+                replay=SimpleNamespace(is_replay=False),
+            ),
+        )
+
+    def test_standard_campaign_does_not_carry_damage(self):
+        self.store.Start(self.start_request())
+        run_id = self.store.Load()['activeRun']['runId']
+
+        result = self.store.AdvanceGame(self._finished_game(expert=False, run_id=run_id))
+
+        self.assertTrue(result['advanced'])
+        self.assertNotIn(
+            'Player 1 Remaining hit points', result['campaign']['campaignLog'])
+
+    def test_expert_campaign_records_remaining_hit_points(self):
+        campaign = self.campaign()
+        campaign['expert'] = True
+        self.store.Start(self.start_request(campaign=campaign))
+        run_id = self.store.Load()['activeRun']['runId']
+
+        result = self.store.AdvanceGame(self._finished_game(expert=True, run_id=run_id))
+
+        self.assertTrue(result['advanced'])
+        self.assertTrue(result['campaign']['expert'])
+        self.assertEqual(
+            result['campaign']['campaignLog']['Player 1 Remaining hit points'], '6')
+
+    def test_expert_flag_is_additive_and_kept_on_resume(self):
+        # An old record has no 'expert': it loads as a standard campaign.
+        self.store.Start(self.start_request())
+        self.assertFalse(self.store.Load()['campaign']['expert'])
+
+        campaign = self.campaign()
+        campaign['expert'] = True
+        self.store.Start(self.start_request(campaign=campaign, replace=True))
+        # Resuming from a stale page cannot switch the run's mode.
+        prepared = self.store.PrepareStart(self.start_request())
+        self.assertTrue(prepared['campaign']['expert'])
+
 
 if __name__ == '__main__':
     unittest.main()
