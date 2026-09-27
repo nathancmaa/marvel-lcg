@@ -19,7 +19,6 @@ def GetAbilities() -> Sequence['Ability']:
             wakanda_forever
         ).SetPlay()
         .SetTarget(Upgrade, trait="BLACK PANTHER",
-            range=(1, "All"),
+            range="All",
             from_where=["YouControlCards"])
     ]
-

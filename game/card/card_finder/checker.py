@@ -182,7 +182,7 @@ def Check(self: 'CardFinder', face: 'CardFace', effect: 'Effect|None'=None) -> b
         if not Unit2.IsType(face) or self.canbe_heal != face.CanHeath():
             return False
     if self.sustained != None:
-        if not Unit2.IsType(face) or self.sustained != face.sustained:
+        if not Unit2.IsType(face) or self.sustained != bool(face.sustained):
             return False
     #     #  if has_health != None:
     #     #     if not Unit2.IsType(face) or face.health <= 0:

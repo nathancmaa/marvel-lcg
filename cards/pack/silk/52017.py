@@ -13,7 +13,7 @@ def GetAbilities() -> Sequence['Ability']:
         value = identity.recover
         this.HealthUnits(effect.targets, value, effect)
 
-        initiator.ChooseAbilities(
+        initiator.MayChooseOneAbility(
             effect,
             AbilityFactory.ForChoiceAbility(
                 "Discard 1 status card from your identity",
@@ -28,7 +28,9 @@ def GetAbilities() -> Sequence['Ability']:
             dr_sinclair
         ).SetCostFunc(CostFunc.Exhaust("This"))
         .SetCost(Cost("B"))
-        .SetTarget("YourAlterEgo", canbe_heal=True)
+        .SetTarget(
+            "YourAlterEgo",
+            finder=CardFinder(canbe_heal=True)|CardFinder(has_status="Any"),
+        )
         .AnyPlayerCanDoThis(),
     ]
-
