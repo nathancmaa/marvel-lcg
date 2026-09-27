@@ -26,7 +26,7 @@ def GetAbilities() -> Sequence['Ability']:
 
 
     return [
-        TheFirstTechniqueAttachmentEachPlayerRevealedEachRoundGainsSurge(),
+        TheFirstTechniqueAttachmentRevealedEachRoundGainsSurge(),
         AbilityFactory.WhenEnemyActivateAgainstYou(
             AbilityType.ForcedInterrupt,
             "This",
