@@ -60598,6 +60598,98 @@
         {
             "card_id": "59034",
             "full_link": "08023"
+        },
+        {
+            "card_id": "59035",
+            "type": "Obligation",
+            "name": "Appeal to Athena",
+            "subtitle": "",
+            "desc": {
+                "Boost": "2",
+                "GiveTo": "Hercules"
+            },
+            "traits": [],
+            "set_name": "Hercules",
+            "text": "Give to the Hercules player.\nWhen counting [[GIFT]] cards you control, you are considered to control none.\n<b>Alter-Ego Action</b>: Exhaust Hercules or spend [mental] [mental] \u2192 remove this obligation from the game."
+        },
+        {
+            "card_id": "59036",
+            "type": "Minion",
+            "name": "* Ares",
+            "subtitle": "",
+            "desc": {
+                "HP": "5",
+                "ATK": "3",
+                "SCH": "0*",
+                "Boost": "2",
+                "Retaliate": "1",
+                "Nemesis": "Hercules"
+            },
+            "traits": [
+                "ELITE",
+                "OLYMPUS"
+            ],
+            "set_name": "Hercules Nemesis",
+            "text": "Retaliate 1.\n[star] <b>Forced Response</b>: After Ares schemes, deal yourself 1 facedown encounter card.\n<i>(Hercules's nemesis minion.)</i>"
+        },
+        {
+            "card_id": "59037",
+            "type": "Minion",
+            "name": "* Lernean Hydra",
+            "subtitle": "",
+            "desc": {
+                "HP": "6",
+                "ATK": "2",
+                "SCH": "0",
+                "Boost": "1"
+            },
+            "traits": [
+                "CREATURE",
+                "HYDRA"
+            ],
+            "set_name": "Hercules Nemesis",
+            "text": "<b>Forced Response</b>: After a character you control attacks and damages Lernean Hydra, choose:\n\u2022 Spend a [physical] resource.\n\u2022 Lernean Hydra heals 2 damage."
+        },
+        {
+            "card_id": "59038",
+            "type": "SideScheme",
+            "name": "Olympic Feud",
+            "subtitle": "",
+            "desc": {
+                "StartingThreat": "2",
+                "Hazard": "1",
+                "Boost": "3"
+            },
+            "traits": [],
+            "set_name": "Hercules Nemesis",
+            "text": "<b>When Revealed</b>: Place 1 additional threat here for each [[OLYMPUS]] card in play."
+        },
+        {
+            "card_id": "59039",
+            "type": "Attachment",
+            "name": "Ares's Axe",
+            "subtitle": "",
+            "desc": {
+                "ATK+": "2",
+                "Boost": "2"
+            },
+            "traits": [
+                "WEAPON"
+            ],
+            "set_name": "Hercules Nemesis",
+            "text": "Attach to Ares. Otherwise, attach to the villain.\n[star] <b>Forced Response</b>: After attached enemy attacks, if no friendly character took damage from this attack, discard this card."
+        },
+        {
+            "card_id": "59040",
+            "type": "Treachery",
+            "name": "God of War",
+            "subtitle": "",
+            "desc": {
+                "Boost": "3"
+            },
+            "traits": [],
+            "set_name": "Hercules Nemesis",
+            "text": "Each minion attacks the player it is engaged with (even if that player is in alter-ego form). If no minion activates this way, discard cards from the top of the encounter deck until a minion is discarded and reveal that minion."
         }
     ],
     "fne": [
@@ -66509,5 +66601,5 @@
             "full_link": "56128b"
         }
     ],
-    "checksum": "4207b6a9945c6e61f3aa06f38c02d718e98da49efc38a20679172fc41f82a80b"
+    "checksum": "8a0c5245e1991080c32f3d7ff08902cdbbf625ee491abfeee0f569d6c9c45050"
 }

@@ -1,4 +1,4 @@
-"""Hercules's cards in real headless games."""
+"""Hercules's cards and nemesis set in real headless games."""
 
 import unittest
 
@@ -152,6 +152,55 @@ class HerculesCardsInGameTests(InGameTestCase):
         self.assertEqual(len(player.special_decks["hercules_gift"].Get()), 2)
         self.assertEqual(len([f for f in world.FindCardsOnField() if f.HasTrait("GIFT")]), 1)
         self.assertTrue(hercules(world).IsReady())
+
+
+class HerculesNemesisInGameTests(InGameTestCase):
+
+    def test_starter_deck_shuffles_in_the_obligation_and_sets_the_nemesis_aside(self):
+        game, _ = play_script(rhino_fixture(), [])
+        world = game.world
+        villain = world.GetScenario().area_villain.Get()[0]
+
+        self.assertIn("59035", card_ids(villain.encounter_deck.Get()))
+        self.assertEqual(
+            sorted(card_ids(world.GetFirstPlayer().set_aside_nemesis_sets.Get())),
+            ["59036", "59037", "59038", "59039", "59040"],
+        )
+
+    def test_appeal_to_athena_counts_no_gifts_until_it_is_removed(self):
+        game, devices = play_script(rhino_fixture(
+            'Puzzle.CreateHandCards("59010", "59018", "59018")',
+            HERO_FORM,
+            'Puzzle.PutIntoPlay("59005")',
+            'Puzzle.PutIntoPlay("59013")',
+            'Puzzle.Reveal("Appeal to Athena")',
+            'Puzzle.Exhaust("Hercules", "Gauntlets of Hercules")',
+        ), [Act("Play", hand_id("59010"), payments=2)])
+
+        self.assertCleanGame(devices)
+        self.assertEqual(card_ids(game.world.GetFirstPlayer().obligations_area.Get()), ["59035"])
+        self.assertTrue(hercules(game.world).IsReady())
+        # With no gifts counted, Son of Zeus readies no upgrade.
+        self.assertFalse(on_field(game.world, "59013")[0].IsReady())
+
+        game, devices = play_script(rhino_fixture(
+            'Puzzle.Reveal("Appeal to Athena")',
+        ), [Act("Alter-Ego_Action", lambda world: object_id(world, "59035"))])
+
+        self.assertCleanGame(devices)
+        self.assertEqual(card_ids(game.world.GetFirstPlayer().obligations_area.Get()), [])
+        self.assertFalse(hercules(game.world).IsReady())
+
+    def test_god_of_war_makes_ares_attack_hercules_in_alter_ego_form(self):
+        game, devices = play_script(rhino_fixture(
+            'Puzzle.Reveal("Ares")',
+            'Puzzle.Reveal("God of War")',
+        ), [])
+
+        self.assertCleanGame(devices)
+        self.assertEqual(hercules(game.world).paper.card_id, "59001b")
+        # Ares attacks for 3 plus his boost card.
+        self.assertLessEqual(hercules(game.world).health, 11)
 
 
 if __name__ == "__main__":
