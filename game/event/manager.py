@@ -661,6 +661,12 @@ class EventManager:
                     # This matters for linked cards, which can still physically
                     # be in the scenario's set-aside area at this point.
                     effect.context.initiator = message.GetToPlayer()
+                elif effect.this.card.area.flags.is_obligations_area and \
+                    Obligation.IsType(effect.this):
+                    # An obligation stays encounter-owned after it is given to
+                    # a player, but its forced abilities belong to the player
+                    # whose obligation area holds it (Protect Humanity).
+                    effect.context.initiator = effect.this.GetGaveToPlayer()
                 else:
                     effect.context.initiator = effect.this.GetControlByOrOwner()
 
