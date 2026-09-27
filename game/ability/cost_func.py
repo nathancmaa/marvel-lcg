@@ -92,7 +92,16 @@ class CostFunc:
                             targets = self.selector.GetRandomTarget(targets, effect)
                             targets = targets[:num_range[0]]
                         elif isinstance(player, Player):
-                            targets = player.AskChooseFaces(targets, num_range, effect, prompt=f"Pay cost {self}")
+                            # Keep an Alliance cost's "one of each trait" rule on
+                            # the prompt, so the client enforces it as well.
+                            rule = self.selector.selector_rule
+                            alliance_rule = {}
+                            if rule.raw_select_rule == "MustIncludeTraits":
+                                alliance_rule = dict(
+                                    select_rule=rule.raw_select_rule,
+                                    target_must_include_traits=rule.target_must_include_traits,
+                                )
+                            targets = player.AskChooseFaces(targets, num_range, effect, prompt=f"Pay cost {self}", **alliance_rule)
                 else:
                     targets = []
 

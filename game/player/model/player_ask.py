@@ -254,15 +254,24 @@ class PlayerAsk:
                         not_move: bool=False,
                         not_shuffle: bool=False,
                         repeat_rules: List['SELECT.REPEAT_RULE']|'SELECT.REPEAT_RULE'=[],
+                        select_rule: 'SELECT.RULE'="",
+                        target_must_include_traits: Sequence['CardFace.TRAITS']=(),
                         ) -> List['TC']:
         player = self.GetPlayer()
 
+        finder = None
+        if target_must_include_traits:
+            from game.card.card_finder import CardFinder
+            finder = CardFinder(traits=list(target_must_include_traits))
+
         selector = Select.From(faces=faces,
+                            finder=finder,
                             range=range,
                             by_search=peek,
                             not_move=not_move,
                             not_shuffle=not_shuffle,
-                            repeat_rules=repeat_rules)
+                            repeat_rules=repeat_rules,
+                            select_rule=select_rule)
 
         return_faces = player.AskChooseSelect(selector, by_effect, prompt=prompt, forced=forced)
         return return_faces # type: ignore
