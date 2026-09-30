@@ -1,0 +1,15 @@
+services:
+  marvel-lcg:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: marvel-lcg
+    ports:
+      - "2345:2345"
+    volumes:
+      - /volume1/docker/marvelchampions/assets:/app/assets
+      - /volume1/docker/marvelchampions/replays:/app/replays
+      - /volume1/docker/marvelchampions/runtime:/app/runtime
+      - /volume1/docker/marvelchampions/deck/user-decks:/app/deck/user-decks
+    command: ["python", "-u", "main.py", "-game_statistics_file", "./runtime/statistics.json", "-game_history_file", "./runtime/statistics.sqlite3", "-campaign_progress_file", "./runtime/save_campaign_progress.json", "-active_session_file", "./runtime/save_active_session.json", "-quick_save_folder", "./runtime"]
+    restart: unless-stopped
