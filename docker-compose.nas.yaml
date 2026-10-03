@@ -12,4 +12,10 @@ services:
       - /volume1/docker/marvelchampions/runtime:/app/runtime
       - /volume1/docker/marvelchampions/deck/user-decks:/app/deck/user-decks
     command: ["python", "-u", "main.py", "-game_statistics_file", "./runtime/statistics.json", "-game_history_file", "./runtime/statistics.sqlite3", "-campaign_progress_file", "./runtime/save_campaign_progress.json", "-active_session_file", "./runtime/save_active_session.json", "-quick_save_folder", "./runtime"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; r=urllib.request.urlopen('http://127.0.0.1:2345/',timeout=5); r.close()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     restart: unless-stopped
