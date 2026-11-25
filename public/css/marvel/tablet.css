@@ -1,8 +1,17 @@
 /* Compact solo table for 4:3 touch tablets such as iPad.
    The desktop scene is 16:9, so fitting it into a 4:3 viewport makes every
    card unnecessarily small. Use the otherwise empty horizontal space and
-   keep all edge zones inside the narrower logical scene. */
-@media (hover: none) and (pointer: coarse) and (min-width: 700px) and (max-aspect-ratio: 3 / 2) {
+   keep all edge zones inside the narrower logical scene.
+
+   The bounds are measured against the page, not the screen, and a browser's
+   toolbars come out of the height first. A 10:7 screen such as the iPhone
+   Duo's inner display hands Safari 951x585 in landscape -- wider than 3:2,
+   which was the limit here -- and 669x867 in portrait, under the old 700px
+   floor, so it got the desktop table at half size in both. The stage widens
+   to the page's aspect by itself (scene.ts), so the limit only has to keep
+   phones out: in landscape they are wider than 16:9, and in portrait
+   narrower than 660px. */
+@media (hover: none) and (pointer: coarse) and (min-width: 660px) and (max-aspect-ratio: 16 / 9) {
     :root {
         --scene-width: 1440;
         --card-width: 145px;
