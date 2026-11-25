@@ -47,7 +47,8 @@ a game whose text differed between devices would be sent again on every sync.
   column takes the table's default, and seats, card statistics and
   performance are replaced. A replaced game keeps its database id, so its
   achievement links survive. Afterwards the achievements are recalculated
-  (`AchievementEvaluator.Recalculate`).
+  (`AchievementEvaluator.Recalculate`). Unlocks are permanent: a pulled game
+  can add achievements but never removes one.
 
 Decks (`mc/deck/<file>`) are not synced. Nexus syncs a deck file's text
 as-is, but Cerebro's decks are a different JSON shape, so this would need a
@@ -92,10 +93,10 @@ Many of Cerebro's games exist nowhere else, so:
    replace whatever the server holds. Cerebro instead pulls everything first
    and compares:
    - Same text: the game is marked synced and nothing is sent.
-   - Different text on a `phoenix:` or `physical:` key (Phoenix's games): the
-     server's version is taken. The text held here is saved to `sync-conflicts/` first.
-   - Different text on any other key (`game:`, `mct:`, ...: Cerebro's own
-     games): Cerebro's text wins. It is sent with a fresh stamp, which beats
+   - Different text on a `phoenix:` key (Phoenix's games): the server's
+     version is taken. The text held here is saved to `sync-conflicts/` first.
+   - Different text on any other key (`game:`, `mct:`, `physical:` table
+     games, ...: Cerebro's own games): Cerebro's text wins. It is sent with a fresh stamp, which beats
      everything pulled, and the server's text is saved to `sync-conflicts/`.
      This also applies when the server holds a deletion of that game.
 
@@ -115,7 +116,10 @@ All of these sit beside the history database (`runtime/` on the NAS):
 | `nexus-sync-outbox.json` | stamped changes waiting to be sent |
 | `sync-conflicts/<key>.here-<time>.json` | a local text replaced by a pulled one |
 | `sync-conflicts/<key>.from-<device>-<stamp>.json` | a server text Cerebro's own game outranked on the first sync |
-| `sync-trash/<key>.deleted-<time>.json` | a game removed by a pulled deletion |
+| `sync-trash/<key>.deleted-<time>.json` | a game removed by a pulled deletion (kept indefinitely) |
+
+Files in `sync-conflicts/` older than 30 days are removed at the start of each
+sync; the server keeps every version (`/v1/revisions`) for recovery after that.
 | `statistics.pre-nexus-sync.sqlite3` | the one-time backup |
 
 To restore a game from one of these, read its text with `json.loads`, then

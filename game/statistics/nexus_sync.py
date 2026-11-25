@@ -14,8 +14,8 @@ Where Cerebro departs from it, on purpose:
 - Its history holds games that exist nowhere else, so its very first sync
   pulls before it queues anything. A game the server already has with the
   same text is simply marked synced. Where the texts differ, the game's
-  origin decides: `phoenix:` and `physical:` keys are Phoenix's, so the
-  server's text is taken; every other key is Cerebro's own, so Cerebro's text
+  origin decides: `phoenix:` keys are Phoenix's, so the server's text is
+  taken; every other key (`physical:` too) is Cerebro's own, so Cerebro's text
   is sent again with a fresh stamp and wins. The losing text is kept in
   `sync-conflicts/` either way. After that first sync the newest stamp wins,
   as everywhere else.
@@ -64,8 +64,9 @@ NEXUS_SYNC_SECRET = ConfigVariables.Str(
 
 GAME = 'mc'
 KIND = 'game'
-# Keys Phoenix made. Every other key is a game Cerebro recorded or imported.
-PHOENIX_ORIGIN = ('phoenix:', 'physical:')
+# Keys Phoenix made. Every other key, `physical:` table games included
+# (owner's decision, 2026-11-25), is a game Cerebro owns.
+PHOENIX_ORIGIN = ('phoenix:',)
 
 
 class SyncFailed(Exception):
@@ -101,6 +102,10 @@ class NexusSync:
     STATE_FILE = 'nexus-sync-state.json'
     OUTBOX_FILE = 'nexus-sync-outbox.json'
     CONFLICTS_FOLDER = 'sync-conflicts'
+    # Kept-aside conflict texts older than this are removed at each run (the
+    # server still holds every version under /v1/revisions). sync-trash/ is
+    # kept: deletions are rare.
+    CONFLICTS_KEEP_DAYS = 30
     TRASH_FOLDER = 'sync-trash'
     BACKUP_SUFFIX = '.pre-nexus-sync.sqlite3'
 
@@ -229,6 +234,7 @@ class NexusSync:
         self._load_state()
         if not self._state['server_id']:
             self._backup()
+        self._prune_conflicts()
         summary: Dict[str, Any] = {'pushed': 0, 'pulled': 0, 'unlocked': [], 'conflicts': 0}
         # Stamped before the server is asked, so a game played while it is
         # away is ordered by when it was played, however long it waits.
@@ -539,6 +545,27 @@ class NexusSync:
         except Exception as exc:
             raise SyncFailed(f'No sync without a backup first: {exc}') from exc
         Log.Info(CATEGORY_NAME, f'Nexus sync: history backed up to {target}')
+
+    def _prune_conflicts(self, now: float|None=None) -> int:
+        """Remove kept-aside conflict texts older than CONFLICTS_KEEP_DAYS."""
+        directory = self._path(self.CONFLICTS_FOLDER)
+        if not os.path.isdir(directory):
+            return 0
+        cutoff = (now if now is not None else time.time()) - self.CONFLICTS_KEEP_DAYS * 86400
+        removed = 0
+        for name in os.listdir(directory):
+            path = os.path.join(directory, name)
+            if not name.endswith('.json') or not os.path.isfile(path):
+                continue
+            try:
+                if os.path.getmtime(path) < cutoff:
+                    os.remove(path)
+                    removed += 1
+            except OSError:
+                continue
+        if removed:
+            Log.Info(CATEGORY_NAME, f'Nexus sync: removed {removed} conflict copies older than {self.CONFLICTS_KEEP_DAYS} days')
+        return removed
 
     def _keep_aside(self, folder: str, key: str, tag: str, text: str) -> str:
         """A game's text kept where nothing reads it, for recovery by hand."""

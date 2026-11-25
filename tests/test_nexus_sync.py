@@ -428,6 +428,62 @@ class NexusSyncTests(unittest.TestCase):
 
     # --- Phoenix's text ---------------------------------------------------------
 
+    def test_first_sync_keeps_cerebros_text_for_its_physical_games(self):
+        other_history, a_history = self.history('other'), self.history('a')
+        other_history._store_game(game('physical:t1', source='physical', notes='a stale copy'))
+        a_history._store_game(game('physical:t1', source='physical', notes='logged at the table'))
+        cerebro_text = a_history.SyncRows()['physical:t1']
+        other_text = other_history.SyncRows()['physical:t1']
+        self.assertTrue(self.client(other_history).Sync())
+        a = self.client(a_history)
+
+        self.assertTrue(a.Sync())
+
+        self.assertEqual(a.last_summary['pushed'], 1)
+        self.assertEqual(self.server_record('physical:t1')['body'], cerebro_text)
+        self.assertEqual(a_history.SyncRows()['physical:t1'], cerebro_text)
+        self.assertEqual(self.folder_texts(a, 'sync-conflicts'), [other_text])
+
+    def test_conflict_copies_older_than_30_days_are_removed(self):
+        a_history = self.history('a')
+        a = self.client(a_history)
+        self.assertTrue(a.Sync())
+        conflicts = Path(a.state_folder) / 'sync-conflicts'
+        trash = Path(a.state_folder) / 'sync-trash'
+        conflicts.mkdir(exist_ok=True)
+        trash.mkdir(exist_ok=True)
+        old, fresh, old_trash = conflicts / 'old.here-x.json', conflicts / 'fresh.here-x.json', trash / 'old.deleted-x.json'
+        for path in (old, fresh, old_trash):
+            path.write_text('{}', encoding='utf-8')
+        long_ago = time.time() - 31 * 86400
+        os.utime(old, (long_ago, long_ago))
+        os.utime(old_trash, (long_ago, long_ago))
+        os.utime(fresh, (time.time() - 29 * 86400,) * 2)
+
+        self.assertTrue(a.Sync())
+
+        self.assertFalse(old.exists())
+        self.assertTrue(fresh.exists())
+        self.assertTrue(old_trash.exists())
+
+    def test_a_pulled_game_never_takes_away_an_unlocked_achievement(self):
+        a_history, b_history = self.history('a'), self.history('b')
+        for day in range(1, 6):
+            a_history._store_game(game(f'game:w{day}', finished_at=f'2026-10-0{day}T20:00:00+00:00'))
+        self.assertIn('perfect_record', self.achievements(a_history))
+        a = self.client(a_history)
+        self.assertTrue(a.Sync())
+        b = self.client(b_history)
+        self.assertTrue(b.Sync())
+        b_history._store_game(game('game:loss', result='loss', finished_at='2026-10-09T20:00:00+00:00'))
+        self.assertTrue(b.Sync())
+
+        self.assertTrue(a.Sync())
+
+        self.assertIn('game:loss', a_history.SyncRows())
+        self.assertIn('perfect_record', self.achievements(a_history))
+        self.assertIn('perfect_record', self.achievements(b_history))
+
     def rich_history(self):
         """Games touching every column kind: NULLs, floats, seats, cards, Phoenix detail."""
         history = self.history('rich')
