@@ -194,7 +194,8 @@ class GameHistoryTests(unittest.TestCase):
             item for item in self.history.GetDashboard()['achievements']
             if item['id'] == 'core_set_conqueror'
         )
-        self.assertFalse(achievement['unlocked'])
+        # Unlocks are permanent: the correction lowers progress but keeps it.
+        self.assertTrue(achievement['unlocked'])
         self.assertEqual(achievement['progress'], 2)
 
         self.history.DeletePhysicalGame(game_ids[-1])

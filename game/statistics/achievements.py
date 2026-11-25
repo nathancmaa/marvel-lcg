@@ -190,11 +190,12 @@ class AchievementEvaluator:
         unlocked_game_id: int|None=None,
         unlocked_at: str|None=None,
     ) -> List[str]:
-        """Synchronize persisted unlocks with the current game history.
+        """Record every achievement the current game history earns.
 
-        Physical games can be corrected or deleted, so achievements cannot be
-        append-only. Existing valid unlock timestamps are preserved while
-        unlocks that are no longer earned are removed.
+        Unlocks are permanent (owner's decision, 2026-11-25): once earned, an
+        achievement stays unlocked with its original time, even if a later
+        game breaks the streak behind it or a corrected or deleted game no
+        longer supports it. Progress still reflects the current history.
         """
         progress = cls.Progress(connection)
         earned = {
@@ -208,14 +209,6 @@ class AchievementEvaluator:
                 'SELECT achievement_id FROM achievements'
             ).fetchall()
         }
-
-        removed = existing - earned
-        if removed:
-            placeholders = ','.join('?' for _ in removed)
-            connection.execute(
-                f'DELETE FROM achievements WHERE achievement_id IN ({placeholders})',
-                tuple(sorted(removed)),
-            )
 
         timestamp = unlocked_at or datetime.now(timezone.utc).isoformat()
         unlocked: List[str] = []
