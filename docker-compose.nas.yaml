@@ -11,6 +11,15 @@ services:
       - /volume1/docker/marvelchampions/replays:/app/replays
       - /volume1/docker/marvelchampions/runtime:/app/runtime
       - /volume1/docker/marvelchampions/deck/user-decks:/app/deck/user-decks
+    environment:
+      # Nexus sync of the play history (docs/nexus-sync.md). Both empty, as
+      # they are unless set in Portainer's stack environment or a .env file,
+      # means no sync at all. Address is the Nexus sync server's IP:port, e.g.
+      # 10.1.2.250:8781; the secret is that server's NEXUS_SYNC_SECRET. State,
+      # sync-conflicts/ and the pre-sync backup go beside the history in
+      # ./runtime.
+      NEXUS_SYNC_ADDRESS: ${NEXUS_SYNC_ADDRESS-}
+      NEXUS_SYNC_SECRET: ${NEXUS_SYNC_SECRET-}
     command: ["python", "-u", "main.py", "-game_statistics_file", "./runtime/statistics.json", "-game_history_file", "./runtime/statistics.sqlite3", "-campaign_progress_file", "./runtime/save_campaign_progress.json", "-active_session_file", "./runtime/save_active_session.json", "-quick_save_folder", "./runtime"]
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; r=urllib.request.urlopen('http://127.0.0.1:2345/',timeout=5); r.close()"]
