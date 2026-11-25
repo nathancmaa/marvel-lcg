@@ -4,6 +4,7 @@ from engine.device.manager import DeviceManager
 from game import *
 from game.statistics.game_statistics import GameStatistics
 from game.statistics.game_history import GameHistory
+from game.statistics.nexus_sync import NexusSync
 from game.statistics.replay_outcome_analyzer import ReplayOutcomeAnalyzer
 from build import Build
 from engine.log import Log
@@ -35,6 +36,7 @@ class Engine:
     game: 'Game'
     statistics: 'GameStatistics'
     game_history: 'GameHistory'
+    nexus_sync: 'NexusSync|None' = None
 
     has_crashed = False
     in_unit_test = False
@@ -102,6 +104,11 @@ class Engine:
             Engine.game_history.Initialize(
                 ReplayOutcomeAnalyzer(Engine.statistics),
             )
+            # None unless both NEXUS_SYNC_ADDRESS and NEXUS_SYNC_SECRET are set.
+            Engine.nexus_sync = NexusSync.FromConfig(Engine.game_history)
+            if Engine.nexus_sync:
+                Engine.game_history.on_change = Engine.nexus_sync.Request
+                Engine.nexus_sync.Start()
 
             device = DeviceManager
             if DEVICE.value == "web":
@@ -157,6 +164,8 @@ class Engine:
     def Shutdown():
         Log.Print("\n--- Engine Shutdown ---")
         Engine.game.Shutdown()
+        if Engine.nexus_sync:
+            Engine.nexus_sync.Stop()
         Engine.game_history.Close()
 
         if EDITOR.value:
