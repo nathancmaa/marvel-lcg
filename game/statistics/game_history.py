@@ -8,7 +8,7 @@ import os
 import re
 import sqlite3
 import threading
-from typing import Any, Dict, Iterator, List, TYPE_CHECKING
+from typing import Any, Callable, Dict, Iterator, List, TYPE_CHECKING
 import uuid
 
 from core.lib import Time
@@ -29,6 +29,31 @@ GAME_HISTORY_FILE = ConfigVariables.File(
     './statistics.sqlite3',
 )
 REPLAY_FOLDERS = ConfigVariables.Folders('replay_folders', ['./replays/'])
+
+# The `games` columns a synced game carries, in Phoenix's order
+# (GAME_COLUMNS in crates/mc-history/src/lib.rs). Cerebro's own
+# imported_from_replay and replay_analysis_* stay out: Phoenix has nothing
+# to put in them, and a column only one side writes would make the same game
+# read as two different texts.
+SYNC_COLUMNS = (
+    'source_key', 'finished_at', 'imported_at', 'engine_version',
+    'rules_version', 'hero_code', 'hero_name', 'villain_code', 'villain_name',
+    'scenario_name', 'scenario_key', 'expert', 'heroic', 'result',
+    'game_over_reason', 'rounds', 'playtime_seconds', 'seed', 'campaign_id',
+    'game_mode', 'deck_name', 'deck_source', 'remaining_hit_points',
+    'minions_in_play', 'side_schemes_in_play', 'undo_count', 'replay_file',
+    'source', 'notes', 'hero_rating', 'scenario_rating', 'is_service',
+)
+
+
+def SyncText(row: Dict[str, Any]) -> str:
+    """serde_json's text for a row with sorted keys: no spaces, non-ASCII as is.
+
+    The same game must read as the same bytes in Cerebro and in Phoenix, or
+    every sync sends it again. Floats go through Python's repr, which agrees
+    with Rust's except outside 1e-5..1e16, where no playing time falls.
+    """
+    return json.dumps(row, sort_keys=True, separators=(',', ':'), ensure_ascii=False)
 
 
 def _label_heroes(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -64,6 +89,9 @@ class GameHistory:
         self.enabled = GAME_HISTORY.value
         self.available = False
         self._lock = threading.RLock()
+        # Told when a played game is recorded (the Nexus sync asks for a run).
+        # Must not block: it is called from the game loop.
+        self.on_change: Callable[[], None]|None = None
 
     @contextmanager
     def _connect(self) -> Iterator[sqlite3.Connection]:
@@ -401,6 +429,21 @@ class GameHistory:
             )
             connection.execute('PRAGMA user_version = 8')
 
+        # Phoenix's detail for a game (crates/mc-history, also schema 8).
+        # Kept here only so a game that arrives through the Nexus sync with
+        # it reads back as the same text; nothing in Cerebro writes it. Part
+        # of version 8 as Phoenix defines it, so no version bump: Phoenix
+        # refuses a history newer than it knows.
+        connection.execute(
+            '''
+            CREATE TABLE IF NOT EXISTS phoenix_performance (
+                game_id INTEGER PRIMARY KEY
+                    REFERENCES games(id) ON DELETE CASCADE,
+                data TEXT NOT NULL
+            )
+            '''
+        )
+
     @staticmethod
     def HeroicLevel(rules: Any) -> int:
         """The Heroic level a set of scene rules describes, or 0 for none.
@@ -650,7 +693,10 @@ class GameHistory:
         if not self._should_record_live_game(game):
             return []
         record = self._live_record(game)
-        return self._store_game(record, self._live_card_statistics(game))['unlocked']
+        stored = self._store_game(record, self._live_card_statistics(game))
+        if (stored['inserted'] or stored['updated']) and self.on_change:
+            self.on_change()
+        return stored['unlocked']
 
     def _store_game(
         self,
@@ -1400,6 +1446,211 @@ class GameHistory:
             else:
                 skipped += 1
         return {'imported': imported, 'skipped': skipped}
+
+    @staticmethod
+    def _sync_row(connection: sqlite3.Connection, record: sqlite3.Row) -> Dict[str, Any]:
+        """One game as Phoenix's `export_since` row (see SYNC_COLUMNS)."""
+        game_id = int(record['id'])
+        row: Dict[str, Any] = {
+            column: None if isinstance(record[column], bytes) else record[column]
+            for column in SYNC_COLUMNS
+        }
+        row['players'] = [
+            {
+                'seat': seat['seat'],
+                'hero_code': seat['hero_code'],
+                'hero_name': seat['hero_name'],
+                'deck_name': seat['deck_name'],
+                'deck_source': seat['deck_source'],
+            }
+            for seat in connection.execute(
+                'SELECT seat, hero_code, hero_name, deck_name, deck_source '
+                'FROM game_players WHERE game_id = ? ORDER BY seat',
+                (game_id,),
+            ).fetchall()
+        ]
+        row['card_statistics'] = [
+            {key: card[key] for key in card.keys()}
+            for card in connection.execute(
+                'SELECT card_id, card_name, damage_dealt, damage_taken, '
+                'thwarted_threat, entered_play FROM game_card_statistics '
+                'WHERE game_id = ? ORDER BY card_id',
+                (game_id,),
+            ).fetchall()
+        ]
+        performance = connection.execute(
+            'SELECT data FROM phoenix_performance WHERE game_id = ?',
+            (game_id,),
+        ).fetchone()
+        if performance is not None:
+            try:
+                row['performance'] = json.loads(performance['data'])
+            except (TypeError, ValueError):
+                pass
+        return row
+
+    def SyncRows(self) -> Dict[str, str]:
+        """Every game as {source_key: text} for the Nexus sync.
+
+        The text is Phoenix's `History::sync_rows` for the same row, byte for
+        byte: one game reads the same on every device, so a sync only sends
+        what actually changed.
+        """
+        if not self.available:
+            return {}
+        with self._lock, self._connect() as connection:
+            records = connection.execute(
+                f'SELECT id, {", ".join(SYNC_COLUMNS)} FROM games '
+                "WHERE finished_at > '' ORDER BY finished_at"
+            ).fetchall()
+            return {
+                str(record['source_key']): SyncText(self._sync_row(connection, record))
+                for record in records
+            }
+
+    @staticmethod
+    def _sync_value(value: Any) -> Any:
+        """A JSON value as the column value Phoenix's `insert_rows` stores."""
+        if isinstance(value, bool):
+            return int(value)
+        if isinstance(value, int):
+            return value if -2 ** 63 <= value < 2 ** 63 else float(value)
+        if isinstance(value, (float, str)):
+            return value
+        return None
+
+    def ApplySync(
+        self,
+        rows: List[Dict[str, Any]],
+        deletes: List[str],
+    ) -> Dict[str, Any]:
+        """Other devices' versions of games, in one transaction.
+
+        Each row replaces the game with its `source_key` or is added, as
+        Phoenix's `apply_sync` does; each key in `deletes` is removed; then
+        the achievements are brought up to date. A replaced game keeps its id
+        and Cerebro's own replay columns, so an achievement it unlocked still
+        points at it. A column the row leaves null takes the table's default,
+        as an insert that leaves it out would.
+
+        A row the table refuses (a result it doesn't know, say) is left out
+        rather than failing the rest: `rejected` names it, and the caller
+        doesn't count it as held.
+        """
+        if not self.available:
+            raise RuntimeError('Game history is unavailable.')
+        changed = 0
+        rejected: List[str] = []
+        now = self._now()
+        with self._lock, self._connect() as connection:
+            # Opened here, so the per-row savepoints nest inside one
+            # transaction instead of each committing on its release.
+            connection.execute('BEGIN')
+            for row in rows:
+                present = {
+                    column: self._sync_value(row.get(column))
+                    for column in SYNC_COLUMNS
+                    if self._sync_value(row.get(column)) is not None
+                }
+                if not isinstance(present.get('source_key'), str) or \
+                        'finished_at' not in present:
+                    rejected.append(str(row.get('source_key', '')))
+                    continue
+                present.setdefault('imported_at', now)
+                connection.execute('SAVEPOINT sync_row')
+                try:
+                    self._apply_sync_row(connection, row, present)
+                except sqlite3.Error as exc:
+                    connection.execute('ROLLBACK TO sync_row')
+                    Log.Warn(CATEGORY_NAME, f'Synced game {present["source_key"]} refused: {exc}')
+                    rejected.append(present['source_key'])
+                    continue
+                finally:
+                    connection.execute('RELEASE sync_row')
+                changed += 1
+            for key in deletes:
+                changed += connection.execute(
+                    'DELETE FROM games WHERE source_key = ?', (key,),
+                ).rowcount
+            unlocked = AchievementEvaluator.Recalculate(connection, None, now) if changed else []
+        return {'changed': changed, 'unlocked': unlocked, 'rejected': rejected}
+
+    @classmethod
+    def _apply_sync_row(
+        cls,
+        connection: sqlite3.Connection,
+        row: Dict[str, Any],
+        present: Dict[str, Any],
+    ) -> None:
+        """One synced row in place of its game, with its seats and cards."""
+        names = list(present)
+        connection.execute(
+            f'INSERT INTO games ({", ".join(names)}) '
+            f'VALUES ({", ".join("?" for _ in names)}) '
+            'ON CONFLICT (source_key) DO UPDATE SET '
+            + ', '.join(f'{column} = excluded.{column}' for column in SYNC_COLUMNS),
+            tuple(present.values()),
+        )
+        game_id = int(connection.execute(
+            'SELECT id FROM games WHERE source_key = ?',
+            (present['source_key'],),
+        ).fetchone()['id'])
+        for table in ('game_players', 'game_card_statistics', 'phoenix_performance'):
+            connection.execute(f'DELETE FROM {table} WHERE game_id = ?', (game_id,))
+
+        def text(item: Any, key: str) -> str:
+            value = item.get(key) if isinstance(item, dict) else None
+            return value if isinstance(value, str) else ''
+
+        def number(item: Any, key: str, default: int=0) -> int:
+            value = item.get(key) if isinstance(item, dict) else None
+            if isinstance(value, bool) or not isinstance(value, int):
+                return default
+            return value
+
+        cards = row.get('card_statistics')
+        connection.executemany(
+            'INSERT OR IGNORE INTO game_card_statistics '
+            '(game_id, card_id, card_name, damage_dealt, damage_taken, '
+            'thwarted_threat, entered_play) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [
+                (
+                    game_id, text(card, 'card_id'), text(card, 'card_name'),
+                    number(card, 'damage_dealt'), number(card, 'damage_taken'),
+                    number(card, 'thwarted_threat'), number(card, 'entered_play'),
+                )
+                for card in (cards if isinstance(cards, list) else [])
+            ],
+        )
+        performance = row.get('performance')
+        if isinstance(performance, dict):
+            connection.execute(
+                'INSERT INTO phoenix_performance (game_id, data) VALUES (?, ?)',
+                (game_id, SyncText(performance)),
+            )
+        seats = row.get('players')
+        connection.executemany(
+            'INSERT OR IGNORE INTO game_players '
+            '(game_id, seat, hero_code, hero_name, deck_name, deck_source) '
+            'VALUES (?, ?, ?, ?, ?, ?)',
+            [
+                (
+                    game_id, number(seat, 'seat', index),
+                    text(seat, 'hero_code'), text(seat, 'hero_name'),
+                    text(seat, 'deck_name'), text(seat, 'deck_source'),
+                )
+                for index, seat in enumerate(seats if isinstance(seats, list) else [])
+            ],
+        )
+
+    def BackupTo(self, file_path: str) -> None:
+        """A consistent copy of the whole history, taken while it is in use."""
+        with self._lock, self._connect() as connection:
+            target = sqlite3.connect(file_path)
+            try:
+                connection.backup(target)
+            finally:
+                target.close()
 
     def GetMatchupCounts(self, source: str = 'all') -> List[Dict[str, Any]]:
         """Games grouped by which hero met which scenario.
